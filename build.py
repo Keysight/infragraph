@@ -2,7 +2,6 @@
 The following command produces these artifacts:
     - ./artifacts/openapi.yaml
     - ./artifacts/openapi.json
-    - ./artifacts/openapi.html
 """
 
 import subprocess
@@ -15,4 +14,3 @@ openapiart.OpenApiArt(
     generate_version_api=False,
 ).GeneratePythonSdk(package_name="infra")
 
-subprocess.call(["redocly", "build-docs", "./artifacts/openapi.yaml", "-o", "./artifacts/openapi.html"])
