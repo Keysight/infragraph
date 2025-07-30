@@ -1,4 +1,4 @@
-# GRAPHIT - GRAph Based Infrastructure
+# GRAPHIT - GRAph Based InfrasTructure
 
 Graph based infrastructure defines a [model-driven, vendor-neutral, standard
 interface](https://keysight.github.io/graphit/openapi.html) for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
