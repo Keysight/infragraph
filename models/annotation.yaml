@@ -1,0 +1,80 @@
+components:
+  schemas:
+    Annotation.Json:
+      type: object
+      properties:
+        description:
+          type: string
+          x-field-uid: 1
+        data:
+          description: |-
+            A json object serialized as a string.
+          type: string
+          x-field-uid: 2
+
+    Annotation.Yaml:
+      type: object
+      properties:
+        description:
+          type: string
+          x-field-uid: 1
+        data:
+          description: |-
+            A yaml object serialized as a string.
+          type: string
+          x-field-uid: 2
+
+    Annotation.Protobuf:
+      type: object
+      properties:
+        description:
+          type: string
+          x-field-uid: 1
+        data:
+          description: |-
+            A protobuf object serialized as a binary string.
+          type: string
+          x-format: binary
+          x-field-uid: 2
+
+    Annotation:
+      description: |-
+        A way to associate any kind of additional information to a logical endpoint.
+        This allows for structured messages such as openconfig configuration information instances to be
+        linked to a specific component, device instance etc.
+      type: object
+      properties:
+        endpoint:
+          description: |-
+            A logical endpoint can be formed using the defined constraints and MUST be validated that
+            they exist in the Infrastructure message:
+            - `Device.properties.name`
+            - `Device.properties.name`.`Component.properties.name`
+            - `Device.Instance.properties.name`.`device index`
+            - `Device.Instance.properties.name`.`device index`.`Component.properties.name`.`component index`
+            - `Device.properties.name`.`Device.properties.links`
+            - `Infrastructure.properties.links`
+            - `Infrastructure.properties.name`
+          type: string
+          x-field-uid: 1
+        choice:
+          description: |-
+            Type of annotation data.
+          type: string
+          x-field-uid: 2
+          x-enum:
+            json:
+              x-field-uid: 1
+            yaml:
+              x-field-uid: 2
+            protobuf:
+              x-field-uid: 3
+        json:
+          $ref: "#/components/schemas/Annotation.Json"
+          x-field-uid: 3
+        yaml:
+          $ref: "#/components/schemas/Annotation.Yaml"
+          x-field-uid: 4
+        protobuf:
+          $ref: "#/components/schemas/Annotation.Protobuf"
+          x-field-uid: 5

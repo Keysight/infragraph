@@ -1,0 +1,65 @@
+components:
+  schemas:
+    Infrastructure:
+      type: object
+      properties:
+        name:
+          description: |-
+            The name of the infrastructure being described.
+          x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
+          x-field-uid: 1
+        description:
+          description: |-
+            A description of the infrastructure being described.
+          type: string
+          x-field-uid: 2
+        devices:
+          description: |-
+            An inventory of the devices present in the infrastructure instances.
+          type: array
+          items:
+            $ref: './device.yaml#/components/schemas/Device'
+          x-field-uid: 3
+        instances:
+          description: |-
+            An inventory of the device instances that are part of the infrastructure connections property.
+          type: array
+          items:
+            $ref: './instances.yaml#/components/schemas/Device.Instance'
+          x-field-uid: 4
+        links:
+          description: |-
+            An inventory of the links that are part of the infrastructure connections property.
+          type: array
+          items:
+            $ref: "./link.yaml#/components/schemas/Link"
+          x-field-uid: 5
+        connections:
+          description: |-
+            Connections define the graph with each connection consisting of the following criteria in a string separated by dots:
+            - `Device.Instance.property.name` e.g., host
+            - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
+            - `Component.property.name` where `Component.property.external` is true e.g., nic
+            - a 0 based index that is less than `Component.property.count` e.g., 0
+            - `Infrastructure.properties.links.property.name`
+            - `Device.Instance.property.name` e.g., leafsw
+            - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
+            - `Component.property.name` where `Component.property.external` is true e.g., port
+            - a 0 based index that is less than `Component.property.count` e.g., 0
+
+            The example pieces are concatenated using a dot notation and would form the following connection string `host.0.nic.0.eth.leafsw.0.port.0`.
+          type: array
+          items:
+            type: string
+          x-field-uid: 6
+        annotations:
+          description: |-
+            Annotations are meant to be used to correlate static and/or dynamic information
+            (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
+
+            Examples:
+            - host.0.nic.0 can be associated with detailed nic configuration attributes that are outside of the scope of this schema.
+          type: array
+          items:
+            $ref: './annotation.yaml#/components/schemas/Annotation'
+          x-field-uid: 7
