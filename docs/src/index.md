@@ -1,24 +1,20 @@
-<p align=right><img src="images/infra_logo.svg" width="50"></p>
-<!-- ![Image description](images/infra_logo.svg) -->
-
-# Describing Cluster Infrastructure as a Graph
+# Overview
 
 Modern AI systems, comprising diverse scale-up and scale-out interconnect topologies that integrate complex heterogeneous components, connected together via diverse means, face a lack of standardized overall infrastructure description, all which hinders benchmarking, simulation, and emulation.
 
-## Introducing GRAPH based InfrasTructure (GraphIt)
-[GraphIt](https://github.com/Keysight/graphit) is an OpenAPI schema used to describe AI/HPC infrastructure and is based on the following core principles:
-- logical infrastructure can be described with graph concepts such as vertexes and edges
-  - vertexes are devices
-  - edges are connections
-  - paths are a collections of connections
-- there is a difference between logical infrastructure and physical definition
-- logical infrastructure is composable
-- logical infrastructure is loosely coupled to physical definitions
-- logical infrastructure needs to be scalable without duplicating content
-- use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to easily create declarative APIs and Models
-  - auto-generates the following artifacts:
-    - fluent Go and Python REST/Protobuf SDKs based on the APIs and Models
-    - redocly API and Models documentation
+## Introducing GRAPHIT (Graph based Infrastructure)
+[GraphIt](https://github.com/Keysight/graphit) is a schema used to describe AI/HPC infrastructure and is based on the following core principles:
+* logical infrastructure can be described using graph concepts such as vertexes and edges
+  * vertexes are devices
+  * edges are connections
+  * paths are a collections of connections
+* there is a difference between logical infrastructure and physical definition
+* logical infrastructure should be composable
+* logical infrastructure is loosely coupled to physical definitions
+* due to the possible scale of AI/HPC deployments, logical infrastructure needs to be scalable without duplicating content
+* use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to create declarative APIs and Models and auto-generate the following artifacts:
+  * Fluent [Go and Python REST/Protobuf SDKs](https://github.com/Keysight/graphit/releases)
+  * [Redocly API and Models documentation](openapi.html)
 
 
 ## [Features](model.md)
