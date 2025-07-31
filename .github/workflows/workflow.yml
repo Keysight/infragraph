@@ -62,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit openapi.yaml and infra.proto
+      - name: Commit generated artifacts
         if: github.event_name != 'pull_request'
         id: commit_generated
         run: |

@@ -4,7 +4,6 @@ The following command produces these artifacts:
     - ./artifacts/openapi.json
 """
 
-import subprocess
 import openapiart
 
 openapiart.OpenApiArt(
