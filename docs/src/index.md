@@ -4,6 +4,7 @@ Modern AI systems, comprising diverse scale-up and scale-out interconnect topolo
 
 ## Introducing GRAPHIT (Graph based Infrastructure)
 [GraphIt](https://github.com/Keysight/graphit) is a schema used to describe AI/HPC infrastructure and is based on the following core principles:
+
 * logical infrastructure can be described using graph concepts such as vertexes and edges
   * vertexes are devices
   * edges are connections
@@ -12,9 +13,9 @@ Modern AI systems, comprising diverse scale-up and scale-out interconnect topolo
 * logical infrastructure should be composable
 * logical infrastructure is loosely coupled to physical definitions
 * due to the possible scale of AI/HPC deployments, logical infrastructure needs to be scalable without duplicating content
-* use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to create declarative APIs and Models and auto-generate the following artifacts:
-  * Fluent [Go and Python REST/Protobuf SDKs](https://github.com/Keysight/graphit/releases)
-  * [Redocly API and Models documentation](openapi.html)
+* use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to create declarative APIs and Models and optionally auto-generate the following artifacts:
+  * [Redocly documentation](openapi.html) of APIs and Models
+  * Fluent Python/Go SDKs over REST/Protobuf transports
 
 
 ## [Features](model.md)
