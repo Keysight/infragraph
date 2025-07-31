@@ -1,16 +1,25 @@
-# Home
-
-<p align=center><img src="images/infra_logo.svg" width="300"></p>
+<p align=right><img src="images/infra_logo.svg" width="50"></p>
+<!-- ![Image description](images/infra_logo.svg) -->
 
 # Describing Cluster Infrastructure as a Graph
 
-Modern AI systems, comprising diverse scale-up and scale-out interconnect topologies that integrate complex heterogeneous components, connected together via diverse means, face a lack of standardized overall infrastructure description. This hinders benchmarking, simulation, and emulation. [infra.proto](https://github.com/Keysight/infrastructure/blob/readme-refactor/keysight_chakra/infra/infra.proto) introduces a graph-based schema to describe AI/HPC infrastructure.
+Modern AI systems, comprising diverse scale-up and scale-out interconnect topologies that integrate complex heterogeneous components, connected together via diverse means, face a lack of standardized overall infrastructure description, all which hinders benchmarking, simulation, and emulation.
 
-To create an infrastructure as a graph one can use messages from [infra.proto](https://github.com/Keysight/infrastructure/blob/readme-refactor/keysight_chakra/infra/infra.proto). The messages allow a user to easily create logical infrastructure as vertexes and edges. This can be scale up further to describe a massive infrastructure without duplicating content.
+## Introducing GRAPH based InfrasTructure (GraphIt)
+[GraphIt](https://github.com/Keysight/graphit) is an OpenAPI schema used to describe AI/HPC infrastructure and is based on the following core principles:
+- logical infrastructure can be described with graph concepts such as vertexes and edges
+  - vertexes are devices
+  - edges are connections
+  - paths are a collections of connections
+- there is a difference between logical infrastructure and physical definition
+- logical infrastructure is composable
+- logical infrastructure is loosely coupled to physical definitions
+- logical infrastructure needs to be scalable without duplicating content
+- use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to easily create declarative APIs and Models
+  - auto-generates the following artifacts:
+    - fluent Go and Python REST/Protobuf SDKs based on the APIs and Models
+    - redocly API and Models documentation
 
-[infra.proto](https://github.com/Keysight/infrastructure/blob/readme-refactor/keysight_chakra/infra/infra.proto) is a Protocol Buffers (Protobuf) message that serves as the core data model for defining and designing the infrastructure. Protobuf is a schema-based, strongly typed format that models data as messages with defined fields and types in a .proto file. This schema enables efficient serialization and deserialization of structured data.
-
-While Protobuf itself uses a compact binary format, protobuf data can be converted to human-readable formats like JSON and YAML for easier inspection, configuration, and integration with text-based tools. This README uses YAML for its readability and suitability for configuration and data serialization tasks. YAML's clear syntax for nested structures and lists complements the Protobuf-defined data model.
 
 ## [Features](model.md)
 
