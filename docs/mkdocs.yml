@@ -37,7 +37,7 @@ nav:
   - Building A Cluster: create.md
   - Extending The Cluster:
     - Overview: annotate.md
-  - API Specification: https://github.com/Keysight/graphit/blob/main/artifacts/openapi.html
+  - API Specification: openapi.html
   # - Validation: validation.md
   # - Examples:
   #   - Overview: examples.md
