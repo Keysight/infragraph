@@ -1,0 +1,65 @@
+components:
+  schemas:
+    Device:
+      description: |-
+        A subgraph container for a device and its components, links and connections.
+        The connections form a subgraph.
+
+        e.g., Describe a switch device in detail.
+
+        At a simple level a switch has an asic and ports.
+        The asic can be made up of of core, mem, crypt, alu, dsp, pll, ics (interconnect structure), iop (i/o pad).
+        The Device can capture just the asic and ports connected by an integrated circuit or
+        the asic can be broken down into more discrete components.
+
+        Simple Approach: asic, cpu, port, ic
+        Detailed Approach: cpu, core, mem, alu, pll, iop, ic, port
+
+        name: arista
+        description: |-
+          The Arista is a network switch platform,
+          commonly equipped with 48 x 1G Ethernet ports and 4 x 10G uplink ports,
+          typically implemented using a Jericho2 ASIC
+        components: [core, mem, crypt, alu, iop, port]
+        links: [ics]
+        connections:
+            - core.0.ics.mem.0
+            - core.0.ics.crypt.0
+            - core.0.ics.alu.0
+            - core.0.ics.iop.0
+            - core.0.ics.iop.47
+            - iop.0.ics.port.0
+            ...
+            - iop.47.ics.port.47
+
+        - to traverse from the core asic to a port, multiple connections are used to form a path
+          - core.0.ics.iop.0.ics.port.0
+
+      type: object
+      properties:
+        name:
+          x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
+          x-field-uid: 1
+        components:
+          type: array
+          items:
+            $ref: "./component.yaml#/components/schemas/Component"
+          x-field-uid: 2
+        links:
+          description: |-
+            All the links that make up this device.
+          type: array
+          items:
+            $ref: "./link.yaml#/components/schemas/Link"
+          x-field-uid: 3
+        connections:
+          description: |-
+            All the connections that make up this device.
+            Connections are of the form `component.name.index`.`link.name`.`component.name.index`
+            This allows components to be connected to whatever depth is needed.
+          type: array
+          items:
+            type: string
+          x-field-uid: 4
+
+

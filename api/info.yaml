@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Infrastructure as a Graph
+  description: |-
+    ### Overview
+    Infrastructure as a Graph defines a model-driven, vendor-neutral, standard
+    interface for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
+
+    This model allows for defining physical infrastructure as a logical system of systems using graph like terminology.
+    In addition to defining a logical graph, an unlimited number of different physical characteristics
+    can be associated with logical endpoints.
+
+    ### Graph Terminology
+    - `vertex` is the fundamental unit or entity within a graph; represented as a point. In this model it is one of the following:
+      - a combination of a component name and a 0 based index such as `asic.0`
+      - a device instance name, a 0 based index, an external component and a 0 based index such as `host.0.nic.0`.
+    - `edge` is a connection between two vertices in a graph. It can be a connection between two component instances or two device instances. The connection also includes a logical label for identifying the type of link between the two vertexes, for example `asic.0`.`ic`.`port.0`
+    - `path` is a sequence of connections that allows for traversal through the graph
+
+    ### Contributions
+    Contributions to the API and models schema can be made in the following ways:
+    - [open an issue](https://github.com/infrasrtucture/issues) in the models repository
+    - [fork the models repository](https://github.com/infrastructure) and submit a PR
+  version: 0.1.0
+  contact:
+    url: https://github.com/ajbalogh/infrastructure
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  x-model-guide: https://github.com/ajbalogh/infrastructure/blob/master/MODEL-GUIDE.md
+servers:
+- url: /
+paths: {}
