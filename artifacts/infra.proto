@@ -136,8 +136,9 @@ message Device {
   repeated string connections = 4;
 }
 
-// A container for describing a single component.
+// A container for describing a component.
 // A Component is contained in a Device.
+// A Component can be composed of sub components by using the components property.
 message Component {
 
   // Globally unique name of an object. It also serves as the primary key for arrays of
@@ -167,6 +168,12 @@ message Component {
   // connection.
   // default = False
   optional bool external = 4;
+
+  // Indicates whether this component is an ingress/egress component in a device.
+  // Only those components that have this property set to true can be used in an infrastructure
+  // connection.
+  // default = False
+  repeated Component components = 5;
 }
 
 // A container for specific Link physical Properties.

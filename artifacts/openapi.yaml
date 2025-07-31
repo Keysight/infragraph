@@ -202,8 +202,9 @@ components:
           x-field-uid: 4
     Component:
       description: |-
-        A container for describing a single component.
+        A container for describing a component.
         A Component is contained in a Device.
+        A Component can be composed of sub components by using the components property.
       type: object
       required:
       - name
@@ -248,6 +249,15 @@ components:
           type: boolean
           default: false
           x-field-uid: 4
+        components:
+          description: |-
+            Indicates whether this component is an ingress/egress component in a device.
+            Only those components that have this property set to true can be used in an infrastructure connection.
+          type: array
+          items:
+            $ref: '#/components/schemas/Component'
+          default: false
+          x-field-uid: 5
     Link.Physical.Bandwidth:
       description: |-
         A container for specific Link physical Properties.
