@@ -48,7 +48,7 @@ jobs:
       - name: Generate Doc from openapi.yaml
         uses: seeebiii/redoc-cli-github-action@v10
         with:
-          args: 'bundle artifacts/openapi.yaml -o docs/openapi.html'
+          args: 'bundle artifacts/openapi.yaml -o artifacts/openapi.html'
 
       - name: Get version
         id: get_version
@@ -71,7 +71,7 @@ jobs:
           git config user.email "actions@github.com"
           git add --force artifacts/openapi.yaml
           git add --force artifacts/infra.proto
-          git add --force docs/openapi.html
+          git add --force artifacts/openapi.html
           if git status --porcelain | grep .
             then
               git commit -m "Update auto generated content"
@@ -85,8 +85,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "Release ${{ steps.get_version.outputs.version }}"
-          body: "View openapi.yaml spec at https://keysight.github.io/graphit/openapi.html"
-          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infra.proto
+          body: "View the openapi.yaml spec at https://keysight.github.io/graphit"
+          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infra.proto,artifacts/openapi.html
           tag: ${{ steps.get_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 

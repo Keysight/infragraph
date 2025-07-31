@@ -1,4 +1,4 @@
-site_name: Cluster Infrastructure As A Graph
+site_name: Graph Based Infrastructure
 repo_url: https://github.com/Keysight/graphit
 repo_name: graphit
 edit_uri: ""
@@ -37,6 +37,7 @@ nav:
   - Building A Cluster: create.md
   - Extending The Cluster:
     - Overview: annotate.md
+  - API Specification: https://github.com/Keysight/graphit/artifacts/openapi.html
   # - Validation: validation.md
   # - Examples:
   #   - Overview: examples.md
