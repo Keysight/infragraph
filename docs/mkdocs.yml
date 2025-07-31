@@ -2,6 +2,7 @@ site_name: Cluster Infrastructure As A Graph
 repo_url: https://github.com/Keysight/graphit
 repo_name: graphit
 edit_uri: ""
+docs_dir: src
 theme:
   name: material
   logo: images/infra_logo_favicon.png

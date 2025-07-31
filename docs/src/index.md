@@ -14,7 +14,7 @@ While Protobuf itself uses a compact binary format, protobuf data can be convert
 
 ## [Features](model.md)
 
-Cluster Infrastructure as a graph is an actively developed specification, with contributions from real [use cases](/examples/#use-cases). The model defines the following components to define a infrastructure:
+Cluster Infrastructure as a graph is an actively developed specification, with contributions from real [use cases](examples.md). The model defines the following components to define a infrastructure:
 <!-- TODO add links from bold items to paragraphs in Model section -->
 * **Device** definitions with ability to model its internals as a graph
 * **Device Components** allowing users to define the device internal components like:
@@ -44,4 +44,4 @@ This section provides a comprehensive guide on how a user can annotate various p
 
 Use our community resources to get help with Infrastructure As A Graph:
 
-* [Infrastructure As A Graph on Github](https://github.com/Keysight/infrastructure)
+* [Infrastructure As A Graph on Github](https://github.com/Keysight/graphit)
