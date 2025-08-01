@@ -169,9 +169,7 @@ message Component {
   // default = False
   optional bool external = 4;
 
-  // Indicates whether this component is an ingress/egress component in a device.
-  // Only those components that have this property set to true can be used in an infrastructure
-  // connection.
+  // This recursive property allows for a component to be described in more detail.
   // default = False
   repeated Component components = 5;
 }
