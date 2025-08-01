@@ -1,4 +1,4 @@
-# Overview
+## Overview
 
 Modern AI systems, comprising diverse scale-up and scale-out interconnect topologies that integrate complex heterogeneous components, connected together via diverse means, face a lack of standardized overall infrastructure description, all which hinders benchmarking, simulation, and emulation.
 
@@ -6,9 +6,9 @@ Modern AI systems, comprising diverse scale-up and scale-out interconnect topolo
 [GraphIt](https://github.com/Keysight/graphit) is a schema used to describe AI/HPC infrastructure and is based on the following core principles:
 
 * logical infrastructure can be described using graph concepts such as vertexes and edges
-    * vertexes are devices
-    * edges are connections
-    * paths are a collections of connections
+    * vertexes are device instances
+    * an edge is 2 device instances separated by a link
+    * a path is a collection of connections
 * there is a difference between logical infrastructure and physical definition
 * logical infrastructure should be composable
 * logical infrastructure is loosely coupled to physical definitions

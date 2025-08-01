@@ -23,6 +23,8 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+plugins:
+  - include-markdown # https://github.com/mondeja/mkdocs-include-markdown-plugin
 extra:
   analytics:
     provider: google
@@ -37,8 +39,7 @@ nav:
   - Building A Cluster: create.md
   - Extending The Cluster:
     - Overview: annotate.md
-  - API Specification: openapi.html
-  # - Validation: validation.md
-  # - Examples:
-  #   - Overview: examples.md
+  - Validation: validation.md
+  - Examples: examples.md
+  - Browse API Spec: openapi.html
 
