@@ -32,6 +32,10 @@ The graph model is able to capture the asymmetric layout of the device.
 ## ScaleUp/ScaleOut Infrastructure
 
 ### Description
+<img src="./images/ai-ml-hpc-datacenter-networks.png" />
+https://mips.com/blog/reimagining-ai-infrastructure-the-power-of-converged-back-end-networks/
+
+
 - 1024 hosts
     - 1 npu/host
     - 10 nics/host
