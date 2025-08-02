@@ -23,3 +23,14 @@ devices:
         description: NVLink Switch
         type: custom
         count: 6
+    links:
+      - name: pcie
+        description: PCIe 3.0
+      - name: nvlink
+        description: PCIe 5.0 x16
+    connections:
+      - grace.0.c2c.hopper.0
+      - cx7.0.pcie.npu.0
+      - cx7.0.pcie.grace.0
+      - cx7.1.pcie.npu.1
+      - cx7.1.pcie.grace.1
