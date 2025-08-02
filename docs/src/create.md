@@ -38,7 +38,7 @@ Now we will be designing a 4 port generic switch as a part of device inventory.
 Lets define a simple 2 port scale up switch.
 ![scale_up_switch](images/scale_up_switch.png)
 
-This switch is made of two front panel ports. 
+This switch is made of two front panel ports.
 
 User can define this switch with one major "port" components inside it. These components can be viewed as nodes in a graph.
 
@@ -102,7 +102,7 @@ We have specified a scale up switch with 2 port components. Now we can define a 
 Lets define a simple 2 port scale up switch.
 ![scale_out_switch](images/scale_out_switch.png)
 
-This switch is made of four front panel ports. 
+This switch is made of four front panel ports.
 
 User can define this switch with one major "port" components inside it. These components are analogous to a node in a graph.
 
@@ -149,7 +149,7 @@ inventory:
                 "links": {
                 },
                 "connections": [
-                ]  
+                ]
             },
         }
     }
@@ -168,7 +168,7 @@ Let's design a host with 4 nics and a single npu
 ![host](images/host.png)
 
 Our Host has two interconnected components:
-- 4 nics 
+- 4 nics
 - 1 npu
 
 These components are connected to each other via a pcie connection. Therefore to connect two different components, we can use the following notation:
@@ -264,7 +264,7 @@ inventory:
 
 The objective is to define an infrastructure build using the switch and hosts defined earlier. The goal is to build an infrastructure where one switch is directly connected to four hosts via 100G Ethernet.
 
-![Full Topology](images/full_topology.png)
+![Full Topology](images/scaleup-scaleout.png)
 
 We have defined a switch and a host in the inventory, but not the 100G links. Let's define a 100G ethernet link as follows:
 
