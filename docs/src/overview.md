@@ -1,5 +1,3 @@
-## Overview
-
 Modern AI systems, comprising diverse scale-up and scale-out interconnect topologies that integrate complex heterogeneous components, connected together via diverse means, face a lack of standardized overall infrastructure description, all which hinders benchmarking, simulation, and emulation.
 
 This documentation covers the following:

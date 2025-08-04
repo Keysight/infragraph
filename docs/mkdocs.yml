@@ -34,7 +34,7 @@ extra:
       link: https://github.com/Keysight/graphit
 # Page tree
 nav:
-  - Home: index.md
+  - Overview: overview.md
   - Background: background.md
   - Getting Started: create.md
   - Extending The Cluster:
