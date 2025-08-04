@@ -1,0 +1,33 @@
+## [Features](model.md)
+
+Cluster Infrastructure as a graph is an actively developed specification, with contributions from real [use cases](examples.md). The model defines the following components to define a infrastructure:
+<!-- TODO add links from bold items to paragraphs in Model section -->
+* **Device** definitions with ability to model its internals as a graph
+* **Device Components** allowing users to define the device internal components like:
+    - nic
+    - ports
+    - npus
+* **Links** definition for:
+    - components interconnect
+	- device interconnect
+    - Defining the bandwidth of the links
+* **Connections** between:
+    - internal components of a device
+    - one device to another
+
+Explore an in-depth explanation of the topology model, covering its structure, essential components, and how it supports efficient design and analysis. [This resource](model.md) provides valuable insights into the principles behind topology and how to apply them effectively.
+
+## [Annotation](annotate.md)
+
+This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on. It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
+
+
+## [Getting Started With Topology Creation](create.md)
+
+[This walkthrough](create.md) guide demonstrates how anyone can create a topology from scratch, highlighting key steps and best practices to build a solid foundation. It offers a clear, step-by-step approach that makes topology creation accessible to beginners and experts alike.
+
+## Community
+
+Use our community resources to get help with Infrastructure As A Graph:
+
+* [Infrastructure As A Graph on Github](https://github.com/Keysight/graphit)

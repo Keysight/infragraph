@@ -2,7 +2,7 @@
 The main steps in designing a network infrastructure are as follows:
 
 * Use text and/or diagrams to create an `infrastructure description`
-* Then use the standardized schema to capture the infrastructure description in machine readable format by doing the following:
+* Then `use the standardized schema to capture the infrastructure description` in a machine readable format by doing the following:
     * Define `device` subgraphs using `components` and `links`
     * Use the `device` objects to define `device instances` and optional roles/categories
     * Define `infrastructure links` to define the types of connectivity that exists between `device instances` in the infrastructure

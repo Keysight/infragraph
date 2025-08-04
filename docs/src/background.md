@@ -25,7 +25,7 @@ This isn't just about efficiency; it's about building performant, reliable, and 
 * democratizes complex system evaluation
 * `infrastructure schema` is a flexible starting point today
 
-## Introducing Infrastructure Schema
+## Introducing GRAPHIT (Graph based Infrastructure)
 A graph is a natural fit to describe a system of systems in a clear, intuitive, and mathematically precise manner.
 
 ![graph](./images/graph.png)
@@ -33,3 +33,17 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * Node or vertex represents an entity like a component, device, user, router, etc
 * Edge represents a relationship between nodes
 * Propety or annotation stores additional information about nodes or edges
+
+[GraphIt](https://github.com/Keysight/graphit) is a schema used to describe AI/HPC infrastructure and is based on the following core principles:
+
+* logical infrastructure can be described using graph concepts such as vertexes and edges
+    * vertexes are device instances
+    * an edge is 2 device instances separated by a link
+    * a path is a collection of connections
+* there is a difference between logical infrastructure and physical definition
+* logical infrastructure should be composable
+* logical infrastructure is loosely coupled to physical definitions
+* due to the possible scale of AI/HPC deployments, logical infrastructure needs to be scalable without duplicating content
+* use [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to create declarative APIs and Models and optionally auto-generate the following artifacts:
+    * [Redocly documentation](openapi.html) of APIs and Models
+    * Fluent Python/Go SDKs over REST/Protobuf transports
