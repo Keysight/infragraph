@@ -6,7 +6,7 @@ This server diagram acts as an example of how multiple components can be connect
 The graph model is able to capture the asymmetric layout of the device.
 
 ### Description
-<img src="./images/dgxa100.png" />
+![dgxa100](./images/dgxa100.png)
 
 ### Standardized Definition
 <details open>
@@ -18,8 +18,10 @@ The graph model is able to capture the asymmetric layout of the device.
 
 ## GH200-MGX
 ### Description
-<img src="./images/gh200.png" />
-<img src="./images/gh200-mgx.png" />
+#### NPU Component
+![spine and leaf](./images/gh200.png)
+#### Device
+![spine and leaf](./images/gh200-mgx.png)
 
 ### Standardized Definition
 <details open>
@@ -32,7 +34,7 @@ The graph model is able to capture the asymmetric layout of the device.
 ## ScaleUp/ScaleOut Infrastructure
 
 ### Description
-<img src="./images/ai-ml-hpc-datacenter-networks.png" />
+![ai-ml-hpc-datacenter-networks](./images/ai-ml-hpc-datacenter-networks.png)
 https://mips.com/blog/reimagining-ai-infrastructure-the-power-of-converged-back-end-networks/
 
 
@@ -47,7 +49,7 @@ https://mips.com/blog/reimagining-ai-infrastructure-the-power-of-converged-back-
     - 16 hosts/rack
     - 8 scale up switches/rack
 
-<img src="./images/scaleup-scaleout.png" />
+![ai-ml-hpc-datacenter-networks](./images/scaleup-scaleout.png)
 
 ### Standardized Definition
 <details open>

@@ -35,8 +35,8 @@ extra:
 # Page tree
 nav:
   - Home: index.md
-  - Model: model.md
-  - Building A Cluster: create.md
+  - Background: background.md
+  - Getting Started: create.md
   - Extending The Cluster:
     - Overview: annotate.md
   - Validation: validation.md
