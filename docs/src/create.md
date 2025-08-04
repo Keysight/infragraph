@@ -1,25 +1,29 @@
 ## Case Study: Two Tier Clos Fabric
 The main steps in designing a network infrastructure are as follows:
-- Describe the infrastructure
-- Define devices
-- Define devices categories and instances
-- Connect instantiated devices
-- The first step is a textual or diagrammatic idea of the infrastructure that is to be defined.
 
-## Description
-The following is a diagrammatic and textual description of a `generic` two tier clos fabric.
+* Use text and/or diagrams to create an infrastructure description
+* Then use the standardized schema to capture the infrastructure description in machine readable format by doing the following:
+    * Define `devices`
+    * Using `devices` define `device instances` and optional roles/categories
+    * Define `infrastructure links` to define the types of connectivity that exists between `device instances` in the infrastructure
+    * Create `infrastructure connections` between `device instances` using `infrastructure links`
 
-<img src="./images/spine-and-leaf.jpg" />
+## Infrastructure Description
+The following is a diagrammatic and textual description of a `generic` two tier clos fabric that will then be modeled using the standardized schema.
+
+![spine and leaf](./images/spine-and-leaf.jpg)
 
 It consists of the following devices:
-- 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one npu via a pcie link.  Also every npu in a server is connected to every other npu by an nvlink switch.
-- 4 `leaf switches` composed of one asic and 16 ethernet ports
-- 3 `spine switches` composed of one asic and 16 ethernet ports
+
+* 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one npu via a pcie link.  Also every npu in a server is connected to every other npu by an nvlink switch.
+* 4 `leaf switches` composed of one asic and 16 ethernet ports
+* 3 `spine switches` composed of one asic and 16 ethernet ports
 
 The above devices will be interconnected in the following manner:
-- each `leaf` switch is connected directly to 1 `server` and to all `spine` switches
-- each nic in the `server` is connected to a `leaf` switch port at 100 gpbs
-- a port in the `leaf` switch is connected to every `spine` switch at 400 gpbs
+
+* each `leaf` switch is connected directly to 1 `server` and to all `spine` switches
+* each nic in the `server` is connected to a `leaf` switch port at 100 gpbs
+* a port in the `leaf` switch is connected to every `spine` switch at 400 gpbs
 
 ## Standardized Definition
 A standardized definition of the preceding two tier clos fabric can be created by following these steps:
@@ -38,8 +42,34 @@ It acts as a blueprint allowing for a single definition to be reused multiple ti
 </details>
 
 #### Leaf Switch Device
-- Define Links to connect the components with-in the device
+<details open>
+<summary><strong>Generic Server Device Definition using OpenAPI Device Model</strong></summary>
+```yaml
+{% include-markdown "./examples/generic-server.yaml" %}
+```
+</details>
+
 #### Spine Switch Device
+<details open>
+<summary><strong>Generic Server Device Definition using OpenAPI Device Model</strong></summary>
+```yaml
+{% include-markdown "./examples/generic-server.yaml" %}
+```
+</details>
+
+#### Device Instances
+Set the number of device instances and optionally assign a name signifying a role or category.
+<details open>
+<summary><strong>Generic Server Device Definition using OpenAPI Device Model</strong></summary>
+```yaml
+{% include-markdown "./examples/generic-server.yaml" %}
+```
+</details>
+
+#### Infrastructure Links
+
+#### Infrastructure Connections
+
 - Create Connection between Components using Links
 - Defining External Links: Here we define the external link type that connects two devices
 
