@@ -2,11 +2,11 @@ Modern AI systems, comprising diverse scale-up and scale-out interconnect topolo
 
 This documentation covers the following:
 
-### Backgroun
-The [background](background.md) and justification behind the schema
+### Background
+The [background](background.md) and justification behind the schema.
 
 ### Getting Started
-A simple generic case study demonstrating how to [get started](create.md)
+A simple generic case study demonstrating how to [get started](create.md).
 
 ### Extending the case study with additional data
 This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on. It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
