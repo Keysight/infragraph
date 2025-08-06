@@ -36,9 +36,16 @@ components:
           - core.0.ics.iop.0.ics.port.0
 
       type: object
+      required:
+        - description
+        - instances
       properties:
-        name:
-          x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
+        description:
+          description: |-
+            A description of the device.
+            This will not be used in Infrastructure.connections.
+          type: string
+          example: NVIDIA DGX A100 high-performance AI system
           x-field-uid: 1
         components:
           type: array
@@ -54,12 +61,37 @@ components:
           x-field-uid: 3
         connections:
           description: |-
-            All the connections that make up this device.
-            Connections are of the form `component.name.index`.`link.name`.`component.name.index`
+            All the connections of components that are within this device.
+
+            Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
+            The `index` in the connection string is 0 based and must be >=0 and < Component.count.
+
             This allows components to be connected to whatever depth is needed.
           type: array
           items:
             type: string
           x-field-uid: 4
+        instances:
+          description: |-
+            A collection of instance objects.
 
+            An instance object is used to create `n` number of instances of this device
+            under a specific name that is used in infrastructure connections.
+
+            This allows for multiple instances of this device under different names creating different
+            roles/categories for the same device.
+
+            e.g.,
+              - a device can be described as a `th5 switch` but instantiated as
+                - 4 `leaf` switches
+                - 3 `spine` switches
+          type: array
+          items:
+            $ref: "./instances.yaml#/components/schemas/Device.Instance"
+          minItems: 1
+          example:
+            - name: server
+              count: 2
+              description: Server instances of the DGX-A100 device
+          x-field-uid: 5
 

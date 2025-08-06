@@ -7,33 +7,44 @@ components:
           description: |-
             The name of the infrastructure being described.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
+          example: Two Tier Clos Fabric
           x-field-uid: 1
         description:
           description: |-
             A description of the infrastructure being described.
           type: string
+          example: |-
+            The example fields in this schema are based on
+            the Two Tier Clos Fabric Case Study outlined
+            in the GraphIt documentation `Getting Started`
+            subsection.
           x-field-uid: 2
         devices:
           description: |-
-            An inventory of the devices present in the infrastructure instances.
+            An inventory of the devices present in the infrastructure connections.
           type: array
           items:
             $ref: './device.yaml#/components/schemas/Device'
+          example:
+            - description: generic server
+              instances:
+                - count: 4
+            - description: generic switch
+              instances:
+                - name: leaf
+                  count: 4
+                - name: spine
+                  count: 3
           x-field-uid: 3
-        instances:
-          description: |-
-            An inventory of the device instances that are part of the infrastructure connections property.
-          type: array
-          items:
-            $ref: './instances.yaml#/components/schemas/Device.Instance'
-          x-field-uid: 4
         links:
           description: |-
             An inventory of the links that are part of the infrastructure connections property.
           type: array
           items:
             $ref: "./link.yaml#/components/schemas/Link"
-          x-field-uid: 5
+          example:
+            - name: eth
+          x-field-uid: 4
         connections:
           description: |-
             Connections define the graph with each connection consisting of the following criteria in a string separated by dots:
@@ -51,7 +62,7 @@ components:
           type: array
           items:
             type: string
-          x-field-uid: 6
+          x-field-uid: 5
         annotations:
           description: |-
             Annotations are meant to be used to correlate static and/or dynamic information
@@ -62,4 +73,4 @@ components:
           type: array
           items:
             $ref: './annotation.yaml#/components/schemas/Annotation'
-          x-field-uid: 7
+          x-field-uid: 6

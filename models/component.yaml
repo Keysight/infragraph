@@ -33,13 +33,22 @@ components:
               x-field-uid: 3
             nic:
               x-field-uid: 4
+        count:
+          description: |-
+            The maximum number of components that can appear in the device connections.
+
+            The `count` should be used to validate Device.connections where the index in the connections
+            should never be >= this value.
+          type: number
+          minimum: 1
+          x-field-uid: 4
         external:
           description: |-
             Indicates whether this component is an ingress/egress component in a device.
             Only those components that have this property set to true can be used in an infrastructure connection.
           type: boolean
           default: false
-          x-field-uid: 4
+          x-field-uid: 5
         components:
           description: |-
             This recursive property allows for a component to be described in more detail.
@@ -47,4 +56,4 @@ components:
           items:
             $ref: "#/components/schemas/Component"
           default: false
-          x-field-uid: 5
+          x-field-uid: 6

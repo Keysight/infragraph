@@ -3,29 +3,21 @@ components:
     Device.Instance:
       type: object
       required:
-        - device_name
         - name
         - count
       properties:
-        device_name:
-          description: |-
-            A valid Device.name in the Infrastructure.Devices array.
-          type: string
-          x-constraint:
-            - './device.yaml#/components/schemas/Device.properties.name'
-          x-field-uid: 1
         name:
           description: |-
             An alias for the device that MUST be used in the Infrastructure.connections property.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
-          x-field-uid: 2
+          x-field-uid: 1
         description:
           description: |-
             A description of the instance.
           type: string
-          x-field-uid: 3
+          x-field-uid: 2
         count:
           description: |-
-            The maximum number of device instances that can be created under the alias name.
+            The maximum number of device instances that can be created under the name.
           type: number
-          x-field-uid: 4
+          x-field-uid: 3
