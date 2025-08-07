@@ -220,11 +220,38 @@ message LinkPhysicalBandwidth {
   optional float g_transfers_per_second = 4;
 }
 
+// A container for specific Link latency properties.
+message LinkPhysicalLatency {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      ms = 1;
+      us = 2;
+      ns = 3;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+
+  // Latency in milliseconds
+  optional float ms = 2;
+
+  // Latency in microseconds.
+  optional float us = 3;
+
+  // Latency in nanoseconds.
+  optional float ns = 4;
+}
+
 // Description missing in models
 message LinkPhysical {
 
   // Description missing in models
   LinkPhysicalBandwidth bandwidth = 1;
+
+  // Description missing in models
+  LinkPhysicalLatency latency = 2;
 }
 
 // A container for describing a link used between components.

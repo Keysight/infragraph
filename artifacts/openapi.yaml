@@ -342,12 +342,49 @@ components:
             Giga trasfers per second.
           type: number
           x-field-uid: 4
+    Link.Physical.Latency:
+      description: |-
+        A container for specific Link latency properties.
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            ms:
+              x-field-uid: 1
+            us:
+              x-field-uid: 2
+            ns:
+              x-field-uid: 3
+          enum:
+          - ms
+          - us
+          - ns
+        ms:
+          description: |-
+            Latency in milliseconds
+          type: number
+          x-field-uid: 2
+        us:
+          description: |-
+            Latency in microseconds.
+          type: number
+          x-field-uid: 3
+        ns:
+          description: |-
+            Latency in nanoseconds.
+          type: number
+          x-field-uid: 4
     Link.Physical:
       type: object
       properties:
         bandwidth:
           $ref: '#/components/schemas/Link.Physical.Bandwidth'
           x-field-uid: 1
+        latency:
+          $ref: '#/components/schemas/Link.Physical.Latency'
+          x-field-uid: 2
     Link:
       description: |-
         A container for describing a link used between components.
