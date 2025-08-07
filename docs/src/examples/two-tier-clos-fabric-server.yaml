@@ -1,34 +1,38 @@
-devices:
-  - description: Generic Server
-    components:
-      - name: npu
-        description: Generic NPU
-        type: npu
-        count: 4
-      - name: nic
-        description: Generic Network Interface Card
-        type: nic
-        count: 4
-        external: true
-      - name: nv-sw
-        description: NVLink Switch
-        type: custom
-        count: 1
-    links:
-      - name: pcie
-        description: PCIe Interconnect
-        bandwidth:
-          giga_bytes_per_second: 32
-      - name: nvlink
-        description: NvLink
-        bandwidth:
-          giga_bytes_per_second: 128
-    connections:
-      - npu.0.pcie.nic.0
-      - npu.1.pcie.nic.1
-      - npu.2.pcie.nic.2
-      - npu.3.pcie.nic.3
-      - npu.0.nvlink.nv-sw.0
-      - npu.1.nvlink.nv-sw.0
-      - npu.2.nvlink.nv-sw.0
-      - npu.3.nvlink.nv-sw.0
+infrastructure:
+  devices:
+    - description: Generic Server
+      components:
+        - name: npu
+          description: Generic NPU
+          type: npu
+          count: 4
+        - name: nic
+          description: Generic Network Interface Card
+          type: nic
+          count: 4
+          external: true
+        - name: nv-sw
+          description: NVLink Switch
+          type: custom
+          count: 1
+      links:
+        - name: pcie
+          description: PCIe Interconnect
+          bandwidth:
+            giga_bytes_per_second: 32
+        - name: nvlink
+          description: NvLink
+          bandwidth:
+            giga_bytes_per_second: 128
+      connections:
+        - npu.0.pcie.nic.0
+        - npu.1.pcie.nic.1
+        - npu.2.pcie.nic.2
+        - npu.3.pcie.nic.3
+        - npu.0.nvlink.nv-sw.0
+        - npu.1.nvlink.nv-sw.0
+        - npu.2.nvlink.nv-sw.0
+        - npu.3.nvlink.nv-sw.0
+      instances:
+        - name: server
+          count: 4

@@ -26,12 +26,11 @@ The above devices will be interconnected in the following manner:
 
 ## Standardized Definition
 A standardized definition of the preceding two tier clos fabric can be created by following these steps:
+* The device is a subgraph which is composed of two components connected to each other using a link.
+* It acts as a blueprint allowing for a single definition to be reused multiple times for optimal space complexity.
 
 #### Create a Server Device and Instances
 Define a server device based on the preceding infrastructure description.
-
-* The device is a subgraph which is composed of two components connected to each other using a link.
-* It acts as a blueprint allowing for a single definition to be reused multiple times for optimal space complexity.
 <details open>
 <summary><strong>Server Device Definition using OpenAPI Device Model</strong></summary>
 ```yaml
@@ -40,6 +39,7 @@ Define a server device based on the preceding infrastructure description.
 </details>
 
 #### Create a Switch Device and Instances
+Define a switch device based on the preceding infrastructure description.
 <details open>
 <summary><strong>Switch Device Definition using OpenAPI Device Model</strong></summary>
 ```yaml

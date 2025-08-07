@@ -1,0 +1,46 @@
+infrastructure:
+  name: generic_clos_fabric
+  description: |-
+    Two Tier Clos Fabric using a generic server and switch definition.
+    The switch definition is reused for both leaf and spine.
+    The connections between server and leaf are at 100Gbps.
+    The connections between leaf and sping are at 400Gbps.
+  links:
+    - name: eth1
+      bandwidth:
+        choice: giga_bytes_per_second
+        giga_bytes_per_second: 100
+    - name: eth2
+      bandwidth:
+        choice: giga_bytes_per_second
+        giga_bytes_per_second: 400
+  connections:
+    - server.0.nic.0.eth1.leaf.0.port.0
+    - server.0.nic.1.eth1.leaf.0.port.1
+    - server.0.nic.2.eth1.leaf.0.port.2
+    - server.0.nic.3.eth1.leaf.0.port.3
+    - server.1.nic.0.eth1.leaf.1.port.0
+    - server.1.nic.1.eth1.leaf.1.port.1
+    - server.1.nic.2.eth1.leaf.1.port.2
+    - server.1.nic.3.eth1.leaf.1.port.3
+    - server.2.nic.0.eth1.leaf.2.port.0
+    - server.2.nic.1.eth1.leaf.2.port.1
+    - server.2.nic.2.eth1.leaf.2.port.2
+    - server.2.nic.3.eth1.leaf.2.port.3
+    - server.3.nic.0.eth1.leaf.3.port.0
+    - server.3.nic.1.eth1.leaf.3.port.1
+    - server.3.nic.2.eth1.leaf.3.port.2
+    - server.3.nic.3.eth1.leaf.3.port.3
+    - leaf.0.port.4.eth2.spine.0.port.0
+    - leaf.0.port.5.eth2.spine.1.port.0
+    - leaf.0.port.6.eth2.spine.2.port.0
+    - leaf.1.port.4.eth2.spine.0.port.1
+    - leaf.1.port.5.eth2.spine.1.port.1
+    - leaf.1.port.6.eth2.spine.2.port.1
+    - leaf.2.port.4.eth2.spine.0.port.2
+    - leaf.2.port.5.eth2.spine.1.port.2
+    - leaf.2.port.6.eth2.spine.2.port.2
+    - leaf.3.port.4.eth2.spine.0.port.3
+    - leaf.3.port.5.eth2.spine.1.port.3
+    - leaf.3.port.6.eth2.spine.2.port.3
+
