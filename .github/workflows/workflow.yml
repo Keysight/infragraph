@@ -4,9 +4,9 @@ name: CI/CD
 on:
   push:
   pull_request:
-  workflow_dispatch:
     paths:
     - '!artifacts/**'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -35,11 +35,6 @@ jobs:
           .env/bin/python build.py
 
       - name: Upload artifacts
-        # upload all files in the artifacts directory
-        # the artifact zip is available using the following github API
-        # curl https://api.github.com/repos/infrastructure/models/actions/artifacts
-        # the artifact is only available for the amount of time dictated by the
-        # repo settings which is defaulted to 90 days
         uses: actions/upload-artifact@v4
         with:
           path: artifacts
@@ -69,7 +64,7 @@ jobs:
           git config user.name "Github Actions Bot"
           git config user.email "actions@github.com"
           git add --force artifacts/openapi.yaml
-          git add --force artifacts/infra.proto
+          git add --force artifacts/infraph.proto
           git add --force docs/src/openapi.html
           if git status --porcelain | grep .
             then
@@ -85,7 +80,7 @@ jobs:
         with:
           name: "Release ${{ steps.get_version.outputs.version }}"
           body: "View the openapi.yaml spec at https://keysight.github.io/graphit"
-          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infra.proto,docs/src/openapi.html
+          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infraph.proto,docs/src/openapi.html
           tag: ${{ steps.get_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 

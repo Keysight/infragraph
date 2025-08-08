@@ -1,6 +1,6 @@
-# GRAPHIT - GRAph Based InfrasTructure
+# Infraph (INFrastructure gRAPH)
 
-Graph based infrastructure defines a [model-driven, vendor-neutral, standard
+Infrastructure as a graph defines a [model-driven, vendor-neutral, standard
 interface](https://keysight.github.io/graphit/openapi.html) for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
 
 This model allows for defining physical infrastructure with a logical view using graph like terminology.

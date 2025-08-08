@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Infrastructure as a Graph
+  title: Infraph
   description: |-
     ### Overview
-    Infrastructure as a Graph defines a model-driven, vendor-neutral, standard
+    Infraph or infrastructure as a Graph defines a model-driven, vendor-neutral, standard
     interface for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
 
     This model allows for defining physical infrastructure as a logical system of systems using graph like terminology.
@@ -19,15 +19,15 @@ info:
 
     ### Contributions
     Contributions to the API and models schema can be made in the following ways:
-    - [open an issue](https://github.com/infrasrtucture/issues) in the models repository
-    - [fork the models repository](https://github.com/infrastructure) and submit a PR
+    - [open an issue](https://github.com/keysight/infraph/issues) in the models repository
+    - [fork the models repository](https://github.com/keysight/infraph) and submit a PR
   version: 0.1.0
   contact:
-    url: https://github.com/ajbalogh/infrastructure
+    url: https://github.com/keysight/infraph/issues
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  x-model-guide: https://github.com/ajbalogh/infrastructure/blob/master/MODEL-GUIDE.md
+  x-model-guide: https://github.com/keysight/infraph/blob/main/MODEL-GUIDE.md
 servers:
 - url: /
 paths: {}

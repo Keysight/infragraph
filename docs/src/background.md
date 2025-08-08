@@ -25,7 +25,7 @@ This isn't just about efficiency; it's about building performant, reliable, and 
 * democratizes complex system evaluation
 * `infrastructure schema` is a flexible starting point today
 
-## Introducing GRAPHIT (Graph based Infrastructure)
+## Introducing INFRAPH (INFrastructure gRAPH)
 A graph is a natural fit to describe a system of systems in a clear, intuitive, and mathematically precise manner.
 
 ![graph](./images/graph.png)
@@ -35,7 +35,7 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * Properties store additional information about nodes or edges
 
 ### Principles
-[GraphIt](https://github.com/Keysight/graphit) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:
+[Infraph](https://github.com/Keysight/infraph) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:
 
 * logical infrastructure can be described using graph concepts such as vertexes and edges
     * vertexes are device instances
@@ -49,4 +49,4 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
     * to create declarative APIs and Models
     * auto-generate the following artifacts:
         * [Redocly documentation](openapi.html) of APIs and Models
-        * client and/or server side `Fluent Python/Go SDKs` over `REST/Protobuf` transports
+        * `Python/Go SDKs` that allow for creating `fluent` client/server code over `REST/Protobuf` transports

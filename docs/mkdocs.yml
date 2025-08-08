@@ -1,5 +1,5 @@
-site_name: Graph Based Infrastructure
-repo_url: https://github.com/Keysight/graphit
+site_name: Infrastructure Graph
+repo_url: https://github.com/Keysight/infraph
 repo_name: graphit
 edit_uri: ""
 docs_dir: src
@@ -31,7 +31,7 @@ extra:
     property: G-N6X4KDVDJF
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Keysight/graphit
+      link: https://github.com/Keysight/infraph
 # Page tree
 nav:
   - Overview: index.md
