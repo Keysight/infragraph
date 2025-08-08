@@ -8,7 +8,7 @@ But, a clear, `standardized` way to describe this overall infrastructure is miss
 We believe `capturing this diversity, this inherent complexity, in a structured way` is the first step to reasoning with it."
 
 ## Why Standardize?
-Why go through all this effort? Because we want to move beyond just 'making it work' to truly 'optimizing it.' Our goal is to transform massive AI clusters from monolithic problems into structured, analyzable systems. When you have a standardized description, you can feed that information directly into your tools – your simulators, your emulators, even your deployment systems.
+Why go through all this effort? Because we want to move beyond just 'making it work' to truly 'optimizing it.' Our goal is to transform massive AI clusters from monolithic problems into structured, analyzable systems. When you have a `standardized description`, you can feed that information directly into your tools – your simulators, your emulators, even your deployment systems.
 
 This means better predictions about how your AI workloads will perform before you even run them. And it opens the door for something really powerful when doing 'vertical co-design.' It's about making sure your hardware and software are talking to each other, working together seamlessly, from the lowest-level chip to the highest-level application. This ensures accurate performance prediction and validates AI workloads pre-deployment.
 

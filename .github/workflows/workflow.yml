@@ -79,7 +79,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "Release ${{ steps.get_version.outputs.version }}"
-          body: "View the openapi.yaml spec at https://keysight.github.io/graphit"
+          body: "View the openapi.yaml spec at https://keysight.github.io/infraph"
           artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infraph.proto,docs/src/openapi.html
           tag: ${{ steps.get_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
