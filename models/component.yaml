@@ -7,8 +7,8 @@ components:
         A Component can be composed of sub components by using the components property.
       type: object
       required:
-        - name
         - type
+        - count
       properties:
         name:
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name

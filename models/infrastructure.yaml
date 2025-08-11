@@ -14,22 +14,20 @@ components:
             A description of the infrastructure being described.
           type: string
           example: |-
-            The example fields in this schema are based on
-            the Two Tier Clos Fabric Case Study outlined
-            in the GraphIt documentation `Getting Started`
-            subsection.
+            The example fields in this schema are based on the Two Tier Clos Fabric Case Study outlined
+            in the documentation `Getting Started` subsection.
           x-field-uid: 2
         devices:
           description: |-
-            An inventory of the devices present in the infrastructure connections.
+            An array of the devices and their components present in the infrastructure connections.
           type: array
           items:
             $ref: './device.yaml#/components/schemas/Device'
           example:
-            - description: generic server
+            - name: generic-server
               instances:
                 - count: 4
-            - description: generic switch
+            - name: generic-switch
               instances:
                 - name: leaf
                   count: 4
@@ -62,15 +60,54 @@ components:
           type: array
           items:
             type: string
+          example:
+            - server.0.nic.0.eth.leaf.0.port.0
+            - server.0.nic.1.eth.leaf.0.port.1
           x-field-uid: 5
         annotations:
           description: |-
             Annotations are meant to be used to correlate static and/or dynamic information
             (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
-
-            Examples:
-            - host.0.nic.0 can be associated with detailed nic configuration attributes that are outside of the scope of this schema.
           type: array
           items:
-            $ref: './annotation.yaml#/components/schemas/Annotation'
+            $ref: "./annotation.yaml#/components/schemas/Annotation"
           x-field-uid: 6
+          example:
+            - name: logical_containers
+              description: |-
+                Improve clarity of infrastructure connections by grouping devices and
+                other logical containers.
+              data:
+                containers:
+                  - name: pod.0
+                    items:
+                      - server.0
+                      - server.1
+                      - leaf.0
+                      - leaf.1
+                  - name: pod.1
+                    items:
+                      - server.2
+                      - server.3
+                      - leaf.2
+                      - leaf.3
+                  - name: datacenter.0
+                    items:
+                      - pod.0
+                      - pod.1
+                      - spine.0
+                      - spine.1
+                      - spine.2
+            - name: device_addresses
+              data:
+                server_addresses:
+                  - device_instance: server.0
+                    dns: host1.location.net
+                  - device_instance: server.1
+                    dns: host2.location.net
+                  - device_instance: server.2
+                    dns: host3.location.net
+                  - device_instance: server.3
+                    dns: host4.location.net
+
+

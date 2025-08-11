@@ -1,6 +1,6 @@
 site_name: Infrastructure Graph
 repo_url: https://github.com/Keysight/infraph
-repo_name: graphit
+repo_name: infraph
 edit_uri: ""
 docs_dir: src
 theme:

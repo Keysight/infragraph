@@ -76,8 +76,6 @@ components:
       description: |-
         A container for describing a link used between components.
       type: object
-      required:
-        - name
       properties:
         name:
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name

@@ -3,7 +3,6 @@ components:
     Device.Instance:
       type: object
       required:
-        - name
         - count
       properties:
         name:
