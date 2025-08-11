@@ -86,25 +86,22 @@ components:
           description: |-
             A description of the infrastructure being described.
           type: string
-          example: 'The example fields in this schema are based on
+          example: 'The example fields in this schema are based on the Two Tier Clos
+            Fabric Case Study outlined
 
-            the Two Tier Clos Fabric Case Study outlined
-
-            in the GraphIt documentation `Getting Started`
-
-            subsection.'
+            in the documentation `Getting Started` subsection.'
           x-field-uid: 2
         devices:
           description: |-
-            An inventory of the devices present in the infrastructure connections.
+            An array of the devices and their components present in the infrastructure connections.
           type: array
           items:
             $ref: '#/components/schemas/Device'
           example:
-          - description: generic server
+          - name: generic-server
             instances:
             - count: 4
-          - description: generic switch
+          - name: generic-switch
             instances:
             - name: leaf
               count: 4
@@ -137,18 +134,56 @@ components:
           type: array
           items:
             type: string
+          example:
+          - server.0.nic.0.eth.leaf.0.port.0
+          - server.0.nic.1.eth.leaf.0.port.1
           x-field-uid: 5
         annotations:
           description: |-
             Annotations are meant to be used to correlate static and/or dynamic information
             (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
-
-            Examples:
-            - host.0.nic.0 can be associated with detailed nic configuration attributes that are outside of the scope of this schema.
           type: array
           items:
             $ref: '#/components/schemas/Annotation'
           x-field-uid: 6
+          example:
+          - name: logical_containers
+            description: 'Improve clarity of infrastructure connections by grouping
+              devices and
+
+              other logical containers.'
+            data:
+              containers:
+              - name: pod.0
+                items:
+                - server.0
+                - server.1
+                - leaf.0
+                - leaf.1
+              - name: pod.1
+                items:
+                - server.2
+                - server.3
+                - leaf.2
+                - leaf.3
+              - name: datacenter.0
+                items:
+                - pod.0
+                - pod.1
+                - spine.0
+                - spine.1
+                - spine.2
+          - name: device_addresses
+            data:
+              server_addresses:
+              - device_instance: server.0
+                dns: host1.location.net
+              - device_instance: server.1
+                dns: host2.location.net
+              - device_instance: server.2
+                dns: host3.location.net
+              - device_instance: server.3
+                dns: host4.location.net
     Device:
       description: |-
         A subgraph container for a device and its components, links and connections.
@@ -184,29 +219,35 @@ components:
         - to traverse from the core asic to a port, multiple connections are used to form a path
           - core.0.ics.iop.0.ics.port.0
       type: object
-      required:
-      - description
-      - instances
       properties:
+        name:
+          description: |-
+            The name of the device being described.
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          example: generic-server
+          x-field-uid: 1
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
         description:
           description: |-
             A description of the device.
             This will not be used in Infrastructure.connections.
           type: string
           example: NVIDIA DGX A100 high-performance AI system
-          x-field-uid: 1
+          x-field-uid: 2
         components:
           type: array
           items:
             $ref: '#/components/schemas/Component'
-          x-field-uid: 2
+          x-field-uid: 3
         links:
           description: |-
             All the links that make up this device.
           type: array
           items:
             $ref: '#/components/schemas/Link'
-          x-field-uid: 3
+          x-field-uid: 4
         connections:
           description: |-
             All the connections of components that are within this device.
@@ -218,7 +259,7 @@ components:
           type: array
           items:
             type: string
-          x-field-uid: 4
+          x-field-uid: 5
         instances:
           description: |-
             A collection of instance objects.
@@ -241,7 +282,7 @@ components:
           - name: server
             count: 2
             description: Server instances of the DGX-A100 device
-          x-field-uid: 5
+          x-field-uid: 6
     Component:
       description: |-
         A container for describing a component.
@@ -249,8 +290,8 @@ components:
         A Component can be composed of sub components by using the components property.
       type: object
       required:
-      - name
       - type
+      - count
       properties:
         name:
           x-field-uid: 1
@@ -389,8 +430,6 @@ components:
       description: |-
         A container for describing a link used between components.
       type: object
-      required:
-      - name
       properties:
         name:
           x-field-uid: 1
@@ -412,7 +451,6 @@ components:
     Device.Instance:
       type: object
       required:
-      - name
       - count
       properties:
         name:
@@ -433,85 +471,55 @@ components:
             The maximum number of device instances that can be created under the name.
           type: number
           x-field-uid: 3
-    Annotation.Json:
+    Annotation.Data:
+      description: |-
+        User defined data.
       type: object
       properties:
-        description:
+        name:
           type: string
           x-field-uid: 1
-        data:
-          description: |-
-            A json object serialized as a string.
-          type: string
-          x-field-uid: 2
-    Annotation.Yaml:
-      type: object
-      properties:
-        description:
-          type: string
-          x-field-uid: 1
-        data:
-          description: |-
-            A yaml object serialized as a string.
-          type: string
-          x-field-uid: 2
-    Annotation.Protobuf:
-      type: object
-      properties:
-        description:
-          type: string
-          x-field-uid: 1
-        data:
-          description: |-
-            A protobuf object serialized as a binary string.
-          type: string
-          x-format: binary
-          x-field-uid: 2
+      additionalProperties: true
+      example:
+        interfaces:
+          interface:
+          - name: server.0.nic.0
+            config:
+              name: eth0
+              type: iana-if-type:ethernetCsmacd
+              mtu: 1500
+              description: Server interface
+              enabled: true
+          subinterfaces:
+            subinterface:
+            - index: 0
+              ipv4:
+                addresses:
+                  address:
+                  - ip: 1.1.1.1
     Annotation:
       description: |-
-        A way to associate any kind of additional information to a logical endpoint.
-        This allows for structured messages such as openconfig configuration information instances to be
-        linked to a specific component, device instance etc.
+        Annotation allows for extending the base configuration with any type of
+        additional information such as logical layouts, physical configuration etc.
+
+        This allows an organization to add their own data structures or
+        open source data such as openconfig configuration messages which can be
+        correlated to specific configuration endpoints.
       type: object
+      required:
+      - name
+      - data
       properties:
-        endpoint:
+        name:
           description: |-
-            A logical endpoint can be formed using the defined constraints and MUST be validated that
-            they exist in the Infrastructure message:
-            - `Device.properties.name`
-            - `Device.properties.name`.`Component.properties.name`
-            - `Device.Instance.properties.name`.`device index`
-            - `Device.Instance.properties.name`.`device index`.`Component.properties.name`.`component index`
-            - `Device.properties.name`.`Device.properties.links`
-            - `Infrastructure.properties.links`
-            - `Infrastructure.properties.name`
+            An alias for the annotation data.
           type: string
           x-field-uid: 1
-        choice:
+        data:
           description: |-
-            Type of annotation data.
-          type: string
+            Annotation data.
+          $ref: '#/components/schemas/Annotation.Data'
           x-field-uid: 2
-          x-enum:
-            json:
-              x-field-uid: 1
-            yaml:
-              x-field-uid: 2
-            protobuf:
-              x-field-uid: 3
-          enum:
-          - json
-          - yaml
-          - protobuf
-        json:
-          $ref: '#/components/schemas/Annotation.Json'
-          x-field-uid: 3
-        yaml:
-          $ref: '#/components/schemas/Annotation.Yaml'
-          x-field-uid: 4
-        protobuf:
-          $ref: '#/components/schemas/Annotation.Protobuf'
-          x-field-uid: 5
     Error:
       description: |-
         Error response generated while serving API request.

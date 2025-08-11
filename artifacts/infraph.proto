@@ -49,7 +49,7 @@ message Infrastructure {
   // A description of the infrastructure being described.
   optional string description = 2;
 
-  // An inventory of the devices present in the infrastructure connections.
+  // An array of the devices and their components present in the infrastructure connections.
   repeated Device devices = 3;
 
   // An inventory of the links that are part of the infrastructure connections property.
@@ -73,10 +73,6 @@ message Infrastructure {
 
   // Annotations are meant to be used to correlate static and/or dynamic information
   // (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
-  // 
-  // Examples:
-  // - host.0.nic.0 can be associated with detailed nic configuration attributes that
-  // are outside of the scope of this schema.
   repeated Annotation annotations = 6;
 }
 
@@ -117,16 +113,20 @@ message Infrastructure {
 // - core.0.ics.iop.0.ics.port.0
 message Device {
 
+  // The name of the device being described.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
   // A description of the device.
   // This will not be used in Infrastructure.connections.
-  // required = true
-  optional string description = 1;
+  optional string description = 2;
 
   // Description missing in models
-  repeated Component components = 2;
+  repeated Component components = 3;
 
   // All the links that make up this device.
-  repeated Link links = 3;
+  repeated Link links = 4;
 
   // All the connections of components that are within this device.
   // 
@@ -134,7 +134,7 @@ message Device {
   // The `index` in the connection string is 0 based and must be >=0 and < Component.count.
   // 
   // This allows components to be connected to whatever depth is needed.
-  repeated string connections = 4;
+  repeated string connections = 5;
 
   // A collection of instance objects.
   // 
@@ -149,7 +149,7 @@ message Device {
   // - a device can be described as a `th5 switch` but instantiated as
   // - 4 `leaf` switches
   // - 3 `spine` switches
-  repeated DeviceInstance instances = 5;
+  repeated DeviceInstance instances = 6;
 }
 
 // A container for describing a component.
@@ -159,7 +159,6 @@ message Component {
 
   // Globally unique name of an object. It also serves as the primary key for arrays of
   // objects.
-  // required = true
   optional string name = 1;
 
   // A description of the component.
@@ -184,6 +183,7 @@ message Component {
   // The `count` should be used to validate Device.connections where the index in the
   // connections
   // should never be >= this value.
+  // required = true
   optional float count = 4;
 
   // Indicates whether this component is an ingress/egress component in a device.
@@ -260,7 +260,6 @@ message Link {
 
   // Globally unique name of an object. It also serves as the primary key for arrays of
   // objects.
-  // required = true
   optional string name = 1;
 
   // A description of the type of link.
@@ -276,7 +275,6 @@ message DeviceInstance {
   // An alias for the device that MUST be used in the Infrastructure.connections property.
   // Globally unique name of an object. It also serves as the primary key for arrays of
   // objects.
-  // required = true
   optional string name = 1;
 
   // A description of the instance.
@@ -287,74 +285,28 @@ message DeviceInstance {
   optional float count = 3;
 }
 
-// Description missing in models
-message AnnotationJson {
+// User defined data.
+message AnnotationData {
 
   // Description missing in models
-  optional string description = 1;
-
-  // A json object serialized as a string.
-  optional string data = 2;
+  optional string name = 1;
 }
 
-// Description missing in models
-message AnnotationYaml {
-
-  // Description missing in models
-  optional string description = 1;
-
-  // A yaml object serialized as a string.
-  optional string data = 2;
-}
-
-// Description missing in models
-message AnnotationProtobuf {
-
-  // Description missing in models
-  optional string description = 1;
-
-  // A protobuf object serialized as a binary string.
-  optional string data = 2;
-}
-
-// A way to associate any kind of additional information to a logical endpoint.
-// This allows for structured messages such as openconfig configuration information
-// instances to be
-// linked to a specific component, device instance etc.
+// Annotation allows for extending the base configuration with any type of
+// additional information such as logical layouts, physical configuration etc.
+// 
+// This allows an organization to add their own data structures or
+// open source data such as openconfig configuration messages which can be
+// correlated to specific configuration endpoints.
 message Annotation {
 
-  // A logical endpoint can be formed using the defined constraints and MUST be validated
-  // that
-  // they exist in the Infrastructure message:
-  // - `Device.properties.name`
-  // - `Device.properties.name`.`Component.properties.name`
-  // - `Device.Instance.properties.name`.`device index`
-  // - `Device.Instance.properties.name`.`device index`.`Component.properties.name`.`component
-  // index`
-  // - `Device.properties.name`.`Device.properties.links`
-  // - `Infrastructure.properties.links`
-  // - `Infrastructure.properties.name`
-  optional string endpoint = 1;
+  // An alias for the annotation data.
+  // required = true
+  optional string name = 1;
 
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      json = 1;
-      yaml = 2;
-      protobuf = 3;
-    }
-  }
-  // Type of annotation data.
-  optional Choice.Enum choice = 2;
-
-  // Description missing in models
-  AnnotationJson json = 3;
-
-  // Description missing in models
-  AnnotationYaml yaml = 4;
-
-  // Description missing in models
-  AnnotationProtobuf protobuf = 5;
+  // Annotation data.
+  // required = true
+  AnnotationData data = 2;
 }
 
 // Error response generated while serving API request.
