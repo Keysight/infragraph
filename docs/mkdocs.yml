@@ -25,6 +25,8 @@ markdown_extensions:
   - pymdownx.superfences
 plugins:
   - include-markdown # https://github.com/mondeja/mkdocs-include-markdown-plugin
+  - search
+  - print-site # https://github.com/timvink/mkdocs-print-site-plugin
 extra:
   analytics:
     provider: google

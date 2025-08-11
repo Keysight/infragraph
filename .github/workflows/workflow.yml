@@ -86,5 +86,5 @@ jobs:
 
       - name: github pages build and deploy
         run: |
-          pip install mkdocs-material mkdocs-include-markdown-plugin
+          pip install mkdocs-material mkdocs-include-markdown-plugin mkdocs-print-site-plugin
           mkdocs gh-deploy --force --config-file docs/mkdocs.yml --site-dir docs/site --remote-branch gh-pages
