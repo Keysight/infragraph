@@ -55,25 +55,27 @@ message Infrastructure {
   // An inventory of the links that are part of the infrastructure connections property.
   repeated Link links = 4;
 
-  // Connections define the graph with each connection consisting of the following criteria
-  // in a string separated by dots:
-  // - `Device.Instance.property.name` e.g., host
-  // - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
-  // - `Component.property.name` where `Component.property.external` is true e.g., nic
-  // - a 0 based index that is less than `Component.property.count` e.g., 0
-  // - `Infrastructure.properties.links.property.name`
-  // - `Device.Instance.property.name` e.g., leafsw
-  // - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
-  // - `Component.property.name` where `Component.property.external` is true e.g., port
-  // - a 0 based index that is less than `Component.property.count` e.g., 0
+  // The names that a device will be known as in the connections.
+  // - this allows infrastructure to be composed of devices but reuse the device under
+  // a different name.
+  // - every device name MUST exist in at least one instance object
+  repeated Instance instances = 5;
+
+  // Connections define the infrastructure graph with each connection consisting
+  // of exactly 5 names and 4 indexes.
   // 
-  // The example pieces are concatenated using a dot notation and would form the following
-  // connection string `host.0.nic.0.eth.leafsw.0.port.0`.
-  repeated string connections = 5;
+  // Example:
+  // - server.0.nic.0.eth1.leafsw.0.port.0
+  // - the name `server` exists in the Infrastructure.instances array in the device
+  // property
+  // - the index `0` indicates there is at least 1 instance of the `server` device
+  // - the name `nic` is the name of an external component in the `server` device
+  // - the index `0` indicates there is at least 1 instance of the `nic` component
+  repeated string connections = 6;
 
   // Annotations are meant to be used to correlate static and/or dynamic information
   // (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
-  repeated Annotation annotations = 6;
+  repeated Annotation annotations = 7;
 }
 
 // A subgraph container for a device and its components, links and connections.
@@ -135,21 +137,6 @@ message Device {
   // 
   // This allows components to be connected to whatever depth is needed.
   repeated string connections = 5;
-
-  // A collection of instance objects.
-  // 
-  // An instance object is used to create `n` number of instances of this device
-  // under a specific name that is used in infrastructure connections.
-  // 
-  // This allows for multiple instances of this device under different names creating
-  // different
-  // roles/categories for the same device.
-  // 
-  // e.g.,
-  // - a device can be described as a `th5 switch` but instantiated as
-  // - 4 `leaf` switches
-  // - 3 `spine` switches
-  repeated DeviceInstance instances = 6;
 }
 
 // A container for describing a component.
@@ -270,7 +257,7 @@ message Link {
 }
 
 // Description missing in models
-message DeviceInstance {
+message Instance {
 
   // An alias for the device that MUST be used in the Infrastructure.connections property.
   // Globally unique name of an object. It also serves as the primary key for arrays of
@@ -280,9 +267,9 @@ message DeviceInstance {
   // A description of the instance.
   optional string description = 2;
 
-  // The maximum number of device instances that can be created under the name.
+  // The name of a device that MUST exist in the Infrastructure.devices property.
   // required = true
-  optional float count = 3;
+  optional string device = 3;
 }
 
 // User defined data.
