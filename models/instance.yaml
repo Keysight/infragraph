@@ -1,9 +1,9 @@
 components:
   schemas:
-    Device.Instance:
+    Instance:
       type: object
       required:
-        - count
+        - device
       properties:
         name:
           description: |-
@@ -15,8 +15,8 @@ components:
             A description of the instance.
           type: string
           x-field-uid: 2
-        count:
+        device:
           description: |-
-            The maximum number of device instances that can be created under the name.
-          type: number
+            The name of a device that MUST exist in the Infrastructure.devices property.
+          type: string
           x-field-uid: 3

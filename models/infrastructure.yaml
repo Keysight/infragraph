@@ -24,15 +24,47 @@ components:
           items:
             $ref: './device.yaml#/components/schemas/Device'
           example:
+            - name: ghsc
+              description: Grace Hopper Super Chip
+              components:
+                - name: grace
+                  type: cpu
+                  count: 1
+                  external: true
+                - name: hopper
+                  type: npu
+                  count: 1
+              links:
+                - name: c2c
+              connections:
+                - grace.0.c2c.hopper.0
             - name: generic-server
-              instances:
-                - count: 4
+              components:
+                - name: nic
+                  type: nic
+                - name: nvl-sw
+                  type: custom
+              links:
+                - name: pcie
+                - name: c2c
+              connections:
+                - nic.0.pcie.grace.0
+                - nic.1.pcie.grace.1
+                - nic.2.pcie.grace.2
+                - nic.3.pcie.grace.3
             - name: generic-switch
-              instances:
-                - name: leaf
-                  count: 4
-                - name: spine
-                  count: 3
+              components:
+                - name: port
+                  type: nic
+                - name: asic
+                  type: custom
+              links:
+                - name: ic
+              connections:
+                - nic.0.pcie.grace.0
+                - nic.1.pcie.grace.1
+                - nic.2.pcie.grace.2
+                - nic.3.pcie.grace.3
           x-field-uid: 3
         links:
           description: |-
@@ -41,29 +73,51 @@ components:
           items:
             $ref: "./link.yaml#/components/schemas/Link"
           example:
-            - name: eth
+            - name: eth1
+              bandwidth:
+                choice: gigabytes_per_second
+                gigabytes_per_second: 100
+            - name: eth2
+              bandwidth:
+                choice: gigabytes_per_second
+                gigabytes_per_second: 400
           x-field-uid: 4
+        instances:
+          description: |-
+            The names that a device will be known as in the connections.
+            - this allows infrastructure to be composed of devices but reuse the device under a different name.
+            - every device name MUST exist in at least one instance object
+          type: array
+          items:
+            $ref: "./instance.yaml#/components/schemas/Instance"
+          minItems: 1
+          example:
+            - name: server
+              device: generic-server
+            - name: generic-switch
+              device: leafsw
+            - name: generic-switch
+              device: spinesw
+          x-field-uid: 5
         connections:
           description: |-
-            Connections define the graph with each connection consisting of the following criteria in a string separated by dots:
-            - `Device.Instance.property.name` e.g., host
-            - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
-            - `Component.property.name` where `Component.property.external` is true e.g., nic
-            - a 0 based index that is less than `Component.property.count` e.g., 0
-            - `Infrastructure.properties.links.property.name`
-            - `Device.Instance.property.name` e.g., leafsw
-            - a 0 based index that is less than `Device.Instance.property.count` e.g., 0
-            - `Component.property.name` where `Component.property.external` is true e.g., port
-            - a 0 based index that is less than `Component.property.count` e.g., 0
+            Connections define the infrastructure graph with each connection consisting
+            of exactly 5 names and 4 indexes.
 
-            The example pieces are concatenated using a dot notation and would form the following connection string `host.0.nic.0.eth.leafsw.0.port.0`.
+            Example:
+            - server.0.nic.0.eth1.leafsw.0.port.0
+              - the name `server` exists in the Infrastructure.instances array in the device property
+              - the index `0` indicates there is at least 1 instance of the `server` device
+              - the name `nic` is the name of an external component in the `server` device
+              - the index `0` indicates there is at least 1 instance of the `nic` component
+
           type: array
           items:
             type: string
           example:
-            - server.0.nic.0.eth.leaf.0.port.0
-            - server.0.nic.1.eth.leaf.0.port.1
-          x-field-uid: 5
+            - server.0.nic.0.eth1.leafsw.0.port.0
+            - server.0.nic.1.eth1.leafsw.0.port.1
+          x-field-uid: 6
         annotations:
           description: |-
             Annotations are meant to be used to correlate static and/or dynamic information
@@ -71,7 +125,7 @@ components:
           type: array
           items:
             $ref: "./annotation.yaml#/components/schemas/Annotation"
-          x-field-uid: 6
+          x-field-uid: 7
           example:
             - name: logical_containers
               description: |-

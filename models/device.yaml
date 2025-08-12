@@ -74,27 +74,3 @@ components:
           items:
             type: string
           x-field-uid: 5
-        instances:
-          description: |-
-            A collection of instance objects.
-
-            An instance object is used to create `n` number of instances of this device
-            under a specific name that is used in infrastructure connections.
-
-            This allows for multiple instances of this device under different names creating different
-            roles/categories for the same device.
-
-            e.g.,
-              - a device can be described as a `th5 switch` but instantiated as
-                - 4 `leaf` switches
-                - 3 `spine` switches
-          type: array
-          items:
-            $ref: "./instances.yaml#/components/schemas/Device.Instance"
-          minItems: 1
-          example:
-            - name: server
-              count: 2
-              description: Server instances of the DGX-A100 device
-          x-field-uid: 6
-
