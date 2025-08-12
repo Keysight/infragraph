@@ -178,22 +178,22 @@ message LinkPhysicalBandwidth {
   message Choice {
     enum Enum {
       unspecified = 0;
-      g_bits_per_second = 1;
-      g_bytes_per_second = 2;
-      g_transfers_per_second = 3;
+      gigabits_per_second = 1;
+      gigabytes_per_second = 2;
+      gigatransfers_per_second = 3;
     }
   }
   // Description missing in models
   optional Choice.Enum choice = 1;
 
-  // Giga bits per second.
-  optional float g_bits_per_second = 2;
+  // Gigabits per second.
+  optional float gigabits_per_second = 2;
 
-  // Giga bytes per second.
-  optional float g_bytes_per_second = 3;
+  // Gigabytes per second.
+  optional float gigabytes_per_second = 3;
 
-  // Giga trasfers per second.
-  optional float g_transfers_per_second = 4;
+  // Gigatrasfers per second.
+  optional float gigatransfers_per_second = 4;
 }
 
 // A container for specific Link latency properties.

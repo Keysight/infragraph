@@ -372,29 +372,29 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            g_bits_per_second:
+            gigabits_per_second:
               x-field-uid: 1
-            g_bytes_per_second:
+            gigabytes_per_second:
               x-field-uid: 2
-            g_transfers_per_second:
+            gigatransfers_per_second:
               x-field-uid: 3
           enum:
-          - g_bits_per_second
-          - g_bytes_per_second
-          - g_transfers_per_second
-        g_bits_per_second:
+          - gigabits_per_second
+          - gigabytes_per_second
+          - gigatransfers_per_second
+        gigabits_per_second:
           description: |-
-            Giga bits per second.
+            Gigabits per second.
           type: number
           x-field-uid: 2
-        g_bytes_per_second:
+        gigabytes_per_second:
           description: |-
-            Giga bytes per second.
+            Gigabytes per second.
           type: number
           x-field-uid: 3
-        g_transfers_per_second:
+        gigatransfers_per_second:
           description: |-
-            Giga trasfers per second.
+            Gigatrasfers per second.
           type: number
           x-field-uid: 4
     Link.Physical.Latency:
