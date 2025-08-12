@@ -9,23 +9,6 @@ components:
           type: string
           x-field-uid: 1
       additionalProperties: true
-      example:
-        interfaces:
-          interface:
-            - name: server.0.nic.0
-              config:
-                name: eth0
-                type: "iana-if-type:ethernetCsmacd"
-                mtu: 1500
-                description: Server interface
-                enabled: true
-          subinterfaces:
-            subinterface:
-              - index: 0
-                ipv4:
-                  addresses:
-                    address:
-                      - ip: 1.1.1.1
     Annotation:
       description: |-
         Annotation allows for extending the base configuration with any type of

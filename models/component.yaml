@@ -7,7 +7,6 @@ components:
       type: object
       required:
         - type
-        - count
       properties:
         name:
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
