@@ -23,7 +23,7 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * infrastructure and device connections dictate the shape of the graph
 * infrastructure needs to be scalable without duplicating content
 
-### OpenapiArt
+## OpenapiArt
 This repository makes use of [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to do the following:
 
 * create declarative intent based Models and APIs
