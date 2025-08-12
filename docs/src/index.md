@@ -21,6 +21,6 @@ Advanced [examples](examples.md) include complex servers, hierarchical devices, 
 The API and Models can easily be reviewed using the auto-generated OpenAPI model and redocly html documentation.
 
 ### Community
-Use our community resources to get help with [Infrastructure Graph](https://github.com/Keysight/infraph) on Github
+Use our community resources to get help with [InfraGraph](https://github.com/Keysight/infragraph) on Github
 
 

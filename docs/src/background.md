@@ -19,7 +19,7 @@ This isn't just about efficiency; it's about building performant, reliable, and 
 
 So, here's how we put it all together. The challenge is that these complex AI systems are incredibly difficult to model accurately. Say you have a particular infrastructure benchmark like looking at how collective libraries will perform given different design choices, A vs. B.
 
-Our solution involves combining two key pieces: our Infraph schema, which precisely defines the cluster's topology, and the MLCommons Chakra workload traces, which capture the actual behavior of AI applications.
+Our solution involves combining two key pieces: our `InfraGraph schema`, which precisely defines the cluster's topology, and the MLCommons Chakra workload traces, which capture the actual behavior of AI applications.
 
 Together, these standardized inputs feed directly into powerful simulators like AstraSim. This isn't just theoretical; it's a working proof point. It allows us to run detailed 'what-if' analyses, explore different design choices of how a cluster is composed together, and truly understand performance trade-offs.
 
@@ -33,7 +33,7 @@ This capability effectively `democratizes` the evaluation of complex AI systems,
 * democratizes complex system evaluation
 * `infrastructure schema` is a flexible starting point today
 
-## Introducing INFRAPH (INFrastructure gRAPH)
+## Introducing InfraGraph (INFRAstructure GRAPH)
 A graph is a natural fit to describe a system of systems in a clear, intuitive, and mathematically precise manner.
 
 ![graph](./images/graph.png)
@@ -43,7 +43,7 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * Properties store additional information about nodes or edges
 
 ### Principles
-[Infraph](https://github.com/Keysight/infraph) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:
+[InfraGraph](https://github.com/Keysight/infragraph) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:
 
 * logical infrastructure can be described using graph concepts such as vertexes and edges
     * vertexes are device instances

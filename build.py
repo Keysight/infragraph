@@ -8,8 +8,8 @@ import openapiart
 
 openapiart.OpenApiArt(
     api_files=["./api/info.yaml", "./api/api.yaml"],
-    protobuf_name="infraph",
+    protobuf_name="infragraph",
     artifact_dir="artifacts",
     generate_version_api=False,
-).GeneratePythonSdk(package_name="infraph")
+).GeneratePythonSdk(package_name="infragraph")
 

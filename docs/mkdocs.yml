@@ -1,6 +1,6 @@
 site_name: Infrastructure Graph
-repo_url: https://github.com/Keysight/infraph
-repo_name: infraph
+repo_url: https://github.com/Keysight/infragraph
+repo_name: infragraph
 edit_uri: ""
 docs_dir: src
 theme:
@@ -33,7 +33,7 @@ extra:
     property: G-N6X4KDVDJF
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Keysight/infraph
+      link: https://github.com/Keysight/infragraph
 # Page tree
 nav:
   - Overview: index.md
