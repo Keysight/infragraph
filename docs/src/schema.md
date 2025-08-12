@@ -21,12 +21,14 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * devices are composable using connections
 * connections dictate the depth of the graph
 * infrastructure and device connections dictate the shape of the graph
-* due to the possible scale of AI/HPC deployments, infrastructure needs to be scalable without duplicating content
+* infrastructure needs to be scalable without duplicating content
 
 ### OpenapiArt
 This repository makes use of [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to do the following:
 
-    * create declarative intent based Models and APIs
-    * auto-generate the following artifacts:
-        * [Redocly documentation](openapi.html) of APIs and Models
-        * `Python/Go SDKs` that allow for creating `fluent` client/server code over `REST/Protobuf` transports
+* create declarative intent based Models and APIs
+* auto-generate the following artifacts:
+    * openapi schema
+    * protobuf schema
+    * [Redocly documentation](https://) of APIs and Models
+    * `Python/Go SDKs` that allow for creating `fluent` client/server code over `REST/Protobuf` transports

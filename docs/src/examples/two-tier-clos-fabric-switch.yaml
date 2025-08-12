@@ -1,9 +1,10 @@
 infrastructure:
   devices:
-    - description: Generic Switch
+    - name: generic-switch
+      description: Generic Switch
       components:
         - name: asic
-          description: Generic ASCI
+          description: Generic ASIC
           type: custom
           count: 1
         - name: port
@@ -31,11 +32,4 @@ infrastructure:
         - asic.0.ic.port.13
         - asic.0.ic.port.14
         - asic.0.ic.port.15
-      instances:
-        - name: leaf
-          description: Leaf switches that are present in the infrastructure
-          count: 4
-        - name: switch
-          description: Spine switches that are present in the infrastructure
-          count: 3
 

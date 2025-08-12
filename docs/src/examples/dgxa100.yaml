@@ -1,36 +1,120 @@
-devices:
-  - name: dgx-a100
-    description: Nvidia DGX A100 System
-    components:
-      - name: cpu
-        description: AMD Epyc 7742
-        type: cpu
-        count: 2
-      - name: npu
-        description: Nvidia A100 GPU
-        type: npu
-        count: 8
-      - name: nic
-        description: Mellanox ConnectX-5 PCIe 3.0
-        type: nic
-        count: 8
-        external: true
-      - name: pcie-sw
-        description: PCI Express Switch Gen 4
-        type: custom
-        count: 4
-      - name: nv-sw
-        description: NVLink Switch
-        type: custom
-        count: 6
-    links:
-      - name: pcie
-        description: PCIe 3.0
-      - name: nvlink
-        description: PCIe 5.0 x16
-    connections:
-      - grace.0.c2c.hopper.0
-      - cx7.0.pcie.npu.0
-      - cx7.0.pcie.grace.0
-      - cx7.1.pcie.npu.1
-      - cx7.1.pcie.grace.1
+infrastructure:
+  devices:
+    - name: dgx-a100
+      description: |-
+        Nvidia DGX A100 System consisting of the following components:
+        - 2 cpus
+        - 8 gpus
+        - 8 nics
+        - 4 pcie switches
+        - 6 nvlink switches
+      components:
+        - name: cpu
+          description: AMD Epyc 7742
+          type: cpu
+        - name: npu
+          description: Nvidia A100 GPU
+          type: npu
+        - name: cx5
+          description: Mellanox ConnectX-5 PCIe 3.0
+          type: nic
+          external: true
+        - name: pciesw
+          description: PCI Express Switch Gen 4
+          type: custom
+        - name: nvlsw
+          description: NVLink Switch
+          type: custom
+      links:
+        - name: pcie
+          description: PCIe 3.0
+        - name: nvlink
+          description: NVLINK 3.0
+        - name: fabric
+          description: AMD Infinity Fabric
+      connections:
+        - cpu.0.fabric.cpu.1
+        - cpu.0.pcie.pciesw.0
+        - cpu.0.pcie.pciesw.1
+        - cpu.1.pcie.pciesw.2
+        - cpu.1.pcie.pciesw.3
+        - pciesw.0.pcie.npu.0
+        - pciesw.0.pcie.npu.1
+        - pciesw.1.pcie.npu.2
+        - pciesw.1.pcie.npu.3
+        - pciesw.2.pcie.npu.4
+        - pciesw.2.pcie.npu.5
+        - pciesw.3.pcie.npu.6
+        - pciesw.3.pcie.npu.7
+        - pciesw.0.pcie.cx5.0.port.0 #
+        - pciesw.0.pcie.cx5.1
+        - pciesw.1.pcie.cx5.2
+        - pciesw.1.pcie.cx5.3
+        - pciesw.2.pcie.cx5.4
+        - pciesw.2.pcie.cx5.5
+        - pciesw.3.pcie.cx5.6
+        - pciesw.3.pcie.cx5.7
+        - npu.0.nvlink.nvlsw.0
+        - npu.1.nvlink.nvlsw.0
+        - npu.2.nvlink.nvlsw.0
+        - npu.3.nvlink.nvlsw.0
+        - npu.4.nvlink.nvlsw.0
+        - npu.5.nvlink.nvlsw.0
+        - npu.6.nvlink.nvlsw.0
+        - npu.7.nvlink.nvlsw.0
+        - npu.0.nvlink.nvlsw.1
+        - npu.1.nvlink.nvlsw.1
+        - npu.2.nvlink.nvlsw.1
+        - npu.3.nvlink.nvlsw.1
+        - npu.4.nvlink.nvlsw.1
+        - npu.5.nvlink.nvlsw.1
+        - npu.6.nvlink.nvlsw.1
+        - npu.7.nvlink.nvlsw.1
+        - npu.0.nvlink.nvlsw.2
+        - npu.1.nvlink.nvlsw.2
+        - npu.2.nvlink.nvlsw.2
+        - npu.3.nvlink.nvlsw.2
+        - npu.4.nvlink.nvlsw.2
+        - npu.5.nvlink.nvlsw.2
+        - npu.6.nvlink.nvlsw.2
+        - npu.7.nvlink.nvlsw.2
+        - npu.0.nvlink.nvlsw.3
+        - npu.1.nvlink.nvlsw.3
+        - npu.2.nvlink.nvlsw.3
+        - npu.3.nvlink.nvlsw.3
+        - npu.4.nvlink.nvlsw.3
+        - npu.5.nvlink.nvlsw.3
+        - npu.6.nvlink.nvlsw.3
+        - npu.7.nvlink.nvlsw.3
+        - npu.0.nvlink.nvlsw.4
+        - npu.1.nvlink.nvlsw.4
+        - npu.2.nvlink.nvlsw.4
+        - npu.3.nvlink.nvlsw.4
+        - npu.4.nvlink.nvlsw.4
+        - npu.5.nvlink.nvlsw.4
+        - npu.6.nvlink.nvlsw.4
+        - npu.7.nvlink.nvlsw.4
+        - npu.0.nvlink.nvlsw.5
+        - npu.1.nvlink.nvlsw.5
+        - npu.2.nvlink.nvlsw.5
+        - npu.3.nvlink.nvlsw.5
+        - npu.4.nvlink.nvlsw.5
+        - npu.5.nvlink.nvlsw.5
+        - npu.6.nvlink.nvlsw.5
+        - npu.7.nvlink.nvlsw.5
+        - npu.0.nvlink.nvlsw.6
+        - npu.1.nvlink.nvlsw.6
+        - npu.2.nvlink.nvlsw.6
+        - npu.3.nvlink.nvlsw.6
+        - npu.4.nvlink.nvlsw.6
+        - npu.5.nvlink.nvlsw.6
+        - npu.6.nvlink.nvlsw.6
+        - npu.7.nvlink.nvlsw.6
+        - npu.0.nvlink.nvlsw.7
+        - npu.1.nvlink.nvlsw.7
+        - npu.2.nvlink.nvlsw.7
+        - npu.3.nvlink.nvlsw.7
+        - npu.4.nvlink.nvlsw.7
+        - npu.5.nvlink.nvlsw.7
+        - npu.6.nvlink.nvlsw.7
+        - npu.7.nvlink.nvlsw.7
