@@ -3,19 +3,28 @@ Modern AI systems, comprising diverse scale-up and scale-out interconnect topolo
 This documentation covers the following:
 
 ### Background
-The [background](background.md) and justification behind the schema.
+The [background](background.md) details and justification behind the schema.
+
+### Schema
+An overview of the [schema](schema.md) and it's repository.
 
 ### Getting Started
 A simple generic case study demonstrating how to [get started](create.md).
 
 ### Extending the case study with additional data
-This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on. It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
+This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on.
+
+It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
 
 ### Services
 The site provides services for `validating` concrete instances of schemas.
 
 ### Advanced Examples
-Advanced [examples](examples.md) include complex servers, hierarchical devices, and scaleup/scaleout infrastructure.
+Advanced [examples](examples.md) include such things as:
+
+- complex servers
+- composable devices
+- scaleup/scaleout infrastructure.
 
 ### Specification Browser
 The API and Models can easily be reviewed using the auto-generated OpenAPI model and redocly html documentation.

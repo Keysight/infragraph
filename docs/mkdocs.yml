@@ -1,4 +1,4 @@
-site_name: Infrastructure Graph
+site_name: InfraGraph (Infrastructure Graph)
 repo_url: https://github.com/Keysight/infragraph
 repo_name: infragraph
 edit_uri: ""
@@ -38,6 +38,7 @@ extra:
 nav:
   - Overview: index.md
   - Background: background.md
+  - Schema: schema.md
   - Getting Started: create.md
   - Extending The Cluster:
     - Overview: annotate.md
