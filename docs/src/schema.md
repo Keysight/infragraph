@@ -10,14 +10,18 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 ### Principles
 [InfraGraph](https://github.com/Keysight/infragraph) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:
 
-* logical infrastructure can be described using graph concepts such as vertexes and edges
-    * vertexes are device instances
-    * an edge is 2 device instances separated by a link
-    * a path is a collection of connections
-* there is a difference between logical infrastructure and physical definition
-* logical infrastructure should be composable
-* logical infrastructure is loosely coupled to physical definitions
-* due to the possible scale of AI/HPC deployments, logical infrastructure needs to be scalable without duplicating content
+* infrastructure can be described using graph concepts such as vertexes, edges and properties
+    * vertexes can be `component` or device `instances`
+    * an edge contained by a device subgraph is 2 component instances separated by a link
+        * e.g., `npu.0`.`pcie`.`nic.0`
+    * an edge contained by the infrastructure is 2 device connections separated by a link where a device connection is the device `instance` name and `index` and external `component` name and `index`
+        * e.g., `server.0`.`nic.0`.`eth`.`leafsw.0`.`port.0`
+    * a path is a collection of infrastructure and device connections between a single source and destination
+    * properties are fields with in the device and component objects
+* devices are composable using connections
+* connections dictate the depth of the graph
+* infrastructure and device connections dictate the shape of the graph
+* due to the possible scale of AI/HPC deployments, infrastructure needs to be scalable without duplicating content
 
 ### OpenapiArt
 This repository makes use of [OpenAPIArt](https://github.com/open-traffic-generator/openapiart) to do the following:
