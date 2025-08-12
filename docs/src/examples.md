@@ -10,6 +10,13 @@ The graph model is able to capture the asymmetric layout of the device.
 
 ### Standardized Definition
 <details open>
+<summary><strong>CX5 Device Definition using OpenAPI Device Model</strong></summary>
+```yaml
+{% include-markdown "./examples/cx5.yaml" %}
+```
+</details>
+In addition to defining the DGX-A100 device it also demonstrates how the DGX-A100 device is composed of CX5 device.
+<details open>
 <summary><strong>DGX-A100 Device Definition using OpenAPI Device Model</strong></summary>
 ```yaml
 {% include-markdown "./examples/dgxa100.yaml" %}
