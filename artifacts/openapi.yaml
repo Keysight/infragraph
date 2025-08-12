@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Infraph
+  title: InfraGraph
   description: |-
     ### Overview
-    Infraph or infrastructure as a Graph defines a model-driven, vendor-neutral, standard
+    InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
     interface for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
 
     This model allows for defining physical infrastructure as a logical system of systems using graph like terminology.
@@ -19,15 +19,15 @@ info:
 
     ### Contributions
     Contributions to the API and models schema can be made in the following ways:
-    - [open an issue](https://github.com/keysight/infraph/issues) in the models repository
-    - [fork the models repository](https://github.com/keysight/infraph) and submit a PR
+    - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
+    - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
   version: 0.1.0
   contact:
-    url: https://github.com/keysight/infraph/issues
+    url: https://github.com/keysight/infragraph/issues
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  x-model-guide: https://github.com/keysight/infraph/blob/main/MODEL-GUIDE.md
+  x-model-guide: https://github.com/keysight/infragraph/blob/main/MODEL-GUIDE.md
 servers:
 - url: /
 paths:
@@ -317,11 +317,9 @@ components:
       description: |-
         A container for describing a component.
         A Component is contained in a Device.
-        A Component can be composed of sub components by using the components property.
       type: object
       required:
       - type
-      - count
       properties:
         name:
           x-field-uid: 1
@@ -338,7 +336,7 @@ components:
         type:
           description: |-
             Type of component.
-            Any component not listed can be defined using the custom type.
+            Any component not listed as an enum can be defined using the custom type.
           type: string
           x-field-uid: 3
           x-enum:
@@ -350,35 +348,21 @@ components:
               x-field-uid: 3
             nic:
               x-field-uid: 4
+            memory:
+              x-field-uid: 5
           enum:
           - custom
           - cpu
           - npu
           - nic
-        count:
-          description: |-
-            The maximum number of components that can appear in the device connections.
-
-            The `count` should be used to validate Device.connections where the index in the connections
-            should never be >= this value.
-          type: number
-          minimum: 1
-          x-field-uid: 4
+          - memory
         external:
           description: |-
             Indicates whether this component is an ingress/egress component in a device.
             Only those components that have this property set to true can be used in an infrastructure connection.
           type: boolean
           default: false
-          x-field-uid: 5
-        components:
-          description: |-
-            This recursive property allows for a component to be described in more detail.
-          type: array
-          items:
-            $ref: '#/components/schemas/Component'
-          default: false
-          x-field-uid: 6
+          x-field-uid: 4
     Link.Physical.Bandwidth:
       description: |-
         A container for specific Link physical Properties.
@@ -510,23 +494,6 @@ components:
           type: string
           x-field-uid: 1
       additionalProperties: true
-      example:
-        interfaces:
-          interface:
-          - name: server.0.nic.0
-            config:
-              name: eth0
-              type: iana-if-type:ethernetCsmacd
-              mtu: 1500
-              description: Server interface
-              enabled: true
-          subinterfaces:
-            subinterface:
-            - index: 0
-              ipv4:
-                addresses:
-                  address:
-                  - ip: 1.1.1.1
     Annotation:
       description: |-
         Annotation allows for extending the base configuration with any type of

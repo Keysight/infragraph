@@ -1,0 +1,360 @@
+/* InfraGraph 0.1.0
+ * ### Overview
+ * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
+ * interface for capturing a system of systems suitable for use in co-designing AI/HPC
+ * solutions.
+ * 
+ * This model allows for defining physical infrastructure as a logical system of systems
+ * using graph like terminology.
+ * In addition to defining a logical graph, an unlimited number of different physical
+ * characteristics
+ * can be associated with logical endpoints.
+ * 
+ * ### Graph Terminology
+ * - `vertex` is the fundamental unit or entity within a graph; represented as a point.
+ * In this model it is one of the following:
+ * - a combination of a component name and a 0 based index such as `asic.0`
+ * - a device instance name, a 0 based index, an external component and a 0 based
+ * index such as `host.0.nic.0`.
+ * - `edge` is a connection between two vertices in a graph. It can be a connection
+ * between two component instances or two device instances. The connection also includes
+ * a logical label for identifying the type of link between the two vertexes, for example
+ * `asic.0`.`ic`.`port.0`
+ * - `path` is a sequence of connections that allows for traversal through the graph
+ * 
+ * ### Contributions
+ * Contributions to the API and models schema can be made in the following ways:
+ * - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
+ * - [fork the models repository](https://github.com/keysight/infragraph) and submit
+ * a PR
+ * License: MIT */
+
+syntax = "proto3";
+
+package infragraph;
+
+option go_package = "./infragraph;infragraph";
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/empty.proto";
+
+// Description missing in models
+message Infrastructure {
+
+  // The name of the infrastructure being described.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A description of the infrastructure being described.
+  optional string description = 2;
+
+  // An array of the devices and their components present in the infrastructure connections.
+  repeated Device devices = 3;
+
+  // An inventory of the links that are part of the infrastructure connections property.
+  repeated Link links = 4;
+
+  // The names that a device will be known as in the connections.
+  // - this allows infrastructure to be composed of devices but reuse the device under
+  // a different name.
+  // - every device name MUST exist in at least one instance object
+  repeated Instance instances = 5;
+
+  // Connections define the infrastructure graph with each connection consisting
+  // of exactly 5 names and 4 indexes.
+  // 
+  // Example:
+  // - server.0.nic.0.eth1.leafsw.0.port.0
+  // - the name `server` exists in the Infrastructure.instances array in the device
+  // property
+  // - the index `0` indicates there is at least 1 instance of the `server` device
+  // - the name `nic` is the name of an external component in the `server` device
+  // - the index `0` indicates there is at least 1 instance of the `nic` component
+  repeated string connections = 6;
+
+  // Annotations are meant to be used to correlate static and/or dynamic information
+  // (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
+  repeated Annotation annotations = 7;
+}
+
+// A subgraph container for a device and its components, links and connections.
+// The connections form a subgraph.
+// 
+// e.g., Describe a switch device in detail.
+// 
+// At a simple level a switch has an asic and ports.
+// The asic can be made up of of core, mem, crypt, alu, dsp, pll, ics (interconnect
+// structure), iop (i/o pad).
+// The Device can capture just the asic and ports connected by an integrated circuit
+// or
+// the asic can be broken down into more discrete components.
+// 
+// Simple Approach: asic, cpu, port, ic
+// Detailed Approach: cpu, core, mem, alu, pll, iop, ic, port
+// 
+// name: arista
+// description: |-
+// The Arista is a network switch platform,
+// commonly equipped with 48 x 1G Ethernet ports and 4 x 10G uplink ports,
+// typically implemented using a Jericho2 ASIC
+// components: [core, mem, crypt, alu, iop, port]
+// links: [ics]
+// connections:
+// - core.0.ics.mem.0
+// - core.0.ics.crypt.0
+// - core.0.ics.alu.0
+// - core.0.ics.iop.0
+// - core.0.ics.iop.47
+// - iop.0.ics.port.0
+// ...
+// - iop.47.ics.port.47
+// 
+// - to traverse from the core asic to a port, multiple connections are used to form
+// a path
+// - core.0.ics.iop.0.ics.port.0
+message Device {
+
+  // The name of the device being described.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A description of the device.
+  // This will not be used in Infrastructure.connections.
+  optional string description = 2;
+
+  // Description missing in models
+  repeated Component components = 3;
+
+  // All the links that make up this device.
+  repeated Link links = 4;
+
+  // All the connections of components that are within this device.
+  // 
+  // Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
+  // The `index` in the connection string is 0 based and must be >=0 and < Component.count.
+  // 
+  // This allows components to be connected to whatever depth is needed.
+  repeated string connections = 5;
+}
+
+// A container for describing a component.
+// A Component is contained in a Device.
+message Component {
+
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A description of the component.
+  optional string description = 2;
+
+  message Type {
+    enum Enum {
+      unspecified = 0;
+      custom = 1;
+      cpu = 2;
+      npu = 3;
+      nic = 4;
+      memory = 5;
+    }
+  }
+  // Type of component.
+  // Any component not listed as an enum can be defined using the custom type.
+  // required = true
+  optional Type.Enum type = 3;
+
+  // Indicates whether this component is an ingress/egress component in a device.
+  // Only those components that have this property set to true can be used in an infrastructure
+  // connection.
+  // default = False
+  optional bool external = 4;
+}
+
+// A container for specific Link physical Properties.
+message LinkPhysicalBandwidth {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      g_bits_per_second = 1;
+      g_bytes_per_second = 2;
+      g_transfers_per_second = 3;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+
+  // Giga bits per second.
+  optional float g_bits_per_second = 2;
+
+  // Giga bytes per second.
+  optional float g_bytes_per_second = 3;
+
+  // Giga trasfers per second.
+  optional float g_transfers_per_second = 4;
+}
+
+// A container for specific Link latency properties.
+message LinkPhysicalLatency {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      ms = 1;
+      us = 2;
+      ns = 3;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+
+  // Latency in milliseconds
+  optional float ms = 2;
+
+  // Latency in microseconds.
+  optional float us = 3;
+
+  // Latency in nanoseconds.
+  optional float ns = 4;
+}
+
+// Description missing in models
+message LinkPhysical {
+
+  // Description missing in models
+  LinkPhysicalBandwidth bandwidth = 1;
+
+  // Description missing in models
+  LinkPhysicalLatency latency = 2;
+}
+
+// A container for describing a link used between components.
+message Link {
+
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A description of the type of link.
+  optional string description = 2;
+
+  // A container for physical properties.
+  LinkPhysical physical = 3;
+}
+
+// Description missing in models
+message Instance {
+
+  // An alias for the device that MUST be used in the Infrastructure.connections property.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A description of the instance.
+  optional string description = 2;
+
+  // The name of a device that MUST exist in the Infrastructure.devices property.
+  // required = true
+  optional string device = 3;
+}
+
+// User defined data.
+message AnnotationData {
+
+  // Description missing in models
+  optional string name = 1;
+}
+
+// Annotation allows for extending the base configuration with any type of
+// additional information such as logical layouts, physical configuration etc.
+// 
+// This allows an organization to add their own data structures or
+// open source data such as openconfig configuration messages which can be
+// correlated to specific configuration endpoints.
+message Annotation {
+
+  // An alias for the annotation data.
+  // required = true
+  optional string name = 1;
+
+  // Annotation data.
+  // required = true
+  AnnotationData data = 2;
+}
+
+// Error response generated while serving API request.
+message Error {
+
+  // Numeric status code based on the underlying transport being used.
+  // The API server MUST set this code explicitly based on following references:
+  // - HTTP 4xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.5
+  // - HTTP 5xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.6
+  // - gRPC errors: https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+  // required = true
+  optional int32 code = 1;
+
+  message Kind {
+    enum Enum {
+      unspecified = 0;
+      validation = 1;
+      internal = 2;
+    }
+  }
+  // Classification of error originating from within API server that may not be mapped
+  // to the value in `code`.
+  // Absence of this field may indicate that the error did not originate from within API
+  // server.
+  optional Kind.Enum kind = 2;
+
+  // List of error messages generated while executing the request.
+  repeated string errors = 3;
+}
+
+// A list of warnings that have occurred while executing the request.
+message Warning {
+
+  // A list of any system specific warnings that have occurred while
+  // executing the request.
+  repeated string warnings = 1;
+}
+
+// The request has succeeded with no application content but the server
+// may return a list of detailed warnings.
+message Success {
+  Warning warning = 1;
+}
+
+// The request did not succeed and server has responded with error details.
+message Failure {
+  Error error = 1;
+}
+
+// Data that needs to be streamed
+message Data {
+  uint64 chunk_size = 1;
+  bytes datum = 2;
+}
+
+message ValidateRequest {
+  Infrastructure infrastructure = 1;
+}
+message ValidateResponse {
+  Warning warning = 1;
+}
+
+
+// Description missing in models
+//
+// For all RPCs defined in this service, API Server SHOULD provide JSON
+// representation of `Error` message as an error string upon failure, ensuring
+// name of enum constants (instead of value) for `kind` property is present
+// in the representation
+service Openapi {
+
+  // Validate an infrastructure configuration.
+  rpc Validate(ValidateRequest) returns (ValidateResponse);
+  // streaming version of the rpc Validate
+  rpc streamValidate(stream Data) returns (ValidateResponse);
+}
