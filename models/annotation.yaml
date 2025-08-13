@@ -29,7 +29,12 @@ components:
           x-field-uid: 1
         data:
           description: |-
-            Annotation data.
+            The actual annotation data.
           $ref: "#/components/schemas/Annotation.Data"
           x-field-uid: 2
+        schema:
+          description: |-
+            A schema that describes the annotation data.
+          type: string
+          x-field-uid: 3
 
