@@ -55,10 +55,13 @@ message Infrastructure {
   // An inventory of the links that are part of the infrastructure connections property.
   repeated Link links = 4;
 
-  // The names that a device will be known as in the connections.
+  // The names that a device will be known as in the `Infrastructure.properties.connections`
+  // value.
   // - this allows infrastructure to be composed of devices but reuse the device under
   // a different name.
-  // - every device name MUST exist in at least one instance object
+  // - names of devices in the `Infrastructure.properties.connections` values MUST exist
+  // in this object
+  // and will be validated.
   repeated Instance instances = 5;
 
   // Connections define the infrastructure graph with each connection consisting

@@ -98,47 +98,71 @@ components:
           items:
             $ref: '#/components/schemas/Device'
           example:
-          - name: ghsc
-            description: Grace Hopper Super Chip
-            components:
-            - name: grace
-              type: cpu
-              count: 1
-              external: true
-            - name: hopper
-              type: npu
-              count: 1
-            links:
-            - name: c2c
-            connections:
-            - grace.0.c2c.hopper.0
           - name: generic-server
+            description: Generic Server
             components:
+            - name: npu
+              description: Generic NPU
+              type: npu
             - name: nic
+              description: Generic Network Interface Card
               type: nic
-            - name: nvl-sw
+              external: true
+            - name: nvlsw
+              description: NVLink Switch
               type: custom
             links:
             - name: pcie
-            - name: c2c
+              description: PCIe Interconnect
+              bandwidth:
+                choice: gigabytes_per_second
+                gigabytes_per_second: 32
+            - name: nvlink
+              description: NvLink
+              bandwidth:
+                choice: gigabytes_per_second
+                gigabytes_per_second: 128
             connections:
-            - nic.0.pcie.grace.0
-            - nic.1.pcie.grace.1
-            - nic.2.pcie.grace.2
-            - nic.3.pcie.grace.3
+            - npu.0.pcie.nic.0
+            - npu.1.pcie.nic.1
+            - npu.2.pcie.nic.2
+            - npu.3.pcie.nic.3
+            - npu.0.nvlink.nvlsw.0
+            - npu.1.nvlink.nvlsw.0
+            - npu.2.nvlink.nvlsw.0
+            - npu.3.nvlink.nvlsw.0
           - name: generic-switch
+            description: Generic Switch
             components:
-            - name: port
-              type: nic
             - name: asic
+              description: Generic ASIC
               type: custom
+              count: 1
+            - name: port
+              description: Generic Port
+              type: nic
+              count: 16
+              external: true
             links:
             - name: ic
+              description: Integrated Circuit
             connections:
-            - nic.0.pcie.grace.0
-            - nic.1.pcie.grace.1
-            - nic.2.pcie.grace.2
-            - nic.3.pcie.grace.3
+            - asic.0.ic.port.0
+            - asic.0.ic.port.1
+            - asic.0.ic.port.2
+            - asic.0.ic.port.3
+            - asic.0.ic.port.4
+            - asic.0.ic.port.5
+            - asic.0.ic.port.6
+            - asic.0.ic.port.7
+            - asic.0.ic.port.8
+            - asic.0.ic.port.9
+            - asic.0.ic.port.10
+            - asic.0.ic.port.11
+            - asic.0.ic.port.12
+            - asic.0.ic.port.13
+            - asic.0.ic.port.14
+            - asic.0.ic.port.15
           x-field-uid: 3
         links:
           description: |-
@@ -158,9 +182,10 @@ components:
           x-field-uid: 4
         instances:
           description: |-
-            The names that a device will be known as in the connections.
+            The names that a device will be known as in the `Infrastructure.properties.connections` value.
             - this allows infrastructure to be composed of devices but reuse the device under a different name.
-            - every device name MUST exist in at least one instance object
+            - names of devices in the `Infrastructure.properties.connections` values MUST exist in this object
+              and will be validated.
           type: array
           items:
             $ref: '#/components/schemas/Instance'
@@ -190,6 +215,32 @@ components:
           example:
           - server.0.nic.0.eth1.leafsw.0.port.0
           - server.0.nic.1.eth1.leafsw.0.port.1
+          - server.0.nic.2.eth1.leafsw.0.port.2
+          - server.0.nic.3.eth1.leafsw.0.port.3
+          - server.1.nic.0.eth1.leafsw.1.port.0
+          - server.1.nic.1.eth1.leafsw.1.port.1
+          - server.1.nic.2.eth1.leafsw.1.port.2
+          - server.1.nic.3.eth1.leafsw.1.port.3
+          - server.2.nic.0.eth1.leafsw.2.port.0
+          - server.2.nic.1.eth1.leafsw.2.port.1
+          - server.2.nic.2.eth1.leafsw.2.port.2
+          - server.2.nic.3.eth1.leafsw.2.port.3
+          - server.3.nic.0.eth1.leafsw.3.port.0
+          - server.3.nic.1.eth1.leafsw.3.port.1
+          - server.3.nic.2.eth1.leafsw.3.port.2
+          - server.3.nic.3.eth1.leafsw.3.port.3
+          - leafsw.0.port.4.eth2.spinesw.0.port.0
+          - leafsw.0.port.5.eth2.spinesw.1.port.0
+          - leafsw.0.port.6.eth2.spinesw.2.port.0
+          - leafsw.1.port.4.eth2.spinesw.0.port.1
+          - leafsw.1.port.5.eth2.spinesw.1.port.1
+          - leafsw.1.port.6.eth2.spinesw.2.port.1
+          - leafsw.2.port.4.eth2.spinesw.0.port.2
+          - leafsw.2.port.5.eth2.spinesw.1.port.2
+          - leafsw.2.port.6.eth2.spinesw.2.port.2
+          - leafsw.3.port.4.eth2.spinesw.0.port.3
+          - leafsw.3.port.5.eth2.spinesw.1.port.3
+          - leafsw.3.port.6.eth2.spinesw.2.port.3
           x-field-uid: 6
         annotations:
           description: |-
@@ -211,21 +262,21 @@ components:
                 items:
                 - server.0
                 - server.1
-                - leaf.0
-                - leaf.1
+                - leafsw.0
+                - leafsw.1
               - name: pod.1
                 items:
                 - server.2
                 - server.3
-                - leaf.2
-                - leaf.3
+                - leafsw.2
+                - leafsw.3
               - name: datacenter.0
                 items:
                 - pod.0
                 - pod.1
-                - spine.0
-                - spine.1
-                - spine.2
+                - spinesw.0
+                - spinesw.1
+                - spinesw.2
           - name: device_addresses
             data:
               server_addresses:
