@@ -76,8 +76,9 @@ message Infrastructure {
   // - the index `0` indicates there is at least 1 instance of the `nic` component
   repeated string connections = 6;
 
-  // Annotations are meant to be used to correlate static and/or dynamic information
-  // (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
+  // Annotations are meant to extend the current schema with any kind of additional data
+  // such as
+  // static, dynamic, logical and physical information (e.g., configuration, routing etc).
   repeated Annotation annotations = 7;
 }
 
@@ -282,9 +283,12 @@ message Annotation {
   // required = true
   optional string name = 1;
 
-  // Annotation data.
+  // The actual annotation data.
   // required = true
   AnnotationData data = 2;
+
+  // A schema that describes the annotation data.
+  optional string schema = 3;
 }
 
 // Error response generated while serving API request.

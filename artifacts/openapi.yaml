@@ -137,11 +137,9 @@ components:
             - name: asic
               description: Generic ASIC
               type: custom
-              count: 1
             - name: port
               description: Generic Port
               type: nic
-              count: 16
               external: true
             links:
             - name: ic
@@ -244,8 +242,8 @@ components:
           x-field-uid: 6
         annotations:
           description: |-
-            Annotations are meant to be used to correlate static and/or dynamic information
-            (e.g., configuration, routing etc) that is not covered by the schema to logical endpoints.
+            Annotations are meant to extend the current schema with any kind of additional data such as
+            static, dynamic, logical and physical information (e.g., configuration, routing etc).
           type: array
           items:
             $ref: '#/components/schemas/Annotation'
@@ -565,9 +563,14 @@ components:
           x-field-uid: 1
         data:
           description: |-
-            Annotation data.
+            The actual annotation data.
           $ref: '#/components/schemas/Annotation.Data'
           x-field-uid: 2
+        schema:
+          description: |-
+            A schema that describes the annotation data.
+          type: string
+          x-field-uid: 3
     Error:
       description: |-
         Error response generated while serving API request.
