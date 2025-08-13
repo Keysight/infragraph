@@ -6,11 +6,9 @@ infrastructure:
         - name: asic
           description: Generic ASIC
           type: custom
-          count: 1
         - name: port
           description: Generic Port
           type: nic
-          count: 16
           external: true
       links:
         - name: ic
