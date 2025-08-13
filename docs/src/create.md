@@ -24,8 +24,9 @@ The above devices will be interconnected in the following manner:
 * each nic in the `server` is connected to a `leaf` switch port at 100 gpbs
 * a port in the `leaf` switch is connected to every `spine` switch at 400 gpbs
 
-## Standardized Definition
+## Standardized Definitions
 A standardized definition of the preceding two tier clos fabric can be created by following these steps:
+
 * The device is a subgraph which is composed of two components connected to each other using a link.
 * It acts as a blueprint allowing for a single definition to be reused multiple times for optimal space complexity.
 

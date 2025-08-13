@@ -40,9 +40,9 @@ nav:
   - Background: background.md
   - Schema: schema.md
   - Getting Started: create.md
-  - Extending The Cluster:
+  - Extending The Schema:
     - Overview: annotate.md
-  - Validation: validation.md
   - Examples: examples.md
+  - Validation: validation.md
   - Browse API Spec: openapi.html
 
