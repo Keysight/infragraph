@@ -1,3 +1,5 @@
 artifacts
 docs/gh-pages
 docs/site
+
+*.pyc
