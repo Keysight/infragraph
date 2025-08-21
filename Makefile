@@ -29,7 +29,7 @@ install: package ## pip install infragraph package
 	pip3 install dist/infragraph*.whl --force-reinstall
 
 .PHONY: test
-test: package ## run unit tests
+test: install ## run unit tests
 	source .venv/bin/activate && \
 	pytest
 
