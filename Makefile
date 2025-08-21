@@ -11,7 +11,7 @@ clean: ## recreate clean virtual environment
 	source .venv/bin/activate && pip install -r requirements.txt
 
 .PHONY: generate
-generate: ## generate artifacts using OpenApiArt
+generate: clean ## generate artifacts using OpenApiArt
 	source .venv/bin/activate && \
 	python3 generate.py
 
