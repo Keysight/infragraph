@@ -73,7 +73,7 @@ jobs:
         with:
           name: "Release ${{ steps.get_version.outputs.version }}"
           body: "View the schema at https://keysight.github.io/infragraph/openapi.html"
-          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infragraph.proto,docs/src/openapi.html
+          artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infragraph.proto,docs/src/openapi.html,dist/*.*
           tag: ${{ steps.get_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
