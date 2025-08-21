@@ -24,6 +24,7 @@ description = "Infrastructure as a Graph"
 requires-python = ">=3.8"
 dependencies = [
     "networkx",
+    "semantic_version",
 ]
 authors = [
     {name = "TBD", email = "tbd@infragraph.org"}

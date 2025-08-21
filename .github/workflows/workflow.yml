@@ -23,9 +23,9 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Generate, Build, Install
+      - name: Generate, Build, Install, Test
         run: |
-          make install
+          make test
 
       - name: Generate Doc from openapi.yaml
         uses: seeebiii/redoc-cli-github-action@v10

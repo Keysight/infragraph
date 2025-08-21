@@ -2,3 +2,5 @@ build
 openapiart
 networkx
 pytest
+pytest-asyncio
+twine
