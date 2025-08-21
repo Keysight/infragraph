@@ -128,11 +128,16 @@ message Device {
   // This will not be used in Infrastructure.connections.
   optional string description = 2;
 
+  // The number of instances of this device if not contained in another device.
+  // If the device is contained within another device the count is multiplied
+  // by the containing device count.
+  optional float count = 3;
+
   // Description missing in models
-  repeated Component components = 3;
+  repeated Component components = 4;
 
   // All the links that make up this device.
-  repeated Link links = 4;
+  repeated Link links = 5;
 
   // All the connections of components that are within this device.
   // 
@@ -140,7 +145,7 @@ message Device {
   // The `index` in the connection string is 0 based and must be >=0 and < Component.count.
   // 
   // This allows components to be connected to whatever depth is needed.
-  repeated string connections = 5;
+  repeated string connections = 6;
 }
 
 // A container for describing a component.
