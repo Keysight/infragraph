@@ -1,5 +1,7 @@
 artifacts
 docs/gh-pages
 docs/site
-
+dist
 *.pyc
+__pycache__
+.pytest_cache

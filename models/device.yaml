@@ -41,27 +41,33 @@ components:
           description: |-
             The name of the device being described.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
-          example: generic-server
           x-field-uid: 1
         description:
           description: |-
             A description of the device.
             This will not be used in Infrastructure.connections.
           type: string
-          example: NVIDIA DGX A100 high-performance AI system
           x-field-uid: 2
+        count:
+          description: |-
+            The number of instances of this device if not contained in another device.
+            If the device is contained within another device the count is multiplied
+            by the containing device count.
+          type: number
+          minimum: 1
+          x-field-uid: 3
         components:
           type: array
           items:
             $ref: "./component.yaml#/components/schemas/Component"
-          x-field-uid: 3
+          x-field-uid: 4
         links:
           description: |-
             All the links that make up this device.
           type: array
           items:
             $ref: "./link.yaml#/components/schemas/Link"
-          x-field-uid: 4
+          x-field-uid: 5
         connections:
           description: |-
             All the connections of components that are within this device.
@@ -73,4 +79,5 @@ components:
           type: array
           items:
             type: string
-          x-field-uid: 5
+          x-field-uid: 6
+

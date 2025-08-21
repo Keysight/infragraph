@@ -1,0 +1,34 @@
+from typing import Union
+import pytest
+import networkx
+import infragraph
+from infragraph.examples.dgxa100 import DgxA100
+from infragraph.examples.cx5 import Cx5
+
+
+def generate_graph(source: Union[infragraph.Infrastructure, infragraph.Device]) -> networkx.graph.Graph:
+    graph = networkx.graph.Graph()
+
+    graph.add_node()
+    return graph
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("device", [DgxA100(count=4), Cx5()])
+@pytest.mark.parametrize("serialization", [infragraph.Device.JSON, infragraph.Device.YAML])
+async def test_device_serialization(device, serialization):
+    """Test device validation"""
+    print(device.serialize(serialization))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("device", [DgxA100(count=4), Cx5()])
+async def test_device_append(device):
+    """Test device append"""
+    infra = infragraph.Infrastructure(name="test", description="Test Infrastructure Device Append")
+    infra.devices.append(device)
+    print(infra)
+
+
+if __name__ == "__main__":
+    pytest.main(["-s", __file__])

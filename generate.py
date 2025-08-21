@@ -1,5 +1,5 @@
 """
-The following command produces these artifacts:
+The following command generates these artifacts:
     - ./artifacts/openapi.yaml
     - ./artifacts/openapi.json
 """
@@ -12,4 +12,3 @@ openapiart.OpenApiArt(
     artifact_dir="artifacts",
     generate_version_api=False,
 ).GeneratePythonSdk(package_name="infragraph")
-
