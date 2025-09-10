@@ -1,0 +1,608 @@
+openapi: 3.0.3
+info:
+  title: InfraGraph
+  description: |-
+    ### Overview
+    InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
+    interface for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
+
+    This model allows for defining physical infrastructure as a logical system of systems using graph like terminology.
+    In addition to defining a logical graph, an unlimited number of different physical characteristics
+    can be associated with logical endpoints.
+
+    ### Graph Terminology
+    - `vertex` is the fundamental unit or entity within a graph; represented as a point. In this model it is one of the following:
+      - a combination of a component name and a 0 based index such as `asic.0`
+      - a device instance name, a 0 based index, an external component and a 0 based index such as `host.0.nic.0`.
+    - `edge` is a connection between two vertices in a graph. It can be a connection between two component instances or two device instances. The connection also includes a logical label for identifying the type of link between the two vertexes, for example `asic.0`.`ic`.`port.0`
+    - `path` is a sequence of connections that allows for traversal through the graph
+
+    ### Contributions
+    Contributions to the API and models schema can be made in the following ways:
+    - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
+    - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
+  version: 0.1.0
+  contact:
+    url: https://github.com/keysight/infragraph/issues
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  x-model-guide: https://github.com/keysight/infragraph/blob/main/MODEL-GUIDE.md
+servers:
+- url: /
+paths:
+  /get_graph:
+    post:
+      tags:
+      - Configuration
+      operationId: get_graph
+      x-stream: client
+      description: |-
+        Get a complete serialized infrastructure configuration that has been validated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Infrastructure'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+          x-field-uid: 1
+        default:
+          $ref: '#/components/responses/Failure'
+          x-field-uid: 2
+components:
+  responses:
+    Success:
+      description: |-
+        The request has succeeded with no application content but the server
+        may return a list of detailed warnings.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Warning'
+    Failure:
+      description: |-
+        The request did not succeed and server has responded with error details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Infrastructure:
+      type: object
+      properties:
+        name:
+          description: |-
+            The name of the infrastructure being described.
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          example: Two Tier Clos Fabric
+          x-field-uid: 1
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
+          description: |-
+            A description of the infrastructure being described.
+          type: string
+          example: 'The example fields in this schema are based on the Two Tier Clos
+            Fabric Case Study outlined
+
+            in the documentation `Getting Started` subsection.'
+          x-field-uid: 2
+        devices:
+          description: |-
+            An array of the devices and their components present in the infrastructure connections.
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+          example: null
+          x-field-uid: 3
+        links:
+          description: |-
+            An inventory of the links that are part of the infrastructure connections property.
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+          example:
+          - name: eth1
+            bandwidth:
+              choice: gigabytes_per_second
+              gigabytes_per_second: 100
+          - name: eth2
+            bandwidth:
+              choice: gigabytes_per_second
+              gigabytes_per_second: 400
+          x-field-uid: 4
+        instances:
+          description: |-
+            The names that a device will be known as in the `Infrastructure.properties.connections` value.
+            - this allows infrastructure to be composed of devices but reuse the device under a different name.
+            - names of devices in the `Infrastructure.properties.connections` values MUST exist in this object
+              and will be validated.
+          type: array
+          items:
+            $ref: '#/components/schemas/Instance'
+          minItems: 1
+          example:
+          - name: server
+            device: generic-server
+          - name: generic-switch
+            device: leafsw
+          - name: generic-switch
+            device: spinesw
+          x-field-uid: 5
+        connections:
+          description: |-
+            Connections define the infrastructure graph with each connection consisting
+            of exactly 5 names and 4 indexes.
+
+            Example:
+            - server.0.nic.0.eth1.leafsw.0.port.0
+              - the name `server` exists in the Infrastructure.instances array in the device property
+              - the index `0` indicates there is at least 1 instance of the `server` device
+              - the name `nic` is the name of an external component in the `server` device
+              - the index `0` indicates there is at least 1 instance of the `nic` component
+          type: array
+          items:
+            type: string
+          example:
+          - server.0.nic.0.eth1.leafsw.0.port.0
+          - server.0.nic.1.eth1.leafsw.0.port.1
+          - server.0.nic.2.eth1.leafsw.0.port.2
+          - server.0.nic.3.eth1.leafsw.0.port.3
+          - server.1.nic.0.eth1.leafsw.1.port.0
+          - server.1.nic.1.eth1.leafsw.1.port.1
+          - server.1.nic.2.eth1.leafsw.1.port.2
+          - server.1.nic.3.eth1.leafsw.1.port.3
+          - server.2.nic.0.eth1.leafsw.2.port.0
+          - server.2.nic.1.eth1.leafsw.2.port.1
+          - server.2.nic.2.eth1.leafsw.2.port.2
+          - server.2.nic.3.eth1.leafsw.2.port.3
+          - server.3.nic.0.eth1.leafsw.3.port.0
+          - server.3.nic.1.eth1.leafsw.3.port.1
+          - server.3.nic.2.eth1.leafsw.3.port.2
+          - server.3.nic.3.eth1.leafsw.3.port.3
+          - leafsw.0.port.4.eth2.spinesw.0.port.0
+          - leafsw.0.port.5.eth2.spinesw.1.port.0
+          - leafsw.0.port.6.eth2.spinesw.2.port.0
+          - leafsw.1.port.4.eth2.spinesw.0.port.1
+          - leafsw.1.port.5.eth2.spinesw.1.port.1
+          - leafsw.1.port.6.eth2.spinesw.2.port.1
+          - leafsw.2.port.4.eth2.spinesw.0.port.2
+          - leafsw.2.port.5.eth2.spinesw.1.port.2
+          - leafsw.2.port.6.eth2.spinesw.2.port.2
+          - leafsw.3.port.4.eth2.spinesw.0.port.3
+          - leafsw.3.port.5.eth2.spinesw.1.port.3
+          - leafsw.3.port.6.eth2.spinesw.2.port.3
+          x-field-uid: 6
+        annotations:
+          description: |-
+            Annotations are meant to extend the current schema with any kind of additional data such as
+            static, dynamic, logical and physical information (e.g., configuration, routing etc).
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation'
+          x-field-uid: 7
+          example:
+          - name: logical_containers
+            description: 'Improve clarity of infrastructure connections by grouping
+              devices and
+
+              other logical containers.'
+            data:
+              containers:
+              - name: pod.0
+                items:
+                - server.0
+                - server.1
+                - leafsw.0
+                - leafsw.1
+              - name: pod.1
+                items:
+                - server.2
+                - server.3
+                - leafsw.2
+                - leafsw.3
+              - name: datacenter.0
+                items:
+                - pod.0
+                - pod.1
+                - spinesw.0
+                - spinesw.1
+                - spinesw.2
+          - name: device_addresses
+            data:
+              server_addresses:
+              - device_instance: server.0
+                dns: host1.location.net
+              - device_instance: server.1
+                dns: host2.location.net
+              - device_instance: server.2
+                dns: host3.location.net
+              - device_instance: server.3
+                dns: host4.location.net
+    Device.Edge:
+      type: object
+      properties:
+        ep1:
+          description: |-
+            A list of component.index and/or device.index that make up one endpoint of the edge
+          type: array
+          items:
+            type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A list of component.index and/or device.index that make up the other endpoint of the edge
+          type: array
+          items:
+            type: string
+          x-field-uid: 2
+        link:
+          description: |-
+            The name of a link that defines additional characteristics of the edge.
+          type: string
+          x-field-uid: 3
+        directed:
+          description: |-
+            Whether or not the edge is directed or undirected.
+          type: boolean
+          default: false
+          x-field-uid: 4
+    Device:
+      description: |-
+        A subgraph container for a device and its components, links and connections.
+        The connections form a subgraph.
+
+        e.g., Describe a switch device in detail.
+
+        At a simple level a switch has an asic and ports.
+        The asic can be made up of of core, mem, crypt, alu, dsp, pll, ics (interconnect structure), iop (i/o pad).
+        The Device can capture just the asic and ports connected by an integrated circuit or
+        the asic can be broken down into more discrete components.
+
+        Simple Approach: asic, cpu, port, ic
+        Detailed Approach: cpu, core, mem, alu, pll, iop, ic, port
+
+        name: arista
+        description: |-
+          The Arista is a network switch platform,
+          commonly equipped with 48 x 1G Ethernet ports and 4 x 10G uplink ports,
+          typically implemented using a Jericho2 ASIC
+        components: [core, mem, crypt, alu, iop, port]
+        links: [ics]
+        connections:
+            - core.0.ics.mem.0
+            - core.0.ics.crypt.0
+            - core.0.ics.alu.0
+            - core.0.ics.iop.0
+            - core.0.ics.iop.47
+            - iop.0.ics.port.0
+            ...
+            - iop.47.ics.port.47
+
+        - to traverse from the core asic to a port, multiple connections are used to form a path
+          - core.0.ics.iop.0.ics.port.0
+      type: object
+      properties:
+        name:
+          description: |-
+            The name of the device being described.
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          x-field-uid: 1
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
+          description: |-
+            A description of the device.
+            This will not be used in Infrastructure.connections.
+          type: string
+          x-field-uid: 2
+        count:
+          description: |-
+            The number of instances of this device if not contained in another device.
+            If the device is contained within another device the count is multiplied
+            by the containing device count.
+          type: number
+          minimum: 1
+          x-field-uid: 3
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/Component'
+          x-field-uid: 4
+        links:
+          description: |-
+            All the links that make up this device.
+          type: array
+          items:
+            $ref: '#/components/schemas/Link'
+          x-field-uid: 5
+        connections:
+          description: |-
+            All the connections of components that are within this device.
+
+            Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
+            The `index` in the connection string is 0 based and must be >=0 and < Component.count.
+
+            This allows components to be connected to whatever depth is needed.
+          type: array
+          items:
+            type: string
+          x-field-uid: 6
+        edges:
+          description: |-
+            An array of edges where each edge is defined using a Device.Edge object.
+            These edge objects are used to produce a graph.
+            The service should take these edges and construct a valid graph.
+          type: array
+          items:
+            $ref: '#/components/schemas/Device.Edge'
+          x-field-uid: 7
+    Component:
+      description: |-
+        A container for describing a component.
+        A Component is contained in a Device.
+      type: object
+      required:
+      - type
+      properties:
+        name:
+          x-field-uid: 1
+          description: |-
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
+          description: |-
+            A description of the component.
+          type: string
+          x-field-uid: 2
+        type:
+          description: |-
+            Type of component.
+            Any component not listed as an enum can be defined using the custom type.
+          type: string
+          x-field-uid: 3
+          x-enum:
+            custom:
+              x-field-uid: 1
+            cpu:
+              x-field-uid: 2
+            npu:
+              x-field-uid: 3
+            nic:
+              x-field-uid: 4
+            memory:
+              x-field-uid: 5
+            port:
+              x-field-uid: 6
+          enum:
+          - custom
+          - cpu
+          - npu
+          - nic
+          - memory
+          - port
+        external:
+          description: |-
+            Indicates whether this component is an ingress/egress component in a device.
+            Only those components that have this property set to true can be used in an infrastructure connection.
+          type: boolean
+          default: false
+          x-field-uid: 4
+    Link.Physical.Bandwidth:
+      description: |-
+        A container for specific Link physical Properties.
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            gigabits_per_second:
+              x-field-uid: 1
+            gigabytes_per_second:
+              x-field-uid: 2
+            gigatransfers_per_second:
+              x-field-uid: 3
+          enum:
+          - gigabits_per_second
+          - gigabytes_per_second
+          - gigatransfers_per_second
+        gigabits_per_second:
+          description: |-
+            Gigabits per second.
+          type: number
+          x-field-uid: 2
+        gigabytes_per_second:
+          description: |-
+            Gigabytes per second.
+          type: number
+          x-field-uid: 3
+        gigatransfers_per_second:
+          description: |-
+            Gigatrasfers per second.
+          type: number
+          x-field-uid: 4
+    Link.Physical.Latency:
+      description: |-
+        A container for specific Link latency properties.
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            ms:
+              x-field-uid: 1
+            us:
+              x-field-uid: 2
+            ns:
+              x-field-uid: 3
+          enum:
+          - ms
+          - us
+          - ns
+        ms:
+          description: |-
+            Latency in milliseconds
+          type: number
+          x-field-uid: 2
+        us:
+          description: |-
+            Latency in microseconds.
+          type: number
+          x-field-uid: 3
+        ns:
+          description: |-
+            Latency in nanoseconds.
+          type: number
+          x-field-uid: 4
+    Link.Physical:
+      type: object
+      properties:
+        bandwidth:
+          $ref: '#/components/schemas/Link.Physical.Bandwidth'
+          x-field-uid: 1
+        latency:
+          $ref: '#/components/schemas/Link.Physical.Latency'
+          x-field-uid: 2
+    Link:
+      description: |-
+        A container for describing a link used between components.
+      type: object
+      properties:
+        name:
+          x-field-uid: 1
+          description: |-
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
+          description: |-
+            A description of the type of link.
+          type: string
+          x-field-uid: 2
+        physical:
+          description: |-
+            A container for physical properties.
+          $ref: '#/components/schemas/Link.Physical'
+          x-field-uid: 3
+    Instance:
+      type: object
+      required:
+      - device
+      properties:
+        name:
+          description: |-
+            An alias for the device that MUST be used in the Infrastructure.connections property.
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
+          x-field-uid: 1
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
+          description: |-
+            A description of the instance.
+          type: string
+          x-field-uid: 2
+        device:
+          description: |-
+            The name of a device that MUST exist in the Infrastructure.devices property.
+          type: string
+          x-field-uid: 3
+    Annotation.Data:
+      description: |-
+        User defined data.
+      type: object
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+      additionalProperties: true
+    Annotation:
+      description: |-
+        Annotation allows for extending the base configuration with any type of
+        additional information such as logical layouts, physical configuration etc.
+
+        This allows an organization to add their own data structures or
+        open source data such as openconfig configuration messages which can be
+        correlated to specific configuration endpoints.
+      type: object
+      required:
+      - name
+      - data
+      properties:
+        name:
+          description: |-
+            An alias for the annotation data.
+          type: string
+          x-field-uid: 1
+        data:
+          description: |-
+            The actual annotation data.
+          $ref: '#/components/schemas/Annotation.Data'
+          x-field-uid: 2
+        schema:
+          description: |-
+            A schema that describes the annotation data.
+          type: string
+          x-field-uid: 3
+    Error:
+      description: |-
+        Error response generated while serving API request.
+      type: object
+      required:
+      - code
+      - errors
+      properties:
+        code:
+          description: |-
+            Numeric status code based on the underlying transport being used.
+            The API server MUST set this code explicitly based on following references:
+              - HTTP 4xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.5
+              - HTTP 5xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.6
+              - gRPC errors: https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+          type: integer
+          format: int32
+          x-field-uid: 1
+        kind:
+          description: |-
+            Classification of error originating from within API server that may not be mapped to the value in `code`.
+            Absence of this field may indicate that the error did not originate from within API server.
+          type: string
+          x-enum:
+            validation:
+              x-field-uid: 1
+            internal:
+              x-field-uid: 2
+          x-field-uid: 2
+          enum:
+          - validation
+          - internal
+        errors:
+          description: |-
+            List of error messages generated while executing the request.
+          type: array
+          items:
+            type: string
+          x-field-uid: 3
+    Warning:
+      description: |-
+        A list of warnings that have occurred while executing the request.
+      type: object
+      properties:
+        warnings:
+          description: |-
+            A list of any system specific warnings that have occurred while
+            executing the request.
+          type: array
+          items:
+            type: string
+          x-field-uid: 1
