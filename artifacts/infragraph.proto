@@ -373,10 +373,10 @@ message Data {
   bytes datum = 2;
 }
 
-message ValidateRequest {
+message GetGraphRequest {
   Infrastructure infrastructure = 1;
 }
-message ValidateResponse {
+message GetGraphResponse {
   Warning warning = 1;
 }
 
@@ -389,8 +389,8 @@ message ValidateResponse {
 // in the representation
 service Openapi {
 
-  // Validate an infrastructure configuration.
-  rpc Validate(ValidateRequest) returns (ValidateResponse);
-  // streaming version of the rpc Validate
-  rpc streamValidate(stream Data) returns (ValidateResponse);
+  // Get a complete serialized infrastructure configuration that has been validated.
+  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
+  // streaming version of the rpc GetGraph
+  rpc streamGetGraph(stream Data) returns (GetGraphResponse);
 }
