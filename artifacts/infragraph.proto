@@ -82,6 +82,24 @@ message Infrastructure {
   repeated Annotation annotations = 7;
 }
 
+// Description missing in models
+message DeviceEdge {
+
+  // A list of component.index and/or device.index that make up one endpoint of the edge
+  repeated string ep1 = 1;
+
+  // A list of component.index and/or device.index that make up the other endpoint of
+  // the edge
+  repeated string ep2 = 2;
+
+  // The name of a link that defines additional characteristics of the edge.
+  optional string link = 3;
+
+  // Whether or not the edge is directed or undirected.
+  // default = False
+  optional bool directed = 4;
+}
+
 // A subgraph container for a device and its components, links and connections.
 // The connections form a subgraph.
 // 
@@ -146,6 +164,11 @@ message Device {
   // 
   // This allows components to be connected to whatever depth is needed.
   repeated string connections = 6;
+
+  // An array of edges where each edge is defined using a Device.Edge object.
+  // These edge objects are used to produce a graph.
+  // The service should take these edges and construct a valid graph.
+  repeated DeviceEdge edges = 7;
 }
 
 // A container for describing a component.
@@ -167,6 +190,7 @@ message Component {
       npu = 3;
       nic = 4;
       memory = 5;
+      port = 6;
     }
   }
   // Type of component.

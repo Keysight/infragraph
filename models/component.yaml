@@ -33,6 +33,8 @@ components:
               x-field-uid: 4
             memory:
               x-field-uid: 5
+            port:
+              x-field-uid: 6
         external:
           description: |-
             Indicates whether this component is an ingress/egress component in a device.

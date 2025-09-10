@@ -97,70 +97,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Device'
-          example:
-          - name: generic-server
-            description: Generic Server
-            components:
-            - name: npu
-              description: Generic NPU
-              type: npu
-            - name: nic
-              description: Generic Network Interface Card
-              type: nic
-              external: true
-            - name: nvlsw
-              description: NVLink Switch
-              type: custom
-            links:
-            - name: pcie
-              description: PCIe Interconnect
-              bandwidth:
-                choice: gigabytes_per_second
-                gigabytes_per_second: 32
-            - name: nvlink
-              description: NvLink
-              bandwidth:
-                choice: gigabytes_per_second
-                gigabytes_per_second: 128
-            connections:
-            - npu.0.pcie.nic.0
-            - npu.1.pcie.nic.1
-            - npu.2.pcie.nic.2
-            - npu.3.pcie.nic.3
-            - npu.0.nvlink.nvlsw.0
-            - npu.1.nvlink.nvlsw.0
-            - npu.2.nvlink.nvlsw.0
-            - npu.3.nvlink.nvlsw.0
-          - name: generic-switch
-            description: Generic Switch
-            components:
-            - name: asic
-              description: Generic ASIC
-              type: custom
-            - name: port
-              description: Generic Port
-              type: nic
-              external: true
-            links:
-            - name: ic
-              description: Integrated Circuit
-            connections:
-            - asic.0.ic.port.0
-            - asic.0.ic.port.1
-            - asic.0.ic.port.2
-            - asic.0.ic.port.3
-            - asic.0.ic.port.4
-            - asic.0.ic.port.5
-            - asic.0.ic.port.6
-            - asic.0.ic.port.7
-            - asic.0.ic.port.8
-            - asic.0.ic.port.9
-            - asic.0.ic.port.10
-            - asic.0.ic.port.11
-            - asic.0.ic.port.12
-            - asic.0.ic.port.13
-            - asic.0.ic.port.14
-            - asic.0.ic.port.15
+          example: null
           x-field-uid: 3
         links:
           description: |-
@@ -286,6 +223,34 @@ components:
                 dns: host3.location.net
               - device_instance: server.3
                 dns: host4.location.net
+    Device.Edge:
+      type: object
+      properties:
+        ep1:
+          description: |-
+            A list of component.index and/or device.index that make up one endpoint of the edge
+          type: array
+          items:
+            type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A list of component.index and/or device.index that make up the other endpoint of the edge
+          type: array
+          items:
+            type: string
+          x-field-uid: 2
+        link:
+          description: |-
+            The name of a link that defines additional characteristics of the edge.
+          type: string
+          x-field-uid: 3
+        directed:
+          description: |-
+            Whether or not the edge is directed or undirected.
+          type: boolean
+          default: false
+          x-field-uid: 4
     Device:
       description: |-
         A subgraph container for a device and its components, links and connections.
@@ -368,6 +333,15 @@ components:
           items:
             type: string
           x-field-uid: 6
+        edges:
+          description: |-
+            An array of edges where each edge is defined using a Device.Edge object.
+            These edge objects are used to produce a graph.
+            The service should take these edges and construct a valid graph.
+          type: array
+          items:
+            $ref: '#/components/schemas/Device.Edge'
+          x-field-uid: 7
     Component:
       description: |-
         A container for describing a component.
@@ -405,12 +379,15 @@ components:
               x-field-uid: 4
             memory:
               x-field-uid: 5
+            port:
+              x-field-uid: 6
           enum:
           - custom
           - cpu
           - npu
           - nic
           - memory
+          - port
         external:
           description: |-
             Indicates whether this component is an ingress/egress component in a device.

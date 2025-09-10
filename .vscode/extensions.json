@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "esbenp.prettier-vscode",
+    "tamasfe.even-better-toml",
+    "ms-python.black-formatter",
+    "ms-python.vscode-pylance",
+    "redhat.vscode-yaml",
+  ],
+}

@@ -1,0 +1,110 @@
+  infrastructure:
+    devices:
+      - name: generic-server
+        description: Generic Server
+        components:
+          - name: npu
+            description: Generic NPU
+            type: npu
+          - name: nic
+            description: Generic Network Interface Card
+            type: nic
+            external: true
+          - name: nvlsw
+            description: NVLink Switch
+            type: custom
+        links:
+          - name: pcie
+            description: PCIe Interconnect
+            bandwidth:
+              choice: gigabytes_per_second
+              gigabytes_per_second: 32
+          - name: nvlink
+            description: NvLink
+            bandwidth:
+              choice: gigabytes_per_second
+              gigabytes_per_second: 128
+        connections:
+          - npu.0.pcie.nic.0
+          - npu.1.pcie.nic.1
+          - npu.2.pcie.nic.2
+          - npu.3.pcie.nic.3
+          - npu.0.nvlink.nvlsw.0
+          - npu.1.nvlink.nvlsw.0
+          - npu.2.nvlink.nvlsw.0
+          - npu.3.nvlink.nvlsw.0
+      - name: generic-switch
+        description: Generic Switch
+        components:
+          - name: asic
+            description: Generic ASIC
+            type: custom
+          - name: port
+            description: Generic Port
+            type: nic
+            external: true
+        links:
+          - name: ic
+            description: Integrated Circuit
+        connections:
+          - asic.0.ic.port.0
+          - asic.0.ic.port.1
+          - asic.0.ic.port.2
+          - asic.0.ic.port.3
+          - asic.0.ic.port.4
+          - asic.0.ic.port.5
+          - asic.0.ic.port.6
+          - asic.0.ic.port.7
+          - asic.0.ic.port.8
+          - asic.0.ic.port.9
+          - asic.0.ic.port.10
+          - asic.0.ic.port.11
+          - asic.0.ic.port.12
+          - asic.0.ic.port.13
+          - asic.0.ic.port.14
+          - asic.0.ic.port.15
+      - name: arista
+        description: |-
+          The Arista is a network switch platform,
+          commonly equipped with 48 x 1G Ethernet ports and 4 x 10G uplink ports,
+          typically implemented using a Jericho2 ASIC
+        components:
+          - name: asic
+            description: The main switching ASIC of the device
+            type: asic
+            count: 1
+          - name: cpu
+            description: The control plane CPU of the device
+            type: cpu
+            count: 1
+          - name: port
+            description: Ethernet ports for network connectivity
+            type: ethernet_port
+            count: 52
+          - name: ic
+            description: Integrated circuit connecting the ASIC to ports
+            type: ic
+            count: 1
+        links:
+          - name: ics
+            description: Link representing the integrated circuit connections
+            type: ic_link
+        connections:
+          - asic.0.ics.ic.0
+          - asic.0.ics.port.0
+          - asic.0.ics.port.1
+          - asic.0.ics.port.2
+          - asic.0.ics.port.3
+          - asic.0.ics.port.4
+          - asic.0.ics.port.5
+          - asic.0.ics.port.6
+          - asic.0.ics.port.7
+          - asic.0.ics.port.8
+          - asic.0.ics.port.9
+          - asic.0.ics.port.10
+          - asic.0.ics.port.11
+          - asic.0.ics.port.12
+          - asic.0.ics.port.13
+          - asic.0.ics.port.14
+          - asic.0.ics.port.15
+          - asic.0.ic.cpu.0

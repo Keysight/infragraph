@@ -1,16 +1,7 @@
-from typing import Union
 import pytest
-import networkx
 import infragraph
 from infragraph.examples.dgxa100 import DgxA100
 from infragraph.examples.cx5 import Cx5
-
-
-def generate_graph(source: Union[infragraph.Infrastructure, infragraph.Device]) -> networkx.graph.Graph:
-    graph = networkx.graph.Graph()
-
-    graph.add_node()
-    return graph
 
 
 @pytest.mark.asyncio
