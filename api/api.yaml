@@ -1,11 +1,11 @@
 paths:
-  /validate:
+  /get_graph:
     post:
       tags: ['Configuration']
-      operationId: validate
+      operationId: get_graph
       x-stream: client
       description: >-
-        Validate an infrastructure configuration.
+        Get a complete serialized infrastructure configuration that has been validated.
       requestBody:
         required: true
         content:
