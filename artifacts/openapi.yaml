@@ -31,14 +31,14 @@ info:
 servers:
 - url: /
 paths:
-  /get_graph:
+  /set_graph:
     post:
       tags:
       - Configuration
-      operationId: get_graph
+      operationId: set_graph
       x-stream: client
       description: |-
-        Get a complete serialized infrastructure configuration that has been validated.
+        Given an infrastructure payload this will create a complete infrastructure graph that has been validated.
       requestBody:
         required: true
         content:
@@ -77,7 +77,6 @@ components:
           description: |-
             The name of the infrastructure being described.
             Globally unique name of an object. It also serves as the primary key for arrays of objects.
-          example: Two Tier Clos Fabric
           x-field-uid: 1
           type: string
           pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
@@ -86,10 +85,6 @@ components:
           description: |-
             A description of the infrastructure being described.
           type: string
-          example: 'The example fields in this schema are based on the Two Tier Clos
-            Fabric Case Study outlined
-
-            in the documentation `Getting Started` subsection.'
           x-field-uid: 2
         devices:
           description: |-
@@ -97,7 +92,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Device'
-          example: null
           x-field-uid: 3
         links:
           description: |-
@@ -105,78 +99,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Link'
-          example:
-          - name: eth1
-            bandwidth:
-              choice: gigabytes_per_second
-              gigabytes_per_second: 100
-          - name: eth2
-            bandwidth:
-              choice: gigabytes_per_second
-              gigabytes_per_second: 400
           x-field-uid: 4
-        instances:
+        edges:
           description: |-
-            The names that a device will be known as in the `Infrastructure.properties.connections` value.
-            - this allows infrastructure to be composed of devices but reuse the device under a different name.
-            - names of devices in the `Infrastructure.properties.connections` values MUST exist in this object
-              and will be validated.
+            These edges are used to connect device components to other device components
+            forming a fully qualified graph based on the contents of the Infrastructure object.
           type: array
           items:
-            $ref: '#/components/schemas/Instance'
-          minItems: 1
-          example:
-          - name: server
-            device: generic-server
-          - name: generic-switch
-            device: leafsw
-          - name: generic-switch
-            device: spinesw
+            $ref: '#/components/schemas/Infrastructure.Edge'
           x-field-uid: 5
-        connections:
-          description: |-
-            Connections define the infrastructure graph with each connection consisting
-            of exactly 5 names and 4 indexes.
-
-            Example:
-            - server.0.nic.0.eth1.leafsw.0.port.0
-              - the name `server` exists in the Infrastructure.instances array in the device property
-              - the index `0` indicates there is at least 1 instance of the `server` device
-              - the name `nic` is the name of an external component in the `server` device
-              - the index `0` indicates there is at least 1 instance of the `nic` component
-          type: array
-          items:
-            type: string
-          example:
-          - server.0.nic.0.eth1.leafsw.0.port.0
-          - server.0.nic.1.eth1.leafsw.0.port.1
-          - server.0.nic.2.eth1.leafsw.0.port.2
-          - server.0.nic.3.eth1.leafsw.0.port.3
-          - server.1.nic.0.eth1.leafsw.1.port.0
-          - server.1.nic.1.eth1.leafsw.1.port.1
-          - server.1.nic.2.eth1.leafsw.1.port.2
-          - server.1.nic.3.eth1.leafsw.1.port.3
-          - server.2.nic.0.eth1.leafsw.2.port.0
-          - server.2.nic.1.eth1.leafsw.2.port.1
-          - server.2.nic.2.eth1.leafsw.2.port.2
-          - server.2.nic.3.eth1.leafsw.2.port.3
-          - server.3.nic.0.eth1.leafsw.3.port.0
-          - server.3.nic.1.eth1.leafsw.3.port.1
-          - server.3.nic.2.eth1.leafsw.3.port.2
-          - server.3.nic.3.eth1.leafsw.3.port.3
-          - leafsw.0.port.4.eth2.spinesw.0.port.0
-          - leafsw.0.port.5.eth2.spinesw.1.port.0
-          - leafsw.0.port.6.eth2.spinesw.2.port.0
-          - leafsw.1.port.4.eth2.spinesw.0.port.1
-          - leafsw.1.port.5.eth2.spinesw.1.port.1
-          - leafsw.1.port.6.eth2.spinesw.2.port.1
-          - leafsw.2.port.4.eth2.spinesw.0.port.2
-          - leafsw.2.port.5.eth2.spinesw.1.port.2
-          - leafsw.2.port.6.eth2.spinesw.2.port.2
-          - leafsw.3.port.4.eth2.spinesw.0.port.3
-          - leafsw.3.port.5.eth2.spinesw.1.port.3
-          - leafsw.3.port.6.eth2.spinesw.2.port.3
-          x-field-uid: 6
         annotations:
           description: |-
             Annotations are meant to extend the current schema with any kind of additional data such as
@@ -184,73 +115,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Annotation'
-          x-field-uid: 7
-          example:
-          - name: logical_containers
-            description: 'Improve clarity of infrastructure connections by grouping
-              devices and
-
-              other logical containers.'
-            data:
-              containers:
-              - name: pod.0
-                items:
-                - server.0
-                - server.1
-                - leafsw.0
-                - leafsw.1
-              - name: pod.1
-                items:
-                - server.2
-                - server.3
-                - leafsw.2
-                - leafsw.3
-              - name: datacenter.0
-                items:
-                - pod.0
-                - pod.1
-                - spinesw.0
-                - spinesw.1
-                - spinesw.2
-          - name: device_addresses
-            data:
-              server_addresses:
-              - device_instance: server.0
-                dns: host1.location.net
-              - device_instance: server.1
-                dns: host2.location.net
-              - device_instance: server.2
-                dns: host3.location.net
-              - device_instance: server.3
-                dns: host4.location.net
-    Device.Edge:
-      type: object
-      properties:
-        ep1:
-          description: |-
-            A list of component.index and/or device.index that make up one endpoint of the edge
-          type: array
-          items:
-            type: string
-          x-field-uid: 1
-        ep2:
-          description: |-
-            A list of component.index and/or device.index that make up the other endpoint of the edge
-          type: array
-          items:
-            type: string
-          x-field-uid: 2
-        link:
-          description: |-
-            The name of a link that defines additional characteristics of the edge.
-          type: string
-          x-field-uid: 3
-        directed:
-          description: |-
-            Whether or not the edge is directed or undirected.
-          type: boolean
-          default: false
-          x-field-uid: 4
+          x-field-uid: 6
     Device:
       description: |-
         A subgraph container for a device and its components, links and connections.
@@ -321,27 +186,17 @@ components:
           items:
             $ref: '#/components/schemas/Link'
           x-field-uid: 5
-        connections:
-          description: |-
-            All the connections of components that are within this device.
-
-            Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
-            The `index` in the connection string is 0 based and must be >=0 and < Component.count.
-
-            This allows components to be connected to whatever depth is needed.
-          type: array
-          items:
-            type: string
-          x-field-uid: 6
         edges:
           description: |-
-            An array of edges where each edge is defined using a Device.Edge object.
-            These edge objects are used to produce a graph.
-            The service should take these edges and construct a valid graph.
+            An array of edges that are used to produce a device graph.
+            These are used to connect components to each other or components
+            to other device components (composability).
+            The generated graph edges will be fully qualified using the count property
+            of the device and component and slice notation of each endpoint in the edge object.
           type: array
           items:
             $ref: '#/components/schemas/Device.Edge'
-          x-field-uid: 7
+          x-field-uid: 6
     Component:
       description: |-
         A container for describing a component.
@@ -494,29 +349,108 @@ components:
             A container for physical properties.
           $ref: '#/components/schemas/Link.Physical'
           x-field-uid: 3
-    Instance:
+    Device.Endpoint:
+      type: object
+      required:
+      - component
+      properties:
+        device:
+          description: |-
+            An optional name of a device that contains the component.
+            If the property is empty the name of the device is the parent of the edge object.
+          type: string
+          pattern: (.+?)\[(\d*):?(\d*):?(\d*)\]
+          x-field-uid: 1
+        component:
+          description: |-
+            The name of a component that exists in the containing device.
+          type: string
+          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+          x-field-uid: 2
+    Infrastructure.Endpoint:
       type: object
       required:
       - device
+      - component
       properties:
-        name:
-          description: |-
-            An alias for the device that MUST be used in the Infrastructure.connections property.
-            Globally unique name of an object. It also serves as the primary key for arrays of objects.
-          x-field-uid: 1
-          type: string
-          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
-          x-unique: global
-        description:
-          description: |-
-            A description of the instance.
-          type: string
-          x-field-uid: 2
         device:
           description: |-
-            The name of a device that MUST exist in the Infrastructure.devices property.
+            The name of a device that contains the component and MUST exist
+            in the infrastructure devices.
           type: string
+          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+          x-field-uid: 1
+        component:
+          description: |-
+            The name of a component that MUST exist in the containing device.
+          type: string
+          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+          x-field-uid: 2
+    Infrastructure.Edge:
+      type: object
+      required:
+      - ep1
+      - ep2
+      - many2many
+      - link
+      properties:
+        ep1:
+          description: |-
+            A device and component that is one endpoint of the edge
+          $ref: '#/components/schemas/Infrastructure.Endpoint'
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A device and component that is the other endpoint of the edge
+          required:
+          - device
+          - component
+          $ref: '#/components/schemas/Infrastructure.Endpoint'
+          x-field-uid: 2
+        many2many:
+          description: |-
+            If true every endpoint from ep1 will form an edge with every endpoint from ep2.
+            If false endpoints generated from ep1 and ep2 should be of the same length and
+            will be assigned together in the order they appear in each list.
+          type: boolean
           x-field-uid: 3
+        link:
+          description: |-
+            The name of a link that defines additional characteristics of the edge.
+            The name MUST exist in the links array of the infrastructure.
+          type: string
+          x-field-uid: 4
+    Device.Edge:
+      type: object
+      required:
+      - ep1
+      - ep2
+      - many2many
+      - link
+      properties:
+        ep1:
+          description: |-
+            An optional device and component that is the other endpoint of the edge
+          $ref: '#/components/schemas/Device.Endpoint'
+          x-field-uid: 1
+        ep2:
+          description: |-
+            An optional device and component that is the other endpoint of the edge
+          $ref: '#/components/schemas/Device.Endpoint'
+          x-field-uid: 2
+        many2many:
+          description: |-
+            If true every endpoint from ep1 will form an edge with every endpoint from ep2.
+            If false endpoints generated from ep1 and ep2 should be of the same length and
+            will be assigned together in the order they appear in each list.
+          type: boolean
+          x-field-uid: 3
+        link:
+          description: |-
+            The name of a link that defines additional characteristics of the edge.
+            The name MUST exist in the links array of the containing device.
+          type: string
+          x-field-uid: 4
     Annotation.Data:
       description: |-
         User defined data.

@@ -55,49 +55,14 @@ message Infrastructure {
   // An inventory of the links that are part of the infrastructure connections property.
   repeated Link links = 4;
 
-  // The names that a device will be known as in the `Infrastructure.properties.connections`
-  // value.
-  // - this allows infrastructure to be composed of devices but reuse the device under
-  // a different name.
-  // - names of devices in the `Infrastructure.properties.connections` values MUST exist
-  // in this object
-  // and will be validated.
-  repeated Instance instances = 5;
-
-  // Connections define the infrastructure graph with each connection consisting
-  // of exactly 5 names and 4 indexes.
-  // 
-  // Example:
-  // - server.0.nic.0.eth1.leafsw.0.port.0
-  // - the name `server` exists in the Infrastructure.instances array in the device
-  // property
-  // - the index `0` indicates there is at least 1 instance of the `server` device
-  // - the name `nic` is the name of an external component in the `server` device
-  // - the index `0` indicates there is at least 1 instance of the `nic` component
-  repeated string connections = 6;
+  // These edges are used to connect device components to other device components
+  // forming a fully qualified graph based on the contents of the Infrastructure object.
+  repeated InfrastructureEdge edges = 5;
 
   // Annotations are meant to extend the current schema with any kind of additional data
   // such as
   // static, dynamic, logical and physical information (e.g., configuration, routing etc).
-  repeated Annotation annotations = 7;
-}
-
-// Description missing in models
-message DeviceEdge {
-
-  // A list of component.index and/or device.index that make up one endpoint of the edge
-  repeated string ep1 = 1;
-
-  // A list of component.index and/or device.index that make up the other endpoint of
-  // the edge
-  repeated string ep2 = 2;
-
-  // The name of a link that defines additional characteristics of the edge.
-  optional string link = 3;
-
-  // Whether or not the edge is directed or undirected.
-  // default = False
-  optional bool directed = 4;
+  repeated Annotation annotations = 6;
 }
 
 // A subgraph container for a device and its components, links and connections.
@@ -157,18 +122,12 @@ message Device {
   // All the links that make up this device.
   repeated Link links = 5;
 
-  // All the connections of components that are within this device.
-  // 
-  // Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
-  // The `index` in the connection string is 0 based and must be >=0 and < Component.count.
-  // 
-  // This allows components to be connected to whatever depth is needed.
-  repeated string connections = 6;
-
-  // An array of edges where each edge is defined using a Device.Edge object.
-  // These edge objects are used to produce a graph.
-  // The service should take these edges and construct a valid graph.
-  repeated DeviceEdge edges = 7;
+  // An array of edges that are used to produce a device graph.
+  // These are used to connect components to each other or components
+  // to other device components (composability).
+  // The generated graph edges will be fully qualified using the count property
+  // of the device and component and slice notation of each endpoint in the edge object.
+  repeated DeviceEdge edges = 6;
 }
 
 // A container for describing a component.
@@ -278,19 +237,74 @@ message Link {
 }
 
 // Description missing in models
-message Instance {
+message DeviceEndpoint {
 
-  // An alias for the device that MUST be used in the Infrastructure.connections property.
-  // Globally unique name of an object. It also serves as the primary key for arrays of
-  // objects.
-  optional string name = 1;
+  // An optional name of a device that contains the component.
+  // If the property is empty the name of the device is the parent of the edge object.
+  optional string device = 1;
 
-  // A description of the instance.
-  optional string description = 2;
-
-  // The name of a device that MUST exist in the Infrastructure.devices property.
+  // The name of a component that exists in the containing device.
   // required = true
-  optional string device = 3;
+  optional string component = 2;
+}
+
+// Description missing in models
+message InfrastructureEndpoint {
+
+  // The name of a device that contains the component and MUST exist
+  // in the infrastructure devices.
+  // required = true
+  optional string device = 1;
+
+  // The name of a component that MUST exist in the containing device.
+  // required = true
+  optional string component = 2;
+}
+
+// Description missing in models
+message InfrastructureEdge {
+
+  // A device and component that is one endpoint of the edge
+  // required = true
+  InfrastructureEndpoint ep1 = 1;
+
+  // A device and component that is the other endpoint of the edge
+  // required = true
+  InfrastructureEndpoint ep2 = 2;
+
+  // If true every endpoint from ep1 will form an edge with every endpoint from ep2.
+  // If false endpoints generated from ep1 and ep2 should be of the same length and
+  // will be assigned together in the order they appear in each list.
+  // required = true
+  optional bool many2many = 3;
+
+  // The name of a link that defines additional characteristics of the edge.
+  // The name MUST exist in the links array of the infrastructure.
+  // required = true
+  optional string link = 4;
+}
+
+// Description missing in models
+message DeviceEdge {
+
+  // An optional device and component that is the other endpoint of the edge
+  // required = true
+  DeviceEndpoint ep1 = 1;
+
+  // An optional device and component that is the other endpoint of the edge
+  // required = true
+  DeviceEndpoint ep2 = 2;
+
+  // If true every endpoint from ep1 will form an edge with every endpoint from ep2.
+  // If false endpoints generated from ep1 and ep2 should be of the same length and
+  // will be assigned together in the order they appear in each list.
+  // required = true
+  optional bool many2many = 3;
+
+  // The name of a link that defines additional characteristics of the edge.
+  // The name MUST exist in the links array of the containing device.
+  // required = true
+  optional string link = 4;
 }
 
 // User defined data.
@@ -373,10 +387,10 @@ message Data {
   bytes datum = 2;
 }
 
-message GetGraphRequest {
+message SetGraphRequest {
   Infrastructure infrastructure = 1;
 }
-message GetGraphResponse {
+message SetGraphResponse {
   Warning warning = 1;
 }
 
@@ -389,8 +403,9 @@ message GetGraphResponse {
 // in the representation
 service Openapi {
 
-  // Get a complete serialized infrastructure configuration that has been validated.
-  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
-  // streaming version of the rpc GetGraph
-  rpc streamGetGraph(stream Data) returns (GetGraphResponse);
+  // Given an infrastructure payload this will create a complete infrastructure graph
+  // that has been validated.
+  rpc SetGraph(SetGraphRequest) returns (SetGraphResponse);
+  // streaming version of the rpc SetGraph
+  rpc streamSetGraph(stream Data) returns (SetGraphResponse);
 }
