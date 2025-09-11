@@ -36,16 +36,13 @@ class DgxA100(Device):
 
         for idx in range(self.count):
             parent = f"{self.name}.{idx}"
-            self.edges.append(DeviceEdge(ep1=[parent, f""], ep2=[parent, f""], link=fabric.name))
-            self.connections.append(
-                f"{self.name}.{idx}.{cpu.name}.0.{fabric.name}.{self.name}.{idx}.{cpu.name}.1"
-            )
-            for cpu_idx, pciesw_idx in zip([0, 0, 1, 1], [0, 1, 2, 3]):
-                self.connections.append(f"{cpu.name}.{cpu_idx}.{pcie.name}.{pciesw.name}.{pciesw_idx}")
-            for pciesw_idx, npu_idx in zip([i for i in range(4) for _ in range(2)], range(8)):
-                self.connections.append(f"{pciesw.name}.{pciesw_idx}.{pcie.name}.{npu.name}.{npu_idx}")
-            for npu_idx, nvlsw_idx in zip([i for i in range(8)] * 8, [i for i in range(6) for _ in range(8)]):
-                self.connections.append(f"{npu.name}.{npu_idx}.{pcie.name}.{nvlsw.name}.{nvlsw_idx}")
+            # self.edges.append(DeviceEdge(ep1=[parent, f""], ep2=[parent, f""], link=fabric.name))
+            # for cpu_idx, pciesw_idx in zip([0, 0, 1, 1], [0, 1, 2, 3]):
+            #     self.connections.append(f"{cpu.name}.{cpu_idx}.{pcie.name}.{pciesw.name}.{pciesw_idx}")
+            # for pciesw_idx, npu_idx in zip([i for i in range(4) for _ in range(2)], range(8)):
+            #     self.connections.append(f"{pciesw.name}.{pciesw_idx}.{pcie.name}.{npu.name}.{npu_idx}")
+            # for npu_idx, nvlsw_idx in zip([i for i in range(8)] * 8, [i for i in range(6) for _ in range(8)]):
+            #     self.connections.append(f"{npu.name}.{npu_idx}.{pcie.name}.{nvlsw.name}.{nvlsw_idx}")
 
 
 if __name__ == "__main__":

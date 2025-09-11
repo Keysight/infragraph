@@ -8,12 +8,14 @@ exclude = [
     "!pyproject.toml",
     "!README.md",
     "!artifacts/infragraph/*.py",
+    "!src/*.py",
     "!tests/*.py",
     "!docs/src/examples/*.py",
 ]
 
 [tool.hatch.build.sources]
 "artifacts/infragraph" = "infragraph"
+"src" = "infragraph"
 "tests" = "infragraph/tests"
 "docs/src/examples" = "infragraph/examples"
 

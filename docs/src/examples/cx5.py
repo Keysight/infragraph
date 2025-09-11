@@ -1,4 +1,4 @@
-from infragraph import Device, DeviceEdge, DeviceEdgeIter, ComponentIter, LinkIter
+from infragraph import Device, DeviceEdge, DeviceEndpoint, DeviceEdgeIter, ComponentIter, LinkIter
 
 
 class Cx5(Device):
@@ -13,7 +13,6 @@ class Cx5(Device):
         super(Device, self).__init__()
         self.name = "cx5"
         self.count = 1
-        self.connections = []
         self.description = "Mellanox ConnectX-5"
         asic = self.components.add(
             name="asic",
@@ -28,13 +27,11 @@ class Cx5(Device):
         )
         pcie = self.links.add(name="pcie")
         for port_idx in range(Cx5.NETWORK_PORTS):
-            self.connections.append(f"{asic.name}.0.{pcie.name}.{port.name}.{port_idx}")
-            self.edges.add(
-                ep1=[f"{asic.name}.0"],
-                link=pcie.name,
-                ep2=[f"{port.name}.{port_idx}"],
-                directed=False,
-            )
+            edge = self.edges.add(link=pcie.name)
+            edge.ep1.component = "asdfasdf"  # f"{asic.name}.0]"
+            edge.ep2.component = f"{port.name}[{port_idx}]"
+            self.edges.append(edge)
+        self.validate()
 
 
 if __name__ == "__main__":

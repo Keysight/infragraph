@@ -1,33 +1,5 @@
 components:
   schemas:
-    Device.Edge:
-      type: object
-      properties:
-        ep1:
-          description: |-
-            A list of component.index and/or device.index that make up one endpoint of the edge
-          type: array
-          items:
-            type: string
-          x-field-uid: 1
-        ep2:
-          description: |-
-            A list of component.index and/or device.index that make up the other endpoint of the edge
-          type: array
-          items:
-            type: string
-          x-field-uid: 2
-        link:
-          description: |-
-            The name of a link that defines additional characteristics of the edge.
-          type: string
-          x-field-uid: 3
-        directed:
-          description: |-
-            Whether or not the edge is directed or undirected.
-          type: boolean
-          default: false
-          x-field-uid: 4
     Device:
       description: |-
         A subgraph container for a device and its components, links and connections.
@@ -96,25 +68,15 @@ components:
           items:
             $ref: "./link.yaml#/components/schemas/Link"
           x-field-uid: 5
-        connections:
-          description: |-
-            All the connections of components that are within this device.
-
-            Connections are of the form `Component.name.index`.`Link.name`.`Component.name.index`
-            The `index` in the connection string is 0 based and must be >=0 and < Component.count.
-
-            This allows components to be connected to whatever depth is needed.
-          type: array
-          items:
-            type: string
-          x-field-uid: 6
         edges:
           description: |-
-            An array of edges where each edge is defined using a Device.Edge object.
-            These edge objects are used to produce a graph.
-            The service should take these edges and construct a valid graph.
+            An array of edges that are used to produce a device graph.
+            These are used to connect components to each other or components
+            to other device components (composability).
+            The generated graph edges will be fully qualified using the count property
+            of the device and component and slice notation of each endpoint in the edge object.
           type: array
           items:
-            $ref: "#/components/schemas/Device.Edge"
-          x-field-uid: 7
+            $ref: "./edge.yaml#/components/schemas/Device.Edge"
+          x-field-uid: 6
 

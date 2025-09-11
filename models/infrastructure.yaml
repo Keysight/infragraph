@@ -7,15 +7,11 @@ components:
           description: |-
             The name of the infrastructure being described.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
-          example: Two Tier Clos Fabric
           x-field-uid: 1
         description:
           description: |-
             A description of the infrastructure being described.
           type: string
-          example: |-
-            The example fields in this schema are based on the Two Tier Clos Fabric Case Study outlined
-            in the documentation `Getting Started` subsection.
           x-field-uid: 2
         devices:
           description: |-
@@ -23,7 +19,6 @@ components:
           type: array
           items:
             $ref: './device.yaml#/components/schemas/Device'
-          example:
           x-field-uid: 3
         links:
           description: |-
@@ -31,79 +26,15 @@ components:
           type: array
           items:
             $ref: "./link.yaml#/components/schemas/Link"
-          example:
-            - name: eth1
-              bandwidth:
-                choice: gigabytes_per_second
-                gigabytes_per_second: 100
-            - name: eth2
-              bandwidth:
-                choice: gigabytes_per_second
-                gigabytes_per_second: 400
           x-field-uid: 4
-        instances:
+        edges:
           description: |-
-            The names that a device will be known as in the `Infrastructure.properties.connections` value.
-            - this allows infrastructure to be composed of devices but reuse the device under a different name.
-            - names of devices in the `Infrastructure.properties.connections` values MUST exist in this object
-              and will be validated.
+            These edges are used to connect device components to other device components
+            forming a fully qualified graph based on the contents of the Infrastructure object.
           type: array
           items:
-            $ref: "./instance.yaml#/components/schemas/Instance"
-          minItems: 1
-          example:
-            - name: server
-              device: generic-server
-            - name: generic-switch
-              device: leafsw
-            - name: generic-switch
-              device: spinesw
+            $ref: "./edge.yaml#/components/schemas/Infrastructure.Edge"
           x-field-uid: 5
-        connections:
-          description: |-
-            Connections define the infrastructure graph with each connection consisting
-            of exactly 5 names and 4 indexes.
-
-            Example:
-            - server.0.nic.0.eth1.leafsw.0.port.0
-              - the name `server` exists in the Infrastructure.instances array in the device property
-              - the index `0` indicates there is at least 1 instance of the `server` device
-              - the name `nic` is the name of an external component in the `server` device
-              - the index `0` indicates there is at least 1 instance of the `nic` component
-
-          type: array
-          items:
-            type: string
-          example:
-            - server.0.nic.0.eth1.leafsw.0.port.0
-            - server.0.nic.1.eth1.leafsw.0.port.1
-            - server.0.nic.2.eth1.leafsw.0.port.2
-            - server.0.nic.3.eth1.leafsw.0.port.3
-            - server.1.nic.0.eth1.leafsw.1.port.0
-            - server.1.nic.1.eth1.leafsw.1.port.1
-            - server.1.nic.2.eth1.leafsw.1.port.2
-            - server.1.nic.3.eth1.leafsw.1.port.3
-            - server.2.nic.0.eth1.leafsw.2.port.0
-            - server.2.nic.1.eth1.leafsw.2.port.1
-            - server.2.nic.2.eth1.leafsw.2.port.2
-            - server.2.nic.3.eth1.leafsw.2.port.3
-            - server.3.nic.0.eth1.leafsw.3.port.0
-            - server.3.nic.1.eth1.leafsw.3.port.1
-            - server.3.nic.2.eth1.leafsw.3.port.2
-            - server.3.nic.3.eth1.leafsw.3.port.3
-            - leafsw.0.port.4.eth2.spinesw.0.port.0
-            - leafsw.0.port.5.eth2.spinesw.1.port.0
-            - leafsw.0.port.6.eth2.spinesw.2.port.0
-            - leafsw.1.port.4.eth2.spinesw.0.port.1
-            - leafsw.1.port.5.eth2.spinesw.1.port.1
-            - leafsw.1.port.6.eth2.spinesw.2.port.1
-            - leafsw.2.port.4.eth2.spinesw.0.port.2
-            - leafsw.2.port.5.eth2.spinesw.1.port.2
-            - leafsw.2.port.6.eth2.spinesw.2.port.2
-            - leafsw.3.port.4.eth2.spinesw.0.port.3
-            - leafsw.3.port.5.eth2.spinesw.1.port.3
-            - leafsw.3.port.6.eth2.spinesw.2.port.3
-          x-field-uid: 6
         annotations:
           description: |-
             Annotations are meant to extend the current schema with any kind of additional data such as
@@ -111,43 +42,4 @@ components:
           type: array
           items:
             $ref: "./annotation.yaml#/components/schemas/Annotation"
-          x-field-uid: 7
-          example:
-            - name: logical_containers
-              description: |-
-                Improve clarity of infrastructure connections by grouping devices and
-                other logical containers.
-              data:
-                containers:
-                  - name: pod.0
-                    items:
-                      - server.0
-                      - server.1
-                      - leafsw.0
-                      - leafsw.1
-                  - name: pod.1
-                    items:
-                      - server.2
-                      - server.3
-                      - leafsw.2
-                      - leafsw.3
-                  - name: datacenter.0
-                    items:
-                      - pod.0
-                      - pod.1
-                      - spinesw.0
-                      - spinesw.1
-                      - spinesw.2
-            - name: device_addresses
-              data:
-                server_addresses:
-                  - device_instance: server.0
-                    dns: host1.location.net
-                  - device_instance: server.1
-                    dns: host2.location.net
-                  - device_instance: server.2
-                    dns: host3.location.net
-                  - device_instance: server.3
-                    dns: host4.location.net
-
-
+          x-field-uid: 6

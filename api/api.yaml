@@ -1,11 +1,12 @@
 paths:
-  /get_graph:
+  /set_graph:
     post:
       tags: ['Configuration']
-      operationId: get_graph
+      operationId: set_graph
       x-stream: client
       description: >-
-        Get a complete serialized infrastructure configuration that has been validated.
+        Given an infrastructure payload this will create a
+        complete infrastructure graph that has been validated.
       requestBody:
         required: true
         content:
