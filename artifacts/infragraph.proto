@@ -241,9 +241,15 @@ message DeviceEndpoint {
 
   // An optional name of a device that contains the component.
   // If the property is empty the name of the device is the parent of the edge object.
+  // An endpoint will be generated for every device based on the count.
   optional string device = 1;
 
-  // The name of a component that exists in the containing device.
+  // The name of a component that exists in the containing device
+  // and the indexes of the component.
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // 
+  // example: cx5[0:2]
   // required = true
   optional string component = 2;
 }
@@ -253,10 +259,18 @@ message InfrastructureEndpoint {
 
   // The name of a device that contains the component and MUST exist
   // in the infrastructure devices.
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // 
+  // example: cx5[0:2]
   // required = true
   optional string device = 1;
 
-  // The name of a component that MUST exist in the containing device.
+  // The name of a component that MUST exist in the device specified in this endpoint.
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // 
+  // example: cx5[0:2]
   // required = true
   optional string component = 2;
 }
@@ -272,8 +286,9 @@ message InfrastructureEdge {
   // required = true
   InfrastructureEndpoint ep2 = 2;
 
-  // If true every endpoint from ep1 will form an edge with every endpoint from ep2.
-  // If false endpoints generated from ep1 and ep2 should be of the same length and
+  // If `true` every endpoint from ep1 will form an edge with every endpoint from ep2.
+  // 
+  // If `false` endpoints generated from ep1 and ep2 should be of the same length and
   // will be assigned together in the order they appear in each list.
   // required = true
   optional bool many2many = 3;
@@ -295,8 +310,9 @@ message DeviceEdge {
   // required = true
   DeviceEndpoint ep2 = 2;
 
-  // If true every endpoint from ep1 will form an edge with every endpoint from ep2.
-  // If false endpoints generated from ep1 and ep2 should be of the same length and
+  // If `true` every endpoint from ep1 will form an edge with every endpoint from ep2.
+  // 
+  // If `false` endpoints generated from ep1 and ep2 should be of the same length and
   // will be assigned together in the order they appear in each list.
   // required = true
   optional bool many2many = 3;
