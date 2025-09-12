@@ -9,12 +9,17 @@ components:
           description: |-
             An optional name of a device that contains the component.
             If the property is empty the name of the device is the parent of the edge object.
+            An endpoint will be generated for every device based on the count.
           type: string
-          pattern: (.+?)\[(\d*):?(\d*):?(\d*)\]
           x-field-uid: 1
         component:
           description: |-
-            The name of a component that exists in the containing device.
+            The name of a component that exists in the containing device
+            and the indexes of the component.
+
+            The indexes MUST be specified using python slice notation.
+
+            example: cx5[0:2]
           type: string
           pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
@@ -28,12 +33,20 @@ components:
           description: |-
             The name of a device that contains the component and MUST exist
             in the infrastructure devices.
+
+            The indexes MUST be specified using python slice notation.
+
+            example: cx5[0:2]
           type: string
           pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 1
         component:
           description: |-
-            The name of a component that MUST exist in the containing device.
+            The name of a component that MUST exist in the device specified in this endpoint.
+
+            The indexes MUST be specified using python slice notation.
+
+            example: cx5[0:2]
           type: string
           pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
@@ -60,8 +73,9 @@ components:
           x-field-uid: 2
         many2many:
           description: |-
-            If true every endpoint from ep1 will form an edge with every endpoint from ep2.
-            If false endpoints generated from ep1 and ep2 should be of the same length and
+            If `true` every endpoint from ep1 will form an edge with every endpoint from ep2.
+
+            If `false` endpoints generated from ep1 and ep2 should be of the same length and
             will be assigned together in the order they appear in each list.
           type: boolean
           x-field-uid: 3
@@ -91,8 +105,9 @@ components:
           x-field-uid: 2
         many2many:
           description: |-
-            If true every endpoint from ep1 will form an edge with every endpoint from ep2.
-            If false endpoints generated from ep1 and ep2 should be of the same length and
+            If `true` every endpoint from ep1 will form an edge with every endpoint from ep2.
+
+            If `false` endpoints generated from ep1 and ep2 should be of the same length and
             will be assigned together in the order they appear in each list.
           type: boolean
           x-field-uid: 3
