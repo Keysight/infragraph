@@ -10,6 +10,8 @@ components:
             An optional name of a device that contains the component.
             If the property is empty the name of the device is the parent of the edge object.
             An endpoint will be generated for every device based on the count.
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
           x-field-uid: 1
         component:
@@ -20,8 +22,9 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: cx5[0:2]
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
     Infrastructure.Endpoint:
       type: object
@@ -40,8 +43,9 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: host[0:2]
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 1
         component:
           description: |-
@@ -50,8 +54,9 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: npu[0:2]
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
     Infrastructure.Edge:
       type: object

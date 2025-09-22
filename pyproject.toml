@@ -6,30 +6,35 @@ build-backend = "hatchling.build"
 "artifacts/infragraph" = "infragraph"
 "src/infragraph" = "infragraph"
 "src/tests" = "infragraph/tests"
-"artifacts/*.*" = "infragraph/docs"
+"src/docs" = "infragraph/docs"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
     "**/*",
     "!pyproject.toml",
     "!README.md",
-    "!artifacts/infragraph/*.py",
-    "!artifacts/openapi.yaml",
-    "!artifacts/openapi.html",
-    "!artifacts/infragraph.proto",
+    # "!artifacts/infragraph/*.py",
+    # "!artifacts/openapi.yaml",
+    # "!artifacts/openapi.html",
+    # "!artifacts/infragraph.proto",
     "!src/infragraph/*.py",
     "!src/tests/*.py",
+    "!src/docs/*.*",
 ]
 
+[tool.hatch.build.targets.sdist.force-include]
+"src/docs/openapi.yaml" = "infragraph/docs/openapi.yaml"
+"src/docs/openapi.html" = "infragraph/docs/openapi.html"
+"src/docs/infragraph.proto" = "infragraph/docs/infragraph.proto"
+"README.md" = "README.md"
+
 [tool.hatch.build.targets.wheel.sources]
-"artifacts/infragraph" = "infragraph"
 "src/**" = "infragraph"
-"artifacts/*.*" = "infragraph/docs"
 
 [tool.hatch.build.targets.wheel.force-include]
-"artifacts/openapi.yaml" = "infragraph/docs/openapi.yaml"
-"artifacts/openapi.html" = "infragraph/docs/openapi.html"
-"artifacts/infragraph.proto" = "infragraph/docs/infragraph.proto"
+"infragraph/docs/openapi.yaml" = "infragraph/docs/openapi.yaml"
+"infragraph/docs/openapi.html" = "infragraph/docs/openapi.html"
+"infragraph/docs/infragraph.proto" = "infragraph/docs/infragraph.proto"
 "README.md" = "infragraph/docs/README.md"
 
 [project]
