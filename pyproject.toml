@@ -12,13 +12,13 @@ exclude = [
     "!artifacts/openapi.html",
     "!artifacts/infragraph.proto",
     "!src/infragraph/*.py",
-    "!tests/*.py",
+    "!src/tests/*.py",
 ]
 
 [tool.hatch.build.sources]
 "artifacts/infragraph" = "infragraph"
 "src/infragraph" = "infragraph"
-"tests" = "infragraph/tests"
+"src/tests" = "infragraph/tests"
 "artifacts/*.*" = "infragraph/docs"
 
 [tool.hatch.build.targets.wheel.force-include]
