@@ -3,11 +3,13 @@ components:
     Instance:
       type: object
       required:
+        - name
         - device
+        - count
       properties:
         name:
           description: |-
-            An alias for the device that MUST be used in the Infrastructure.connections property.
+            An alias for the device that MUST be used in the Infrastructure edge object.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
           x-field-uid: 1
         description:
@@ -17,6 +19,14 @@ components:
           x-field-uid: 2
         device:
           description: |-
-            The name of a device that MUST exist in the Infrastructure.devices property.
+            The name of a device that MUST exist in the array of Infrastructure devices.
           type: string
           x-field-uid: 3
+        count:
+          description: |-
+            The maximum number of instances that will be created as nodes in the graph.
+
+            Not all the instances need to be used in the graph edges.
+          type: integer
+          format: int32
+          x-field-uid: 4

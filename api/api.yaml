@@ -5,8 +5,12 @@ paths:
       operationId: set_graph
       x-stream: client
       description: >-
-        Given an infrastructure payload this will create a
-        complete infrastructure graph that has been validated.
+        Given an infrastructure object this API method will create a fully qualified infrastructure graph and validate it.
+
+
+        Creating a fully qualified infrastructure graph requires the following steps:
+          - process each of the infrastructure instance objects by locating the device and creating a subgraph using the device's edges and substituting the instance name for the device name.
+          - process each of the infrastructure edges, looking up the instance to determine the max count and the name to be substituted for the device and link the subgraphs to create a complete infrastructure graph
       requestBody:
         required: true
         content:
@@ -16,6 +20,26 @@ paths:
       responses:
         '200':
           $ref: '../models/request.yaml#/components/responses/Success'
+          x-field-uid: 1
+        default:
+          $ref: '../models/request.yaml#/components/responses/Failure'
+          x-field-uid: 2
+  /get_graph:
+    post:
+      tags: ['Configuration']
+      operationId: get_graph
+      x-stream: client
+      description: >-
+        This will return the current graph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../models/graph.yaml#/components/schemas/GraphRequest'
+      responses:
+        '200':
+          $ref: '../models/graph.yaml#/components/responses/GraphResponse'
           x-field-uid: 1
         default:
           $ref: '../models/request.yaml#/components/responses/Failure'

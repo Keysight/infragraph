@@ -31,6 +31,7 @@ jobs:
           Runs pytest tests
         run: |
           make clean
+          make package
           make test
 
       - name: Generate Doc from openapi.yaml

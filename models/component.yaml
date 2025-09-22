@@ -1,12 +1,43 @@
 components:
   schemas:
+    Component.Custom:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Device:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Cpu:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Npu:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Nic:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Memory:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Port:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+
     Component:
       description: |-
         A container for describing a component.
         A Component is contained in a Device.
       type: object
       required:
-        - type
+        - name
+        - count
+        - choice
       properties:
         name:
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
@@ -16,30 +47,61 @@ components:
             A description of the component.
           type: string
           x-field-uid: 2
-        type:
+        count:
+          description: |-
+            The maxiumim number of this component that will be contained by a single device instance.
+            This property is used by the infragraph service in edge generation.
+          type: integer
+          format: int32
+          x-field-uid: 3
+        choice:
           description: |-
             Type of component.
-            Any component not listed as an enum can be defined using the custom type.
+
+            - `custom` If the type of a component is not listed as an enum it can be defined using the custom type.
+            - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
+            - `cpu` A high level definition for a cpu
+            - `npu` A high level definition for a neural processing unit
+            - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card
+            - `memory` A high level definition for memory
+            - `port` A high level definitiion for an IO port.
           type: string
-          x-field-uid: 3
+          x-field-uid: 4
           x-enum:
             custom:
               x-field-uid: 1
-            cpu:
+            device:
               x-field-uid: 2
-            npu:
+            cpu:
               x-field-uid: 3
-            nic:
+            npu:
               x-field-uid: 4
-            memory:
+            nic:
               x-field-uid: 5
-            port:
+            memory:
               x-field-uid: 6
-        external:
-          description: |-
-            Indicates whether this component is an ingress/egress component in a device.
-            Only those components that have this property set to true can be used in an infrastructure connection.
-          type: boolean
-          default: false
-          x-field-uid: 4
+            port:
+              x-field-uid: 7
+        custom:
+          $ref: "#/components/schemas/Component.Custom"
+          x-field-uid: 10
+        device:
+          $ref: "#/components/schemas/Component.Device"
+          x-field-uid: 11
+        cpu:
+          $ref: "#/components/schemas/Component.Cpu"
+          x-field-uid: 12
+        npu:
+          $ref: "#/components/schemas/Component.Npu"
+          x-field-uid: 13
+        nic:
+          $ref: "#/components/schemas/Component.Nic"
+          x-field-uid: 14
+        memory:
+          $ref: "#/components/schemas/Component.Memory"
+          x-field-uid: 15
+        port:
+          $ref: "#/components/schemas/Component.Port"
+          x-field-uid: 16
+
 

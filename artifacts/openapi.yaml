@@ -38,7 +38,11 @@ paths:
       operationId: set_graph
       x-stream: client
       description: |-
-        Given an infrastructure payload this will create a complete infrastructure graph that has been validated.
+        Given an infrastructure object this API method will create a fully qualified infrastructure graph and validate it.
+
+        Creating a fully qualified infrastructure graph requires the following steps:
+          - process each of the infrastructure instance objects by locating the device and creating a subgraph using the device's edges and substituting the instance name for the device name.
+          - process each of the infrastructure edges, looking up the instance to determine the max count and the name to be substituted for the device and link the subgraphs to create a complete infrastructure graph
       requestBody:
         required: true
         content:
@@ -48,6 +52,27 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/Success'
+          x-field-uid: 1
+        default:
+          $ref: '#/components/responses/Failure'
+          x-field-uid: 2
+  /get_graph:
+    post:
+      tags:
+      - Configuration
+      operationId: get_graph
+      x-stream: client
+      description: |-
+        This will return the current graph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/GraphResponse'
           x-field-uid: 1
         default:
           $ref: '#/components/responses/Failure'
@@ -69,13 +94,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    GraphResponse:
+      description: |-
+        The entire fully validated graph content.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Graph.Content'
   schemas:
     Infrastructure:
       type: object
       properties:
         name:
           description: |-
-            The name of the infrastructure being described.
+            The name of the infrastructure.
             Globally unique name of an object. It also serves as the primary key for arrays of objects.
           x-field-uid: 1
           type: string
@@ -83,74 +115,64 @@ components:
           x-unique: global
         description:
           description: |-
-            A description of the infrastructure being described.
+            A detailed description of the infrastructure.
           type: string
           x-field-uid: 2
         devices:
           description: |-
-            An array of the devices and their components present in the infrastructure connections.
+            An inventory of devices and components.
           type: array
           items:
             $ref: '#/components/schemas/Device'
           x-field-uid: 3
         links:
           description: |-
-            An inventory of the links that are part of the infrastructure connections property.
+            An inventory of the links present in the infrastructure edges.
           type: array
           items:
             $ref: '#/components/schemas/Link'
           x-field-uid: 4
+        instances:
+          description: |-
+            An inventory of the device instances present in the infrastructure edges.
+          type: array
+          items:
+            $ref: '#/components/schemas/Instance'
+          x-field-uid: 5
         edges:
           description: |-
-            These edges are used to connect device components to other device components
-            forming a fully qualified graph based on the contents of the Infrastructure object.
+            An array of edge objects used to connect instance devices and components to other instance
+            devices and components. These edge objects are used to form a fully qualified qualified graph.
           type: array
           items:
             $ref: '#/components/schemas/Infrastructure.Edge'
-          x-field-uid: 5
+          x-field-uid: 6
         annotations:
           description: |-
-            Annotations are meant to extend the current schema with any kind of additional data such as
-            static, dynamic, logical and physical information (e.g., configuration, routing etc).
+            Annotations allows for extending the base configuration with any type of
+            additional information such as logical layouts, physical configuration etc.
+
+            This feature is essential for APIs that need to support flexible or
+            evolving data structures without requiring schema changes for
+            every additional property.
+
+            This allows an organization to add their own data structures or
+            open source data such as openconfig configuration messages which can be
+            correlated to specific configuration endpoints.
           type: array
           items:
             $ref: '#/components/schemas/Annotation'
-          x-field-uid: 6
+          x-field-uid: 7
     Device:
       description: |-
-        A subgraph container for a device and its components, links and connections.
-        The connections form a subgraph.
-
-        e.g., Describe a switch device in detail.
-
-        At a simple level a switch has an asic and ports.
-        The asic can be made up of of core, mem, crypt, alu, dsp, pll, ics (interconnect structure), iop (i/o pad).
-        The Device can capture just the asic and ports connected by an integrated circuit or
-        the asic can be broken down into more discrete components.
-
-        Simple Approach: asic, cpu, port, ic
-        Detailed Approach: cpu, core, mem, alu, pll, iop, ic, port
-
-        name: arista
-        description: |-
-          The Arista is a network switch platform,
-          commonly equipped with 48 x 1G Ethernet ports and 4 x 10G uplink ports,
-          typically implemented using a Jericho2 ASIC
-        components: [core, mem, crypt, alu, iop, port]
-        links: [ics]
-        connections:
-            - core.0.ics.mem.0
-            - core.0.ics.crypt.0
-            - core.0.ics.alu.0
-            - core.0.ics.iop.0
-            - core.0.ics.iop.47
-            - iop.0.ics.port.0
-            ...
-            - iop.47.ics.port.47
-
-        - to traverse from the core asic to a port, multiple connections are used to form a path
-          - core.0.ics.iop.0.ics.port.0
+        A subgraph container for a device and its components, links and edges.
+        The edges form a subgraph of the device.
       type: object
+      required:
+      - name
+      - components
+      - links
+      - edges
       properties:
         name:
           description: |-
@@ -166,26 +188,18 @@ components:
             This will not be used in Infrastructure.connections.
           type: string
           x-field-uid: 2
-        count:
-          description: |-
-            The number of instances of this device if not contained in another device.
-            If the device is contained within another device the count is multiplied
-            by the containing device count.
-          type: number
-          minimum: 1
-          x-field-uid: 3
         components:
           type: array
           items:
             $ref: '#/components/schemas/Component'
-          x-field-uid: 4
+          x-field-uid: 3
         links:
           description: |-
             All the links that make up this device.
           type: array
           items:
             $ref: '#/components/schemas/Link'
-          x-field-uid: 5
+          x-field-uid: 4
         edges:
           description: |-
             An array of edges that are used to produce a device graph.
@@ -196,14 +210,44 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Device.Edge'
-          x-field-uid: 6
+          x-field-uid: 5
+    Component.Custom:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Device:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Cpu:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Npu:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Nic:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Memory:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Port:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
     Component:
       description: |-
         A container for describing a component.
         A Component is contained in a Device.
       type: object
       required:
-      - type
+      - name
+      - count
+      - choice
       properties:
         name:
           x-field-uid: 1
@@ -217,39 +261,70 @@ components:
             A description of the component.
           type: string
           x-field-uid: 2
-        type:
+        count:
+          description: |-
+            The maxiumim number of this component that will be contained by a single device instance.
+            This property is used by the infragraph service in edge generation.
+          type: integer
+          format: int32
+          x-field-uid: 3
+        choice:
           description: |-
             Type of component.
-            Any component not listed as an enum can be defined using the custom type.
+
+            - `custom` If the type of a component is not listed as an enum it can be defined using the custom type.
+            - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
+            - `cpu` A high level definition for a cpu
+            - `npu` A high level definition for a neural processing unit
+            - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card
+            - `memory` A high level definition for memory
+            - `port` A high level definitiion for an IO port.
           type: string
-          x-field-uid: 3
+          x-field-uid: 4
           x-enum:
             custom:
               x-field-uid: 1
-            cpu:
+            device:
               x-field-uid: 2
-            npu:
+            cpu:
               x-field-uid: 3
-            nic:
+            npu:
               x-field-uid: 4
-            memory:
+            nic:
               x-field-uid: 5
-            port:
+            memory:
               x-field-uid: 6
+            port:
+              x-field-uid: 7
           enum:
           - custom
+          - device
           - cpu
           - npu
           - nic
           - memory
           - port
-        external:
-          description: |-
-            Indicates whether this component is an ingress/egress component in a device.
-            Only those components that have this property set to true can be used in an infrastructure connection.
-          type: boolean
-          default: false
-          x-field-uid: 4
+        custom:
+          $ref: '#/components/schemas/Component.Custom'
+          x-field-uid: 10
+        device:
+          $ref: '#/components/schemas/Component.Device'
+          x-field-uid: 11
+        cpu:
+          $ref: '#/components/schemas/Component.Cpu'
+          x-field-uid: 12
+        npu:
+          $ref: '#/components/schemas/Component.Npu'
+          x-field-uid: 13
+        nic:
+          $ref: '#/components/schemas/Component.Nic'
+          x-field-uid: 14
+        memory:
+          $ref: '#/components/schemas/Component.Memory'
+          x-field-uid: 15
+        port:
+          $ref: '#/components/schemas/Component.Port'
+          x-field-uid: 16
     Link.Physical.Bandwidth:
       description: |-
         A container for specific Link physical Properties.
@@ -331,6 +406,8 @@ components:
       description: |-
         A container for describing a link used between components.
       type: object
+      required:
+      - name
       properties:
         name:
           x-field-uid: 1
@@ -375,27 +452,30 @@ components:
     Infrastructure.Endpoint:
       type: object
       required:
-      - device
+      - instance
       - component
       properties:
-        device:
+        instance:
           description: |-
-            The name of a device that contains the component and MUST exist
-            in the infrastructure devices.
+            A name that matches the Instance.name property of an instance object that MUST exist in the infrastructure instances array.
+
+            The instance object yields:
+              - a device name that contains the component and MUST exist in the infrastructure devices
+              - a count that is the maximum to be used in the slice notation
 
             The indexes MUST be specified using python slice notation.
 
-            example: cx5[0:2]
+            example: host[0:2]
           type: string
           pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 1
         component:
           description: |-
-            The name of a component that MUST exist in the device specified in this endpoint.
+            The name of a component that MUST exist in the Instance.device specified by the instance object in the Infrastructure.instances array.
 
             The indexes MUST be specified using python slice notation.
 
-            example: cx5[0:2]
+            example: npu[0:2]
           type: string
           pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
@@ -454,10 +534,11 @@ components:
           x-field-uid: 2
         many2many:
           description: |-
-            If `true` every endpoint from ep1 will form an edge with every endpoint from ep2.
+            If `true` every endpoint from ep1 will form an edge with every endpoint from ep2
+            except in the cases where fully qualified ep1 is the same as full qualified ep2.
 
             If `false` endpoints generated from ep1 and ep2 should be of the same length and
-            will be assigned together in the order they appear in each list.
+            will be combined to form an edge in the order they appear in each list.
           type: boolean
           x-field-uid: 3
         link:
@@ -466,43 +547,127 @@ components:
             The name MUST exist in the links array of the containing device.
           type: string
           x-field-uid: 4
-    Annotation.Data:
-      description: |-
-        User defined data.
-      type: object
-      properties:
-        name:
-          type: string
-          x-field-uid: 1
-      additionalProperties: true
-    Annotation:
-      description: |-
-        Annotation allows for extending the base configuration with any type of
-        additional information such as logical layouts, physical configuration etc.
-
-        This allows an organization to add their own data structures or
-        open source data such as openconfig configuration messages which can be
-        correlated to specific configuration endpoints.
+    Instance:
       type: object
       required:
       - name
-      - data
+      - device
+      - count
       properties:
         name:
           description: |-
-            An alias for the annotation data.
-          type: string
+            An alias for the device that MUST be used in the Infrastructure edge object.
+            Globally unique name of an object. It also serves as the primary key for arrays of objects.
           x-field-uid: 1
-        data:
+          type: string
+          pattern: ^[\sa-zA-Z0-9-_()><\[\]]+$
+          x-unique: global
+        description:
           description: |-
-            The actual annotation data.
-          $ref: '#/components/schemas/Annotation.Data'
+            A description of the instance.
+          type: string
           x-field-uid: 2
-        schema:
+        device:
           description: |-
-            A schema that describes the annotation data.
+            The name of a device that MUST exist in the array of Infrastructure devices.
           type: string
           x-field-uid: 3
+        count:
+          description: |-
+            The maximum number of instances that will be created as nodes in the graph.
+
+            Not all the instances need to be used in the graph edges.
+          type: integer
+          format: int32
+          x-field-uid: 4
+    Annotation.NodeNameValue:
+      type: object
+      properties:
+        id:
+          type: string
+          x-field-uid: 1
+        name:
+          type: string
+          x-field-uid: 2
+        value:
+          type: string
+          x-field-uid: 3
+    Annotation.Freeform:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            json:
+              x-field-uid: 1
+            yaml:
+              x-field-uid: 2
+            protobuf:
+              x-field-uid: 3
+          enum:
+          - json
+          - yaml
+          - protobuf
+        json:
+          description: |-
+            Annotation data serialized as a json string
+          type: string
+          x-field-uid: 2
+        yaml:
+          description: |-
+            Annotation data serialized as a yaml string
+          type: string
+          x-field-uid: 3
+        protobuf:
+          description: |-
+            Annotation data serialized as a protobuf string and encoded as base64.
+          type: string
+          x-field-uid: 4
+    Annotation:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          description: |-
+            An alias for this annotation.
+          type: string
+          x-field-uid: 1
+        description:
+          description: |-
+            A detailed description of the structure of the
+            information contained in the freeform property.
+          type: string
+          x-field-uid: 2
+        choice:
+          type: string
+          x-field-uid: 3
+          x-enum:
+            freeform:
+              x-field-uid: 1
+            nodes:
+              x-field-uid: 2
+          enum:
+          - freeform
+          - nodes
+        freeform:
+          description: |-
+            Annotation data.
+          $ref: '#/components/schemas/Annotation.Freeform'
+          x-field-uid: 4
+        nodes:
+          description: |-
+            Add information to specific fully qualified node names in the infrastructure graph.
+            - a fully qualified node name is of the form:
+              - device_name.device_index.component_name.component_index
+            - examples:
+              - nodes.add(id="dgx.0.npu.0", name="rank", value="0")
+              - nodes.add(id="dgx.0.npu.1", name="rank", value="1"))
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.NodeNameValue'
+          x-field-uid: 5
     Error:
       description: |-
         Error response generated while serving API request.
@@ -555,3 +720,32 @@ components:
           items:
             type: string
           x-field-uid: 1
+    GraphRequest:
+      type: object
+      properties:
+        format:
+          description: |-
+            The format that the graph will be returned in.
+          type: string
+          x-field-uid: 1
+          x-enum:
+            networkx:
+              x-field-uid: 1
+          enum:
+          - networkx
+    Graph.Content:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            networkx:
+              x-field-uid: 1
+          enum:
+          - networkx
+        networkx:
+          description: |-
+            This contains the returned graph content formatted as a networkx yaml string.
+          type: string
+          x-field-uid: 2

@@ -14,6 +14,13 @@ clean: ## recreate clean virtual environment
 generate: ## generate artifacts using OpenApiArt
 	source .venv/bin/activate && \
 	python3 generate.py
+	cp -f artifacts/infragraph/*.py src/infragraph/
+
+.PHONY: test
+test: ## run unit tests on the src/infragraph files
+	source .venv/bin/activate && \
+	pip uninstall -y infragraph && \
+	pytest
 
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts
@@ -27,11 +34,6 @@ package: generate ## create sdist/wheel packages from OpenAPIArt generated artif
 install: package ## pip install infragraph package
 	source .venv/bin/activate && \
 	pip3 install dist/infragraph*.whl --force-reinstall
-
-.PHONY: test
-test: install ## run unit tests
-	source .venv/bin/activate && \
-	pytest
 
 .PHONY: deploy
 PYPI_TOKEN=__invalid_token__

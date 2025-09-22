@@ -8,16 +8,24 @@ exclude = [
     "!pyproject.toml",
     "!README.md",
     "!artifacts/infragraph/*.py",
-    "!src/*.py",
+    "!artifacts/openapi.yaml",
+    "!artifacts/openapi.html",
+    "!artifacts/infragraph.proto",
+    "!src/infragraph/*.py",
     "!tests/*.py",
-    "!docs/src/examples/*.py",
 ]
 
 [tool.hatch.build.sources]
 "artifacts/infragraph" = "infragraph"
-"src" = "infragraph"
+"src/infragraph" = "infragraph"
 "tests" = "infragraph/tests"
-"docs/src/examples" = "infragraph/examples"
+"artifacts/*.*" = "infragraph/docs"
+
+[tool.hatch.build.targets.wheel.force-include]
+"artifacts/openapi.yaml" = "infragraph/docs/openapi.yaml"
+"artifacts/openapi.html" = "infragraph/docs/openapi.html"
+"artifacts/infragraph.proto" = "infragraph/docs/infragraph.proto"
+"README.md" = "infragraph/docs/README.md"
 
 [project]
 name = "infragraph"

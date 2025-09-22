@@ -6,3 +6,6 @@ dist
 __pycache__
 .pytest_cache
 .venv
+src/infragraph/__init__.py
+src/infragraph/infragraph.py
+src/infragraph/infragraph_pb2*

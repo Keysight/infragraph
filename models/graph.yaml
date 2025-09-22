@@ -1,0 +1,35 @@
+components:
+  schemas:
+    GraphRequest:
+      type: object
+      properties:
+        format:
+          description: |-
+            The format that the graph will be returned in.
+          type: string
+          x-field-uid: 1
+          x-enum:
+            networkx:
+              x-field-uid: 1
+    Graph.Content:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            networkx:
+              x-field-uid: 1
+        networkx:
+          description: |-
+            This contains the returned graph content formatted as a networkx yaml string.
+          type: string
+          x-field-uid: 2
+  responses:
+    GraphResponse:
+      description: |-
+        The entire fully validated graph content.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Graph.Content'

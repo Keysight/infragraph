@@ -5,41 +5,56 @@ components:
       properties:
         name:
           description: |-
-            The name of the infrastructure being described.
+            The name of the infrastructure.
           x-include: ./common.yaml#/components/schemas/Named.Object/properties/name
           x-field-uid: 1
         description:
           description: |-
-            A description of the infrastructure being described.
+            A detailed description of the infrastructure.
           type: string
           x-field-uid: 2
         devices:
           description: |-
-            An array of the devices and their components present in the infrastructure connections.
+            An inventory of devices and components.
           type: array
           items:
             $ref: './device.yaml#/components/schemas/Device'
           x-field-uid: 3
         links:
           description: |-
-            An inventory of the links that are part of the infrastructure connections property.
+            An inventory of the links present in the infrastructure edges.
           type: array
           items:
             $ref: "./link.yaml#/components/schemas/Link"
           x-field-uid: 4
+        instances:
+          description: |-
+            An inventory of the device instances present in the infrastructure edges.
+          type: array
+          items:
+            $ref: "./instance.yaml#/components/schemas/Instance"
+          x-field-uid: 5
         edges:
           description: |-
-            These edges are used to connect device components to other device components
-            forming a fully qualified graph based on the contents of the Infrastructure object.
+            An array of edge objects used to connect instance devices and components to other instance
+            devices and components. These edge objects are used to form a fully qualified qualified graph.
           type: array
           items:
             $ref: "./edge.yaml#/components/schemas/Infrastructure.Edge"
-          x-field-uid: 5
+          x-field-uid: 6
         annotations:
           description: |-
-            Annotations are meant to extend the current schema with any kind of additional data such as
-            static, dynamic, logical and physical information (e.g., configuration, routing etc).
+            Annotations allows for extending the base configuration with any type of
+            additional information such as logical layouts, physical configuration etc.
+
+            This feature is essential for APIs that need to support flexible or
+            evolving data structures without requiring schema changes for
+            every additional property.
+
+            This allows an organization to add their own data structures or
+            open source data such as openconfig configuration messages which can be
+            correlated to specific configuration endpoints.
           type: array
           items:
             $ref: "./annotation.yaml#/components/schemas/Annotation"
-          x-field-uid: 6
+          x-field-uid: 7

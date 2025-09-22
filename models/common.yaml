@@ -28,3 +28,20 @@ components:
       description: >-
         A empty container that is used to indicate a null choice.
       type: object
+    Tag:
+      type: object
+      properties:
+        endpoint:
+          description: |-
+            A fully qualified endpoint name
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        name:
+          type: string
+          x-field-uid: 2
+        value:
+          type: string
+          x-field-uid: 3

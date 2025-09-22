@@ -1,40 +1,83 @@
 components:
   schemas:
-    Annotation.Data:
-      description: |-
-        User defined data.
+    Annotation.NodeNameValue:
       type: object
       properties:
-        name:
+        id:
           type: string
           x-field-uid: 1
-      additionalProperties: true
+        name:
+          type: string
+          x-field-uid: 2
+        value:
+          type: string
+          x-field-uid: 3
+    Annotation.Freeform:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            json:
+              x-field-uid: 1
+            yaml:
+              x-field-uid: 2
+            protobuf:
+              x-field-uid: 3
+        json:
+          description: |-
+            Annotation data serialized as a json string
+          type: string
+          x-field-uid: 2
+        yaml:
+          description: |-
+            Annotation data serialized as a yaml string
+          type: string
+          x-field-uid: 3
+        protobuf:
+          description: |-
+            Annotation data serialized as a protobuf string and encoded as base64.
+          type: string
+          x-field-uid: 4
     Annotation:
-      description: |-
-        Annotation allows for extending the base configuration with any type of
-        additional information such as logical layouts, physical configuration etc.
-
-        This allows an organization to add their own data structures or
-        open source data such as openconfig configuration messages which can be
-        correlated to specific configuration endpoints.
       type: object
       required:
         - name
-        - data
       properties:
         name:
           description: |-
-            An alias for the annotation data.
+            An alias for this annotation.
           type: string
           x-field-uid: 1
-        data:
+        description:
           description: |-
-            The actual annotation data.
-          $ref: "#/components/schemas/Annotation.Data"
+            A detailed description of the structure of the
+            information contained in the freeform property.
+          type: string
           x-field-uid: 2
-        schema:
-          description: |-
-            A schema that describes the annotation data.
+        choice:
           type: string
           x-field-uid: 3
-
+          x-enum:
+            freeform:
+              x-field-uid: 1
+            nodes:
+              x-field-uid: 2
+        freeform:
+          description: |-
+            Annotation data.
+          $ref: "#/components/schemas/Annotation.Freeform"
+          x-field-uid: 4
+        nodes:
+          description: |-
+            Add information to specific fully qualified node names in the infrastructure graph.
+            - a fully qualified node name is of the form:
+              - device_name.device_index.component_name.component_index
+            - examples:
+              - nodes.add(id="dgx.0.npu.0", name="rank", value="0")
+              - nodes.add(id="dgx.0.npu.1", name="rank", value="1"))
+          type: array
+          items:
+            $ref: "#/components/schemas/Annotation.NodeNameValue"
+          x-field-uid: 5
