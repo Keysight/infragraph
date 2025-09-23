@@ -729,6 +729,56 @@ components:
           enum:
           - node
           - edge
+    Annotation.Node:
+      type: object
+      properties:
+        endpoint:
+          description: |-
+            A fully qualified endpoint name that MUST exist in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        name:
+          description: |-
+            The attribute name that will be added to the node.
+          type: string
+          x-field-uid: 2
+        value:
+          description: |-
+            The attribute value that will be added to the node.
+          type: string
+          x-field-uid: 3
+    Annotation.Edge:
+      type: object
+      properties:
+        ep1:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 2
+        name:
+          description: |-
+            The attribute name that will be added to the node.
+          type: string
+          x-field-uid: 3
+        value:
+          description: |-
+            The attribute value that will be added to the node.
+          type: string
+          x-field-uid: 4
     AnnotateRequest:
       type: object
       properties:
@@ -743,6 +793,16 @@ components:
           enum:
           - node
           - edge
+        node:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Node'
+          x-field-uid: 2
+        edge:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Edge'
+          x-field-uid: 3
     Version:
       description: |-
         Version details

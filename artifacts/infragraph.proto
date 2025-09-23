@@ -462,6 +462,46 @@ message QueryRequest {
 }
 
 // Description missing in models
+message AnnotationNode {
+
+  // A fully qualified endpoint name that MUST exist in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string endpoint = 1;
+
+  // The attribute name that will be added to the node.
+  optional string name = 2;
+
+  // The attribute value that will be added to the node.
+  optional string value = 3;
+}
+
+// Description missing in models
+message AnnotationEdge {
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep1 = 1;
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep2 = 2;
+
+  // The attribute name that will be added to the node.
+  optional string name = 3;
+
+  // The attribute value that will be added to the node.
+  optional string value = 4;
+}
+
+// Description missing in models
 message AnnotateRequest {
 
   message Choice {
@@ -473,6 +513,12 @@ message AnnotateRequest {
   }
   // Description missing in models
   optional Choice.Enum choice = 1;
+
+  // Description missing in models
+  repeated AnnotationNode node = 2;
+
+  // Description missing in models
+  repeated AnnotationEdge edge = 3;
 }
 
 // Version details
