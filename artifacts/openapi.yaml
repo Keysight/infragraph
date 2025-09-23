@@ -77,6 +77,23 @@ paths:
         default:
           $ref: '#/components/responses/Failure'
           x-field-uid: 2
+  /capabilities/version:
+    get:
+      tags:
+      - Capabilities
+      operationId: get_version
+      responses:
+        '200':
+          description: |-
+            Version details from API server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+          x-field-uid: 1
+        default:
+          $ref: '#/components/responses/Failure'
+          x-field-uid: 2
 components:
   responses:
     Success:
@@ -436,6 +453,8 @@ components:
             An optional name of a device that contains the component.
             If the property is empty the name of the device is the parent of the edge object.
             An endpoint will be generated for every device based on the count.
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
           x-field-uid: 1
         component:
@@ -446,8 +465,8 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: cx5[0:2]
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
     Infrastructure.Endpoint:
       type: object
@@ -466,8 +485,9 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: host[0:2]
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 1
         component:
           description: |-
@@ -476,8 +496,9 @@ components:
             The indexes MUST be specified using python slice notation.
 
             example: npu[0:2]
+
+            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
-          pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           x-field-uid: 2
     Infrastructure.Edge:
       type: object
@@ -749,3 +770,26 @@ components:
             This contains the returned graph content formatted as a networkx yaml string.
           type: string
           x-field-uid: 2
+    Version:
+      description: |-
+        Version details
+      type: object
+      properties:
+        api_spec_version:
+          description: |-
+            Version of API specification
+          type: string
+          default: ''
+          x-field-uid: 1
+        sdk_version:
+          description: |-
+            Version of SDK generated from API specification
+          type: string
+          default: ''
+          x-field-uid: 2
+        app_version:
+          description: |-
+            Version of application consuming or serving the API
+          type: string
+          default: ''
+          x-field-uid: 3

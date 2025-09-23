@@ -279,6 +279,8 @@ message DeviceEndpoint {
   // An optional name of a device that contains the component.
   // If the property is empty the name of the device is the parent of the edge object.
   // An endpoint will be generated for every device based on the count.
+  // 
+  // TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
   optional string device = 1;
 
   // The name of a component that exists in the containing device
@@ -287,6 +289,7 @@ message DeviceEndpoint {
   // The indexes MUST be specified using python slice notation.
   // 
   // example: cx5[0:2]
+  // TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
   // required = true
   optional string component = 2;
 }
@@ -305,6 +308,8 @@ message InfrastructureEndpoint {
   // The indexes MUST be specified using python slice notation.
   // 
   // example: host[0:2]
+  // 
+  // TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
   // required = true
   optional string instance = 1;
 
@@ -314,6 +319,8 @@ message InfrastructureEndpoint {
   // The indexes MUST be specified using python slice notation.
   // 
   // example: npu[0:2]
+  // 
+  // TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
   // required = true
   optional string component = 2;
 }
@@ -525,6 +532,22 @@ message GraphContent {
   optional string networkx = 2;
 }
 
+// Version details
+message Version {
+
+  // Version of API specification
+  // default =
+  optional string api_spec_version = 1;
+
+  // Version of SDK generated from API specification
+  // default =
+  optional string sdk_version = 2;
+
+  // Version of application consuming or serving the API
+  // default =
+  optional string app_version = 3;
+}
+
 // The request has succeeded with no application content but the server
 // may return a list of detailed warnings.
 message Success {
@@ -562,6 +585,10 @@ message GetGraphResponse {
   GraphContent graph_content = 1;
 }
 
+message GetVersionResponse {
+  Version version = 1;
+}
+
 
 // Description missing in models
 //
@@ -588,4 +615,6 @@ service Openapi {
   rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
   // streaming version of the rpc GetGraph
   rpc streamGetGraph(stream Data) returns (GetGraphResponse);
+  // Description missing in models
+  rpc GetVersion(google.protobuf.Empty) returns (GetVersionResponse);
 }
