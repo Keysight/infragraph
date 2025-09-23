@@ -453,8 +453,6 @@ components:
             An optional name of a device that contains the component.
             If the property is empty the name of the device is the parent of the edge object.
             An endpoint will be generated for every device based on the count.
-
-            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
           type: string
           x-field-uid: 1
         component:
@@ -463,9 +461,7 @@ components:
             and the indexes of the component.
 
             The indexes MUST be specified using python slice notation.
-
-            example: cx5[0:2]
-            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+              - example: cx5[0:2]
           type: string
           x-field-uid: 2
     Infrastructure.Endpoint:
@@ -483,10 +479,7 @@ components:
               - a count that is the maximum to be used in the slice notation
 
             The indexes MUST be specified using python slice notation.
-
-            example: host[0:2]
-
-            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+              - example: host[0:2]
           type: string
           x-field-uid: 1
         component:
@@ -494,10 +487,7 @@ components:
             The name of a component that MUST exist in the Instance.device specified by the instance object in the Infrastructure.instances array.
 
             The indexes MUST be specified using python slice notation.
-
-            example: npu[0:2]
-
-            TBD: pattern: (.+?)\[(\d*):(\d*):?(\d*)\]
+              - example: npu[0:2]
           type: string
           x-field-uid: 2
     Infrastructure.Edge:
