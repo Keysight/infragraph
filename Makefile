@@ -23,7 +23,7 @@ generate: ## generate artifacts using OpenApiArt
 test: ## run unit tests on the src/infragraph files
 	source .venv/bin/activate && \
 	pip uninstall -y infragraph && \
-	pytest
+	pytest -s
 
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts

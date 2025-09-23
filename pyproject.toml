@@ -13,32 +13,13 @@ exclude = [
     "**/*",
     "!pyproject.toml",
     "!README.md",
-    # "!artifacts/infragraph/*.py",
-    # "!artifacts/openapi.yaml",
-    # "!artifacts/openapi.html",
-    # "!artifacts/infragraph.proto",
     "!src/infragraph/*.py",
     "!src/tests/*.py",
     "!src/docs/*.*",
-    # "!infragraph/*.py",
-    # "!infragraph/tests/*.py",
-    # "!infragraph/docs/*.*",
 ]
-
-# [tool.hatch.build.targets.sdist.force-include]
-# "src/docs/openapi.yaml" = "infragraph/docs/openapi.yaml"
-# "src/docs/openapi.html" = "infragraph/docs/openapi.html"
-# "src/docs/infragraph.proto" = "infragraph/docs/infragraph.proto"
-# "README.md" = "infragraph/docs/README.md"
 
 [tool.hatch.build.targets.wheel.sources]
 "src/**" = "infragraph"
-
-# [tool.hatch.build.targets.wheel.force-include]
-# "infragraph/docs/openapi.yaml" = "infragraph/docs/openapi.yaml"
-# "infragraph/docs/openapi.html" = "infragraph/docs/openapi.html"
-# "infragraph/docs/infragraph.proto" = "infragraph/docs/infragraph.proto"
-# "README.md" = "infragraph/docs/README.md"
 
 [project]
 name = "infragraph"
