@@ -63,18 +63,6 @@ message Infrastructure {
   // devices and components. These edge objects are used to form a fully qualified qualified
   // graph.
   repeated InfrastructureEdge edges = 6;
-
-  // Annotations allows for extending the base configuration with any type of
-  // additional information such as logical layouts, physical configuration etc.
-  // 
-  // This feature is essential for APIs that need to support flexible or
-  // evolving data structures without requiring schema changes for
-  // every additional property.
-  // 
-  // This allows an organization to add their own data structures or
-  // open source data such as openconfig configuration messages which can be
-  // correlated to specific configuration endpoints.
-  repeated Annotation annotations = 7;
 }
 
 // A subgraph container for a device and its components, links and edges.
@@ -387,76 +375,6 @@ message Instance {
   optional int32 count = 4;
 }
 
-// Description missing in models
-message AnnotationNodeNameValue {
-
-  // Description missing in models
-  optional string id = 1;
-
-  // Description missing in models
-  optional string name = 2;
-
-  // Description missing in models
-  optional string value = 3;
-}
-
-// Description missing in models
-message AnnotationFreeform {
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      json = 1;
-      yaml = 2;
-      protobuf = 3;
-    }
-  }
-  // Description missing in models
-  optional Choice.Enum choice = 1;
-
-  // Annotation data serialized as a json string
-  optional string json = 2;
-
-  // Annotation data serialized as a yaml string
-  optional string yaml = 3;
-
-  // Annotation data serialized as a protobuf string and encoded as base64.
-  optional string protobuf = 4;
-}
-
-// Description missing in models
-message Annotation {
-
-  // An alias for this annotation.
-  // required = true
-  optional string name = 1;
-
-  // A detailed description of the structure of the
-  // information contained in the freeform property.
-  optional string description = 2;
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      freeform = 1;
-      nodes = 2;
-    }
-  }
-  // Description missing in models
-  optional Choice.Enum choice = 3;
-
-  // Annotation data.
-  AnnotationFreeform freeform = 4;
-
-  // Add information to specific fully qualified node names in the infrastructure graph.
-  // - a fully qualified node name is of the form:
-  // - device_name.device_index.component_name.component_index
-  // - examples:
-  // - nodes.add(id=dgx.0.npu.0, name=rank, value=0)
-  // - nodes.add(id=dgx.0.npu.1, name=rank, value=1))
-  repeated AnnotationNodeNameValue nodes = 5;
-}
-
 // Error response generated while serving API request.
 message Error {
 
@@ -522,6 +440,41 @@ message GraphContent {
   optional string networkx = 2;
 }
 
+// Description missing in models
+message QueryContent {
+
+  // Description missing in models
+  optional string id = 1;
+}
+
+// Description missing in models
+message QueryRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      node = 1;
+      edge = 2;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+}
+
+// Description missing in models
+message AnnotateRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      node = 1;
+      edge = 2;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+}
+
 // Version details
 message Version {
 
@@ -554,6 +507,11 @@ message GraphResponse {
   GraphContent graph_content = 1;
 }
 
+// Answer to the query request.
+message QueryResponse {
+  QueryContent query_content = 1;
+}
+
 // Data that needs to be streamed
 message Data {
   uint64 chunk_size = 1;
@@ -573,6 +531,22 @@ message GetGraphRequest {
 }
 message GetGraphResponse {
   GraphContent graph_content = 1;
+}
+
+
+message QueryGraphRequest {
+  QueryRequest query_request = 1;
+}
+message QueryGraphResponse {
+  QueryContent query_content = 1;
+}
+
+
+message AnnotateGraphRequest {
+  AnnotateRequest annotate_request = 1;
+}
+message AnnotateGraphResponse {
+  Warning warning = 1;
 }
 
 message GetVersionResponse {
@@ -605,6 +579,19 @@ service Openapi {
   rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
   // streaming version of the rpc GetGraph
   rpc streamGetGraph(stream Data) returns (GetGraphResponse);
+  // Query the current fully expanded graph.
+  // 
+  // - example: Ask the graph for specific endpoints such as those of type `NPU` or
+  // `NIC`
+  rpc QueryGraph(QueryGraphRequest) returns (QueryGraphResponse);
+  // streaming version of the rpc QueryGraph
+  rpc streamQueryGraph(stream Data) returns (QueryGraphResponse);
+  // Annotate the current fully expanded graph.
+  // 
+  // - example: Update specific endpoints with name/value information such as `rank=0`
+  rpc AnnotateGraph(AnnotateGraphRequest) returns (AnnotateGraphResponse);
+  // streaming version of the rpc AnnotateGraph
+  rpc streamAnnotateGraph(stream Data) returns (AnnotateGraphResponse);
   // Description missing in models
   rpc GetVersion(google.protobuf.Empty) returns (GetVersionResponse);
 }

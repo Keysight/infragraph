@@ -77,6 +77,52 @@ paths:
         default:
           $ref: '#/components/responses/Failure'
           x-field-uid: 2
+  /query_graph:
+    post:
+      tags:
+      - Configuration
+      operationId: query_graph
+      x-stream: client
+      description: |-
+        Query the current fully expanded graph.
+
+          - example: Ask the graph for specific endpoints such as those of type `NPU` or `NIC`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueryResponse'
+          x-field-uid: 1
+        default:
+          $ref: '#/components/responses/Failure'
+          x-field-uid: 2
+  /annotate_graph:
+    post:
+      tags:
+      - Configuration
+      operationId: annotate_graph
+      x-stream: client
+      description: |-
+        Annotate the current fully expanded graph.
+
+          - example: Update specific endpoints with name/value information such as `rank=0`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotateRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+          x-field-uid: 1
+        default:
+          $ref: '#/components/responses/Failure'
+          x-field-uid: 2
   /capabilities/version:
     get:
       tags:
@@ -117,7 +163,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Graph.Content'
+            $ref: '#/components/schemas/GraphContent'
+    QueryResponse:
+      description: |-
+        Answer to the query request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueryContent'
   schemas:
     Infrastructure:
       type: object
@@ -164,22 +217,6 @@ components:
           items:
             $ref: '#/components/schemas/Infrastructure.Edge'
           x-field-uid: 6
-        annotations:
-          description: |-
-            Annotations allows for extending the base configuration with any type of
-            additional information such as logical layouts, physical configuration etc.
-
-            This feature is essential for APIs that need to support flexible or
-            evolving data structures without requiring schema changes for
-            every additional property.
-
-            This allows an organization to add their own data structures or
-            open source data such as openconfig configuration messages which can be
-            correlated to specific configuration endpoints.
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation'
-          x-field-uid: 7
     Device:
       description: |-
         A subgraph container for a device and its components, links and edges.
@@ -591,94 +628,6 @@ components:
           type: integer
           format: int32
           x-field-uid: 4
-    Annotation.NodeNameValue:
-      type: object
-      properties:
-        id:
-          type: string
-          x-field-uid: 1
-        name:
-          type: string
-          x-field-uid: 2
-        value:
-          type: string
-          x-field-uid: 3
-    Annotation.Freeform:
-      type: object
-      properties:
-        choice:
-          type: string
-          x-field-uid: 1
-          x-enum:
-            json:
-              x-field-uid: 1
-            yaml:
-              x-field-uid: 2
-            protobuf:
-              x-field-uid: 3
-          enum:
-          - json
-          - yaml
-          - protobuf
-        json:
-          description: |-
-            Annotation data serialized as a json string
-          type: string
-          x-field-uid: 2
-        yaml:
-          description: |-
-            Annotation data serialized as a yaml string
-          type: string
-          x-field-uid: 3
-        protobuf:
-          description: |-
-            Annotation data serialized as a protobuf string and encoded as base64.
-          type: string
-          x-field-uid: 4
-    Annotation:
-      type: object
-      required:
-      - name
-      properties:
-        name:
-          description: |-
-            An alias for this annotation.
-          type: string
-          x-field-uid: 1
-        description:
-          description: |-
-            A detailed description of the structure of the
-            information contained in the freeform property.
-          type: string
-          x-field-uid: 2
-        choice:
-          type: string
-          x-field-uid: 3
-          x-enum:
-            freeform:
-              x-field-uid: 1
-            nodes:
-              x-field-uid: 2
-          enum:
-          - freeform
-          - nodes
-        freeform:
-          description: |-
-            Annotation data.
-          $ref: '#/components/schemas/Annotation.Freeform'
-          x-field-uid: 4
-        nodes:
-          description: |-
-            Add information to specific fully qualified node names in the infrastructure graph.
-            - a fully qualified node name is of the form:
-              - device_name.device_index.component_name.component_index
-            - examples:
-              - nodes.add(id="dgx.0.npu.0", name="rank", value="0")
-              - nodes.add(id="dgx.0.npu.1", name="rank", value="1"))
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.NodeNameValue'
-          x-field-uid: 5
     Error:
       description: |-
         Error response generated while serving API request.
@@ -744,7 +693,7 @@ components:
               x-field-uid: 1
           enum:
           - networkx
-    Graph.Content:
+    GraphContent:
       type: object
       properties:
         choice:
@@ -760,6 +709,40 @@ components:
             This contains the returned graph content formatted as a networkx yaml string.
           type: string
           x-field-uid: 2
+    QueryContent:
+      type: object
+      properties:
+        id:
+          type: string
+          x-field-uid: 1
+    QueryRequest:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            node:
+              x-field-uid: 1
+            edge:
+              x-field-uid: 2
+          enum:
+          - node
+          - edge
+    AnnotateRequest:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            node:
+              x-field-uid: 1
+            edge:
+              x-field-uid: 2
+          enum:
+          - node
+          - edge
     Version:
       description: |-
         Version details
