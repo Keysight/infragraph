@@ -42,19 +42,4 @@ components:
           items:
             $ref: "./edge.yaml#/components/schemas/Infrastructure.Edge"
           x-field-uid: 6
-        annotations:
-          description: |-
-            Annotations allows for extending the base configuration with any type of
-            additional information such as logical layouts, physical configuration etc.
 
-            This feature is essential for APIs that need to support flexible or
-            evolving data structures without requiring schema changes for
-            every additional property.
-
-            This allows an organization to add their own data structures or
-            open source data such as openconfig configuration messages which can be
-            correlated to specific configuration endpoints.
-          type: array
-          items:
-            $ref: "./annotation.yaml#/components/schemas/Annotation"
-          x-field-uid: 7

@@ -8,7 +8,7 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 """
 
 import json
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
@@ -151,16 +151,17 @@ class InfraGraphService(Api):
         for edge in device.edges:
             endpoints1 = self._expand_endpoint(instance, device, edge.ep1)
             endpoints2 = self._expand_endpoint(instance, device, edge.ep2)
-            if edge.many2many is True:  # cartesion product
-                for src, dst in [(x, y) for x in endpoints1 for y in endpoints2]:
-                    if src == dst:
-                        continue
-                    self._graph.add_edge(src, dst, link=edge.link)
-            else:  # meshed product
-                for src, dst in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                    if src == dst:
-                        continue
-                    self._graph.add_edge(src, dst, link=edge.link)
+            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
+                if edge.many2many is True:  # cartesion product
+                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
+                else:  # meshed product
+                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
 
     def _split_endpoint(self, device: Device, endpoint: str) -> Tuple[str, int, int, int]:
         """Given an endpoint return a list of endpoint strings.
@@ -180,18 +181,29 @@ class InfraGraphService(Api):
         component = self._get_component(device, name)
         slice_pieces = [0, component.count, 1]
         if len(endpoint_pieces) > 1:
-            for idx, slice_piece in enumerate(re.split(r":", endpoint_pieces[1])):
-                if slice_piece != "":
-                    slice_pieces[idx] = int(slice_piece)
+            if ":" not in endpoint_pieces[1]:
+                slice_pieces[0] = int(endpoint_pieces[1])
+                slice_pieces[1] = slice_pieces[0] + 1
+            else:
+                for idx, slice_piece in enumerate(re.split(r":", endpoint_pieces[1])):
+                    if slice_piece != "":
+                        slice_pieces[idx] = int(slice_piece)
         return (name, slice_pieces[0], slice_pieces[1], slice_pieces[2])
 
-    def _expand_endpoint(self, instance: Instance, device: Device, endpoint: DeviceEndpoint) -> List[str]:
-        """Return a list of fully qualified endpoint names"""
+    def _expand_endpoint(
+        self,
+        instance: Instance,
+        device: Device,
+        endpoint: DeviceEndpoint,
+    ) -> List[List[str]]:
+        """Return a list for every instance index to a list of fully qualified instance endpoint names"""
         endpoints = []
         name, start, stop, step = self._split_endpoint(device, endpoint.component)
         for device_idx in range(instance.count):
+            instance_endpoints = []
             for idx in range(start, stop, step):
-                endpoints.append(f"{instance.name}.{device_idx}.{name}.{idx}")
+                instance_endpoints.append(f"{instance.name}.{device_idx}.{name}.{idx}")
+            endpoints.append(instance_endpoints)
         return endpoints
 
     def _get_component(self, device: Device, name: str) -> Component:

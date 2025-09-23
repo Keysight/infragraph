@@ -44,3 +44,47 @@ paths:
         default:
           $ref: '../models/request.yaml#/components/responses/Failure'
           x-field-uid: 2
+  /query_graph:
+    post:
+      tags: ['Configuration']
+      operationId: query_graph
+      x-stream: client
+      description: >-
+        Query the current fully expanded graph.
+
+          - example: Ask the graph for specific endpoints such as those of type `NPU` or `NIC`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../models/graph.yaml#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          $ref: '../models/graph.yaml#/components/responses/QueryResponse'
+          x-field-uid: 1
+        default:
+          $ref: '../models/request.yaml#/components/responses/Failure'
+          x-field-uid: 2
+  /annotate_graph:
+    post:
+      tags: ['Configuration']
+      operationId: annotate_graph
+      x-stream: client
+      description: >-
+        Annotate the current fully expanded graph.
+
+          - example: Update specific endpoints with name/value information such as `rank=0`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../models/graph.yaml#/components/schemas/AnnotateRequest'
+      responses:
+        '200':
+          $ref: '../models/request.yaml#/components/responses/Success'
+          x-field-uid: 1
+        default:
+          $ref: '../models/request.yaml#/components/responses/Failure'
+          x-field-uid: 2

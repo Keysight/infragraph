@@ -11,7 +11,7 @@ components:
           x-enum:
             networkx:
               x-field-uid: 1
-    Graph.Content:
+    GraphContent:
       type: object
       properties:
         choice:
@@ -25,6 +25,34 @@ components:
             This contains the returned graph content formatted as a networkx yaml string.
           type: string
           x-field-uid: 2
+    QueryContent:
+      type: object
+      properties:
+        id:
+          type: string
+          x-field-uid: 1
+    QueryRequest:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            node:
+              x-field-uid: 1
+            edge:
+              x-field-uid: 2
+    AnnotateRequest:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            node:
+              x-field-uid: 1
+            edge:
+              x-field-uid: 2
   responses:
     GraphResponse:
       description: |-
@@ -32,4 +60,11 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Graph.Content'
+            $ref: '#/components/schemas/GraphContent'
+    QueryResponse:
+      description: |-
+        Answer to the query request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueryContent'
