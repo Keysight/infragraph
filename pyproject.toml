@@ -20,6 +20,9 @@ exclude = [
     "!src/infragraph/*.py",
     "!src/tests/*.py",
     "!src/docs/*.*",
+    "!infragraph/*.py",
+    "!infragraph/tests/*.py",
+    "!infragraph/docs/*.*",
 ]
 
 [tool.hatch.build.targets.sdist.force-include]
