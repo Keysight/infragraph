@@ -70,8 +70,16 @@ class InfraGraphService(Api):
         self._graph = Graph()
         self._add_nodes()
         self._add_device_edges()
+        self._validate_device_edges()
         self._add_infrastructure_edges()
         self._validate_graph()
+
+    def _validate_device_edges(self):
+        """Ensure that there are no edges between device instances
+        - TBD: in the case of device within device?"""
+        for ep1, ep2 in self._graph.edges():
+            if ep1.split(".")[0:2] != ep2.split(".")[0:2]:
+                raise InfrastructureError(f"Edge not allowed between endpoint {ep1} and endpoint {ep2}")
 
     def _validate_graph(self):
         """Validate the network graph
