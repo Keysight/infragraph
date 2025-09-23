@@ -15,7 +15,7 @@ generate: ## generate artifacts using OpenApiArt
 	source .venv/bin/activate && \
 	python3 generate.py
 	cp -f artifacts/infragraph/*.py src/infragraph/
-	rm -rf src/docs
+	rm -rf src/docs || true
 	mkdir src/docs
 	cp -f artifacts/*.* src/docs
 
@@ -27,7 +27,7 @@ test: ## run unit tests on the src/infragraph files
 
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts
-	rm -rf dist
+	rm -rf dist || true
 	source .venv/bin/activate && \
 	python3 -m build
 	tar tvzf dist/infragraph*.tar.gz
