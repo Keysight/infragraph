@@ -8,7 +8,7 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 """
 
 import json
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
@@ -70,6 +70,7 @@ class InfraGraphService(Api):
         self._graph = Graph()
         self._add_nodes()
         self._add_device_edges()
+        self._add_infrastructure_edges()
         self._validate_graph()
 
     def _validate_graph(self):
@@ -122,6 +123,34 @@ class InfraGraphService(Api):
                     for component_idx in range(component.count):
                         name = f"{instance.name}.{device_idx}.{component.name}.{component_idx}"
                         self._graph.add_node(name, type=component.choice)
+
+    def _resolve_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
+        """Given an infrastructure endpoint return the Instance and Device"""
+        instance_name = endpoint.instance.split("[")[0]
+        for instance in self._infrastructure.instances:
+            if instance.name == instance_name:
+                device = self._get_device(instance.device)
+                return (instance, device)
+        raise InfrastructureError(f"Instance '{instance_name}' does not exist in infrastructure instances")
+
+    def _add_infrastructure_edges(self):
+        """Generate infrastructure edges and add them to the graph"""
+        for edge in self._infrastructure.edges:
+            instance1, device1 = self._resolve_instance(edge.ep1)
+            endpoints1 = self._expand_endpoint(instance1, device1, edge.ep1)
+            instance2, device2 = self._resolve_instance(edge.ep2)
+            endpoints2 = self._expand_endpoint(instance2, device2, edge.ep2)
+            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
+                if edge.many2many is True:  # cartesion product
+                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
+                else:  # meshed product
+                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
 
     def _add_device_edges(self):
         """Add all device edges to the graph.
@@ -194,7 +223,7 @@ class InfraGraphService(Api):
         self,
         instance: Instance,
         device: Device,
-        endpoint: DeviceEndpoint,
+        endpoint: Union[InfrastructureEndpoint, DeviceEndpoint],
     ) -> List[List[str]]:
         """Return a list for every instance index to a list of fully qualified instance endpoint names"""
         endpoints = []

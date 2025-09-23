@@ -58,7 +58,7 @@ def closfabric() -> Infrastructure:
         edge.ep2.component = InfraGraphService.get_component(switch, Component.PORT).name
 
     # link every leaf switch to every spine switch
-    switch_component = InfraGraphService.get_component(server, Component.NIC).name
+    switch_component = InfraGraphService.get_component(switch, Component.PORT).name
     for idx in range(leaf_switches.count):
         edge = infra.edges.add(many2many=True, link=spine_link.name)
         edge.ep1.instance = f"{leaf_switches.name}[{idx}]"

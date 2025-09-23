@@ -11,7 +11,8 @@ async def test_infrastructure(closfabric: Infrastructure):
     service = InfraGraphService()
     service.set_graph(closfabric.serialize())
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, sources=["host.0.npu.0"], vertical_chains=False))
+    print(f"\nInfrastructure is a {g}")
+    print(networkx.write_network_text(g, vertical_chains=True))
 
 
 if __name__ == "__main__":

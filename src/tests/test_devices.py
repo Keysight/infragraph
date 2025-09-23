@@ -10,7 +10,7 @@ from infragraph.switch import Switch
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("count", [2])
+@pytest.mark.parametrize("count", [1, 2])
 @pytest.mark.parametrize(
     "device",
     [
