@@ -49,21 +49,24 @@ def closfabric() -> Infrastructure:
     )
     spine_link.physical.bandwidth.gigabits_per_second = 400
 
-    # link the hosts to the leaf switches
+    host_component = InfraGraphService.get_component(server, Component.NIC)
+    switch_component = InfraGraphService.get_component(switch, Component.PORT)
+
+    # link each host to one leaf switch
     for idx in range(hosts.count):
-        edge = infra.edges.add(scheme=InfrastructureEdge.MANY2MANY, link=leaf_link.name)
+        edge = infra.edges.add(scheme=InfrastructureEdge.ONE2ONE, link=leaf_link.name)
         edge.ep1.instance = f"{hosts.name}[{idx}]"
-        edge.ep1.component = InfraGraphService.get_component(server, Component.NIC).name
+        edge.ep1.component = host_component.name
         edge.ep2.instance = f"{leaf_switches.name}[{idx}]"
-        edge.ep2.component = InfraGraphService.get_component(switch, Component.PORT).name
+        edge.ep2.component = switch_component.name
 
     # link every leaf switch to every spine switch
-    switch_component = InfraGraphService.get_component(switch, Component.PORT).name
-    for idx in range(leaf_switches.count):
-        edge = infra.edges.add(scheme=InfrastructureEdge.MANY2MANY, link=spine_link.name)
-        edge.ep1.instance = f"{leaf_switches.name}[{idx}]"
-        edge.ep1.component = f"{switch_component}[{hosts.count + idx}]"
-        edge.ep2.instance = f"{spine_switches.name}"
-        edge.ep2.component = f"{switch_component}[{idx}]"
-
+    print()
+    for leaf_idx in range(leaf_switches.count):
+        for spine_idx in range(spine_switches.count):
+            edge = infra.edges.add(scheme=InfrastructureEdge.ONE2ONE, link=spine_link.name)
+            edge.ep1.instance = f"{leaf_switches.name}[{leaf_idx}]"
+            edge.ep1.component = f"{switch_component.name}[{host_component.count + spine_idx}]"
+            edge.ep2.instance = f"{spine_switches.name}[{spine_idx}]"
+            edge.ep2.component = f"{switch_component.name}[{leaf_idx}]"
     return infra

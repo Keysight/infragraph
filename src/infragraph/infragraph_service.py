@@ -162,7 +162,7 @@ class InfraGraphService(Api):
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
                 elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
-                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
+                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps, strict=False)]:
                         if src == dst:
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
@@ -211,7 +211,7 @@ class InfraGraphService(Api):
                 else:
                     raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
-    def _split_endpoint(self, device: Device, endpoint: str) -> Tuple[str, int, int, int]:
+    def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, int, int, int]:
         """Given an endpoint return a list of endpoint strings.
 
         Assume that the list of endpoint strings will be all for the count
@@ -226,8 +226,7 @@ class InfraGraphService(Api):
         """
         endpoint_pieces = re.split(r"[\[\]]", endpoint)
         name = endpoint_pieces[0]
-        component = self._get_component(device, name)
-        slice_pieces = [0, component.count, 1]
+        slice_pieces = [0, count, 1]
         if len(endpoint_pieces) > 1:
             if ":" not in endpoint_pieces[1]:
                 slice_pieces[0] = int(endpoint_pieces[1])
@@ -246,12 +245,22 @@ class InfraGraphService(Api):
     ) -> List[List[str]]:
         """Return a list for every instance index to a list of fully qualified instance endpoint names"""
         endpoints = []
-        name, start, stop, step = self._split_endpoint(device, endpoint.component)
-        for device_idx in range(instance.count):
-            instance_endpoints = []
-            for idx in range(start, stop, step):
-                instance_endpoints.append(f"{instance.name}.{device_idx}.{name}.{idx}")
-            endpoints.append(instance_endpoints)
+        if isinstance(endpoint, InfrastructureEndpoint):
+            device_endpoint = endpoint.instance
+            component_endpoint = endpoint.component
+        elif isinstance(endpoint, DeviceEndpoint):
+            device_endpoint = device.name if endpoint.device is None else endpoint.device
+            component_endpoint = endpoint.component
+        else:
+            raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
+        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
+        component = self._get_component(device, component_endpoint.split("[")[0])
+        _, c_start, c_stop, c_step = self._split_endpoint(component.count, endpoint.component)
+        for device_idx in range(d_start, d_stop, d_step):
+            qualified_endpoints = []
+            for idx in range(c_start, c_stop, c_step):
+                qualified_endpoints.append(f"{instance.name}.{device_idx}.{component.name}.{idx}")
+            endpoints.append(qualified_endpoints)
         return endpoints
 
     def _get_component(self, device: Device, name: str) -> Component:
