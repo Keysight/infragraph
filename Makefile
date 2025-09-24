@@ -43,3 +43,14 @@ PYPI_TOKEN=__invalid_token__
 deploy: ## deploy packages to pypi.org
 	source .venv/bin/activate && \
 	python3 -m twine upload -u __token__ -p $(PYPI_TOKEN) dist/*
+
+.PHONY: docs
+docs: ## generate local documentation to docs/site
+	source .venv/bin/activate && \
+	python3 docs/generate_yaml.py
+	mkdocs build --config-file docs/mkdocs.yml --site-dir site
+
+.PHONY: yaml
+yaml: ## generate yaml contents for docs
+	source .venv/bin/activate && \
+	python3 docs/generate_yaml.py

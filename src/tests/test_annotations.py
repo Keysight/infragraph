@@ -3,14 +3,15 @@ import conftest
 import networkx
 import ipaddress
 from infragraph import *
+from infragraph.closfabric import ClosFabric
 from infragraph.infragraph_service import InfraGraphService
 
 
 @pytest.mark.asyncio
-async def test_rank_annotations(closfabric: Infrastructure):
+async def test_rank_annotations():
     """Test adding rank attribute to every npu node"""
     service = InfraGraphService()
-    service.set_graph(closfabric.serialize())
+    service.set_graph(ClosFabric().serialize())
 
     npu_endpoints = service.get_endpoints("type", Component.NPU)  # FIXME replace with query_graph API
     annotate_request = AnnotateRequest()
@@ -22,10 +23,10 @@ async def test_rank_annotations(closfabric: Infrastructure):
 
 
 @pytest.mark.asyncio
-async def test_nic_annotations(closfabric: Infrastructure):
+async def test_nic_annotations():
     """Test adding nic attributes to every server nic node"""
     service = InfraGraphService()
-    service.set_graph(closfabric.serialize())
+    service.set_graph(ClosFabric().serialize())
 
     nic_endpoints = service.get_endpoints("type", Component.NIC)  # FIXME replace with query_graph API
     annotate_request = AnnotateRequest()

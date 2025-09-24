@@ -10,3 +10,4 @@ src/infragraph/__init__.py
 src/infragraph/infragraph.py
 src/infragraph/infragraph_pb2*
 src/docs
+docs/src/yaml

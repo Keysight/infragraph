@@ -33,6 +33,7 @@ jobs:
           make clean
           make install
           make test
+          make yaml
 
       - name: Generate Doc from openapi.yaml
         uses: seeebiii/redoc-cli-github-action@v10

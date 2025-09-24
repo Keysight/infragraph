@@ -3,15 +3,16 @@ import pytest
 import conftest
 import networkx
 from infragraph import *
+from infragraph.closfabric import ClosFabric
 from infragraph.infragraph_service import InfraGraphService
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ranks", [(i, i + 1) for i in range(0, 7)])
-async def test_shortest_path(closfabric: Infrastructure, ranks: Tuple[int, int]):
+async def test_shortest_path(ranks: Tuple[int, int]):
     """Test resolving the shortest path from one rank to another"""
     service = InfraGraphService()
-    service.set_graph(closfabric.serialize())
+    service.set_graph(ClosFabric().serialize())
 
     # add ranks
     npu_endpoints = service.get_endpoints("type", Component.NPU)

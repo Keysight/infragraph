@@ -21,8 +21,8 @@ It consists of the following devices:
 The above devices will be interconnected in the following manner:
 
 * each `leaf` switch is connected directly to 1 `server` and to all `spine` switches
-* each nic in the `server` is connected to a `leaf` switch port at 100 gpbs
-* a port in the `leaf` switch is connected to every `spine` switch at 400 gpbs
+* every `server` is connected to a `leaf` switch at 100 gpbs
+* every `leaf` switch is connected to every `spine` switch at 400 gpbs
 
 ## Standardized Definitions
 A standardized definition of the preceding two tier clos fabric can be created by following these steps:
@@ -30,29 +30,49 @@ A standardized definition of the preceding two tier clos fabric can be created b
 * The device is a subgraph which is composed of two components connected to each other using a link.
 * It acts as a blueprint allowing for a single definition to be reused multiple times for optimal space complexity.
 
-#### Create a Server Device and Instances
-Define a server device based on the preceding infrastructure description.
+#### Create a Server Device
+Define a server device based on the infrastructure description.
 <details open>
-<summary><strong>Server Device Definition using OpenAPI Device Model</strong></summary>
+<summary><strong>Server device definition using OpenApiArt generated classes</strong></summary>
+```python
+{% include-markdown "../../src/infragraph/server.py" %}
+```
+</details>
+<details closed>
+<summary><strong>Server device definition as yaml</strong></summary>
 ```yaml
-{% include-markdown "./examples/two-tier-clos-fabric-server.yaml" %}
+{% include-markdown "./yaml/server.yaml" %}
 ```
 </details>
 
-#### Create a Switch Device and Instances
-Define a switch device based on the preceding infrastructure description.
+#### Create a Switch Device
+Define a switch device based on the infrastructure description.
 <details open>
-<summary><strong>Switch Device Definition using OpenAPI Device Model</strong></summary>
+<summary><strong>Switch device definition using OpenApiArt generated classes</strong></summary>
+```python
+{% include-markdown "../../src/infragraph/switch.py" %}
+```
+</details>
+<details closed>
+<summary><strong>Switch device definition as yaml</strong></summary>
 ```yaml
-{% include-markdown "./examples/two-tier-clos-fabric-switch.yaml" %}
+{% include-markdown "./yaml/switch.yaml" %}
 ```
 </details>
 
-#### Create an Infrastructure of Links and Connections
+#### Create an Infrastructure of Instances of devices, Links and Edges
+Define an infrastructure based on the infrastructure description.
 <details open>
-<summary><strong>Two Tier Clos Fabric Infrastructure using OpenAPI Device Model</strong></summary>
+<summary><strong>Two Tier Clos Fabric Infrastructure using OpenApiArt generated classes</strong></summary>
+```python
+{% include-markdown "../../src/infragraph/closfabric.py" %}
+```
+</details>
+
+<details closed>
+<summary><strong>ClosFabric infrastructure definition as yaml</strong></summary>
 ```yaml
-{% include-markdown "./examples/two-tier-clos-fabric-infrastructure.yaml" %}
+{% include-markdown "./yaml/closfabric.yaml" %}
 ```
 </details>
 
