@@ -28,7 +28,7 @@ class Cx5(Device):
         port.choice = Component.PORT
 
         pcie = self.links.add(name="pcie")
-        edge = self.edges.add(link=pcie.name, many2many=True)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
         edge.ep1.component = f"{asic.name}"
         edge.ep2.component = f"{port.name}"
         self.edges.append(edge)

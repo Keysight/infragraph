@@ -12,7 +12,7 @@ if __package__ in ["", None]:
     print(f"Testing code using src\n{sys.path}")
 
 
-from infragraph import Infrastructure, Component
+from infragraph import *
 from infragraph.server import Server
 from infragraph.switch import Switch
 from infragraph.infragraph_service import InfraGraphService
@@ -35,8 +35,8 @@ def closfabric() -> Infrastructure:
     infra.devices.append(server).append(switch)
 
     hosts = infra.instances.add(name="host", device=server.name, count=4)
-    leaf_switches = infra.instances.add(name="leaf", device=switch.name, count=4)
-    spine_switches = infra.instances.add(name="spine", device=switch.name, count=3)
+    leaf_switches = infra.instances.add(name="leafsw", device=switch.name, count=4)
+    spine_switches = infra.instances.add(name="spinesw", device=switch.name, count=3)
 
     leaf_link = infra.links.add(
         name="leaf-link",
@@ -51,7 +51,7 @@ def closfabric() -> Infrastructure:
 
     # link the hosts to the leaf switches
     for idx in range(hosts.count):
-        edge = infra.edges.add(many2many=True, link=leaf_link.name)
+        edge = infra.edges.add(scheme=InfrastructureEdge.MANY2MANY, link=leaf_link.name)
         edge.ep1.instance = f"{hosts.name}[{idx}]"
         edge.ep1.component = InfraGraphService.get_component(server, Component.NIC).name
         edge.ep2.instance = f"{leaf_switches.name}[{idx}]"
@@ -60,7 +60,7 @@ def closfabric() -> Infrastructure:
     # link every leaf switch to every spine switch
     switch_component = InfraGraphService.get_component(switch, Component.PORT).name
     for idx in range(leaf_switches.count):
-        edge = infra.edges.add(many2many=True, link=spine_link.name)
+        edge = infra.edges.add(scheme=InfrastructureEdge.MANY2MANY, link=spine_link.name)
         edge.ep1.instance = f"{leaf_switches.name}[{idx}]"
         edge.ep1.component = f"{switch_component}[{hosts.count + idx}]"
         edge.ep2.instance = f"{spine_switches.name}"

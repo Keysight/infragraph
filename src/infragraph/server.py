@@ -1,4 +1,3 @@
-from typing import Optional
 from infragraph import *
 
 # pyright: reportArgumentType=false
@@ -52,27 +51,27 @@ class Server(Device):
         nvlink = self.links.add(name="nvlink")
         pcie = self.links.add(name="pcie")
 
-        edge = self.edges.add(many2many=True, link=cpu_fabric.name)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=cpu_fabric.name)
         edge.ep1.component = cpu.name
         edge.ep2.component = cpu.name
 
-        edge = self.edges.add(many2many=True, link=nvlink.name)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=nvlink.name)
         edge.ep1.component = npu.name
         edge.ep2.component = nvlsw.name
 
         for idx in range(pciesw.count):
-            edge = self.edges.add(many2many=True, link=pcie.name)
+            edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
             edge.ep1.component = f"{cpu.name}[{idx}]"
             edge.ep2.component = f"{pciesw.name}[{idx}]"
 
         npu_slices = [f"{idx}:{idx+2}" for idx in range(0, npu.count, 2)]
         for npu_idx, pciesw_idx in zip(npu_slices, range(pciesw.count)):
-            edge = self.edges.add(many2many=True, link=pcie.name)
+            edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
             edge.ep1.component = f"{npu.name}[{npu_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 
         for nic_idx, pciesw_idx in zip(npu_slices, range(pciesw.count)):
-            edge = self.edges.add(many2many=True, link=pcie.name)
+            edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
             edge.ep1.component = f"{nic.name}[{nic_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 

@@ -113,13 +113,16 @@ class InfraGraphService(Api):
         return networkx.shortest_path(self._graph, endpoint1, endpoint2)
 
     def _get_device(self, device_name: str) -> Device:
+        """Given a device name return the device object"""
         for device in self._infrastructure.devices:
             if device.name == device_name:
                 return device
         raise InfrastructureError(f"Device {device_name} does not exist in Infrastructure.devices")
 
     def _add_nodes(self):
-        """Add all device instances to the graph"""
+        """Add all device instances as nodes to the graph
+        - add component type, instance name, instance index, device name as attributes
+        """
         for instance in self._infrastructure.instances:
             if self._isa_component(instance.device):
                 continue
@@ -128,7 +131,13 @@ class InfraGraphService(Api):
                 for component in device.components:
                     for component_idx in range(component.count):
                         name = f"{instance.name}.{device_idx}.{component.name}.{component_idx}"
-                        self._graph.add_node(name, type=component.choice)
+                        self._graph.add_node(
+                            name,
+                            type=component.choice,
+                            instance=instance.name,
+                            instance_idx=device_idx,
+                            device=instance.name,
+                        )
 
     def _resolve_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
         """Given an infrastructure endpoint return the Instance and Device"""
@@ -147,16 +156,18 @@ class InfraGraphService(Api):
             instance2, device2 = self._resolve_instance(edge.ep2)
             endpoints2 = self._expand_endpoint(instance2, device2, edge.ep2)
             for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.many2many is True:  # cartesion product
+                if edge.scheme == InfrastructureEdge.MANY2MANY:  # cartesion product
                     for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
                         if src == dst:
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
-                else:  # meshed product
+                elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
                     for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
                         if src == dst:
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
+                else:
+                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
     def _add_device_edges(self):
         """Add all device edges to the graph.
@@ -187,16 +198,18 @@ class InfraGraphService(Api):
             endpoints1 = self._expand_endpoint(instance, device, edge.ep1)
             endpoints2 = self._expand_endpoint(instance, device, edge.ep2)
             for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.many2many is True:  # cartesion product
+                if edge.scheme == DeviceEdge.MANY2MANY:  # cartesion product
                     for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
                         if src == dst:
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
-                else:  # meshed product
+                elif edge.scheme == DeviceEdge.ONE2ONE:  # meshed product
                     for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
                         if src == dst:
                             continue
                         self._graph.add_edge(src, dst, link=edge.link)
+                else:
+                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
     def _split_endpoint(self, device: Device, endpoint: str) -> Tuple[str, int, int, int]:
         """Given an endpoint return a list of endpoint strings.

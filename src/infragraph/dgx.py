@@ -60,21 +60,21 @@ class Dgx(Device):
         pcie = self.links.add(name="pcie")
         nvlink = self.links.add(name="nvlink")
 
-        edge = self.edges.add(many2many=True, link=cpu_fabric.name)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=cpu_fabric.name)
         edge.ep1.component = cpu.name
         edge.ep2.component = cpu.name
 
-        edge = self.edges.add(many2many=True, link=nvlink.name)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=nvlink.name)
         edge.ep1.component = npu.name
         edge.ep2.component = nvlsw.name
 
         for npu_idx, pciesw_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pciesw.count)):
-            edge = self.edges.add(many2many=True, link=pcie.name)
+            edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
             edge.ep1.component = f"{npu.name}[{npu_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 
         for nic_idx, pciesw_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pciesw.count)):
-            edge = self.edges.add(many2many=True, link=pcie.name)
+            edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
             edge.ep1.component = f"{nic.name}[{nic_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 

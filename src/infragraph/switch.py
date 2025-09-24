@@ -1,4 +1,3 @@
-from typing import Optional
 from infragraph import *
 
 # pyright: reportArgumentType=false
@@ -30,7 +29,7 @@ class Switch(Device):
 
         ic = self.links.add(name="ic", description="Generic integrated circuitry")
 
-        edge = self.edges.add(many2many=True, link=ic.name)
+        edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=ic.name)
         edge.ep1.component = asic.name
         edge.ep2.component = port.name
 

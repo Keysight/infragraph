@@ -16,9 +16,18 @@ async def test_shortest_path(closfabric: Infrastructure):
     for idx, npu_endpoint in enumerate(npu_endpoints):
         annotate_request.nodes.add(name=npu_endpoint, attribute="rank", value=str(idx))
     service.annotate_graph(annotate_request.serialize())
+    g = service.get_networkx_graph()
+    print(f"\nInfrastructure is a {g}")
+    print(networkx.write_network_text(g, vertical_chains=True))
 
     # find shortest path from one rank to another
-    # path = networkx.shortest_path(fabric_graph, source="dgxa100.0.npu.0", target="dgxa100.1.npu.0")
-    # print(f"\nShortest Path between dgxa100.0.npu.0 and dgxa100.1.npu.0")
-    # for edge in path:
-    #     print(edge)
+    src_endpoint = service.get_endpoints("rank", "0")[0]
+    dst_endpoint = service.get_endpoints("rank", "1")[0]
+    path = service.get_shortest_path(src_endpoint, dst_endpoint)
+    print(f"\nShortest Path between {src_endpoint} and {dst_endpoint}")
+    for edge in path:
+        print(edge)
+
+
+if __name__ == "__main__":
+    pytest.main(["-s", __file__])
