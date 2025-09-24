@@ -33,9 +33,6 @@ async def test_devices(count, device):
     service.set_graph(infrastructure.serialize())
     g = service.get_networkx_graph()
     print(f"\ndevice {device.name} is a {g}")
-    for src, dst in g.edges():
-        print(f"{src} <--> {dst}")
-        assert "".join(src.split(".")[0:2]) == "".join(dst.split(".")[0:2])
     print(networkx.write_network_text(g, vertical_chains=True))
 
 

@@ -45,22 +45,22 @@ components:
     Annotation.Node:
       type: object
       properties:
-        endpoint:
+        name:
           description: |-
-            A fully qualified endpoint name that MUST exist in the graph.
+            A fully qualified node name that MUST exist in the graph.
             - server.0.npu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
           x-field-uid: 1
-        name:
+        attribute:
           description: |-
-            The attribute name that will be added to the node.
+            The attribute name that will be added to the endpoint.
           type: string
           x-field-uid: 2
         value:
           description: |-
-            The attribute value that will be added to the node.
+            The attribute value that will be added to the endpoint.
           type: string
           x-field-uid: 3
     Annotation.Edge:
@@ -82,14 +82,14 @@ components:
             - switch.2.asic.0
           type: string
           x-field-uid: 2
-        name:
+        attribute:
           description: |-
-            The attribute name that will be added to the node.
+            The attribute name that will be added to the edge.
           type: string
           x-field-uid: 3
         value:
           description: |-
-            The attribute value that will be added to the node.
+            The attribute value that will be added to the edge.
           type: string
           x-field-uid: 4
     AnnotateRequest:
@@ -99,16 +99,16 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            node:
+            nodes:
               x-field-uid: 1
-            edge:
+            edges:
               x-field-uid: 2
-        node:
+        nodes:
           type: array
           items:
             $ref: "#/components/schemas/Annotation.Node"
           x-field-uid: 2
-        edge:
+        edges:
           type: array
           items:
             $ref: "#/components/schemas/Annotation.Edge"

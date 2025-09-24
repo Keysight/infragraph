@@ -7,13 +7,11 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 
 """
 
-import json
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
 import re
-
 import yaml
 from infragraph import *
 
@@ -261,10 +259,22 @@ class InfraGraphService(Api):
                 return component
         raise InfrastructureError(f"Device {device.name} does not have a component of type {type}")
 
-    def get_endpoints(self, name: str, value: str) -> List[str]:
-        """Given an attribute name and value return all endpoint names that match"""
+    def get_endpoints(self, name: str, value: Optional[str] = None) -> List[str]:
+        """Given an attribute name and value return all node ids that match"""
         endpoints = []
-        for name, data in self._graph.nodes(data=True):
-            if data.get(name) == value:
-                endpoints.append(name)
+        for node, data in self._graph.nodes(data=name):
+            if data is None:
+                continue
+            elif value is None:
+                endpoints.append(node)
+            elif data == value:
+                endpoints.append(node)
         return endpoints
+
+    def annotate_graph(self, payload):
+        """Annotation the graph using the data provided in the payload"""
+        annotate_request = AnnotateRequest()
+        annotate_request.deserialize(payload)
+        for annotation_node in annotate_request.nodes:
+            endpoint = self._graph.nodes[annotation_node.name]
+            endpoint[annotation_node.attribute] = annotation_node.value
