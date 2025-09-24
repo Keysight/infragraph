@@ -17,6 +17,8 @@ from infragraph.server import Server
 from infragraph.switch import Switch
 from infragraph.infragraph_service import InfraGraphService
 
+# pyright: reportArgumentType=false
+
 
 @pytest.fixture
 def closfabric() -> Infrastructure:

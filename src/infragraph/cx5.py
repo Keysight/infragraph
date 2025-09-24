@@ -1,5 +1,7 @@
 from infragraph import *
 
+# pyright: reportArgumentType=false
+
 
 class Cx5(Device):
     NETWORK_PORTS: int = 2
