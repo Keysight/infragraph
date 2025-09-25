@@ -11,16 +11,14 @@
  * can be associated with logical endpoints.
  * 
  * ### Graph Terminology
- * - `vertex` is the fundamental unit or entity within a graph; represented as a point.
- * In this model it is one of the following:
- * - a combination of a component name and a 0 based index such as `asic.0`
- * - a device instance name, a 0 based index, an external component and a 0 based
- * index such as `host.0.nic.0`.
- * - `edge` is a connection between two vertices in a graph. It can be a connection
- * between two component instances or two device instances. The connection also includes
- * a logical label for identifying the type of link between the two vertexes, for example
- * `asic.0`.`ic`.`port.0`
- * - `path` is a sequence of connections that allows for traversal through the graph
+ * - an infrastructure `node (vertex)` is the fundamental unit or entity within an infrastructure
+ * graph; represented as a endpoint with the following syntax:
+ * - a combination of a device instance name and a 0 based index and a component name
+ * and a 0 based index such as `switch.0.asic.0` and `switch.0.port.0`
+ * - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph
+ * such as (`switch.0.asic.0`, `switch.0.port.0`)
+ * - `path` is a sequence of edges that allows for traversal through the graph such
+ * as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
  * 
  * ### Contributions
  * Contributions to the API and models schema can be made in the following ways:
@@ -455,17 +453,101 @@ message QueryContent {
 }
 
 // Description missing in models
+message QueryAttribute {
+
+  // Description missing in models
+  optional string name = 1;
+
+  message Operator {
+    enum Enum {
+      unspecified = 0;
+      eq = 1;
+      regex = 2;
+      contains = 3;
+    }
+  }
+  // Description missing in models
+  optional Operator.Enum operator = 2;
+
+  // Description missing in models
+  optional string value = 3;
+
+  message Logic {
+    enum Enum {
+      unspecified = 0;
+      and = 1;
+      or = 2;
+    }
+  }
+  // Description missing in models
+  optional Logic.Enum logic = 4;
+}
+
+// Description missing in models
+message QueryNodeId {
+
+  message Operator {
+    enum Enum {
+      unspecified = 0;
+      eq = 1;
+      regex = 2;
+      contains = 3;
+    }
+  }
+  // Description missing in models
+  optional Operator.Enum operator = 1;
+
+  // Description missing in models
+  optional string value = 2;
+
+  message Logic {
+    enum Enum {
+      unspecified = 0;
+      and = 1;
+      or = 2;
+    }
+  }
+  // Description missing in models
+  optional Logic.Enum logic = 3;
+}
+
+// Description missing in models
+message QueryNodeFilter {
+
+  // Description missing in models
+  optional string name = 1;
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      attribute = 1;
+      id = 2;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 2;
+
+  // Description missing in models
+  QueryAttribute attribute = 3;
+
+  // Description missing in models
+  QueryNodeId id = 4;
+}
+
+// Description missing in models
 message QueryRequest {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      node = 1;
-      edge = 2;
+      nodes = 1;
     }
   }
   // Description missing in models
   optional Choice.Enum choice = 1;
+
+  // Description missing in models
+  repeated QueryNodeFilter nodes = 2;
 }
 
 // Description missing in models
@@ -632,14 +714,14 @@ service Openapi {
   rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
   // streaming version of the rpc GetGraph
   rpc streamGetGraph(stream Data) returns (GetGraphResponse);
-  // Query the current fully expanded graph.
+  // Query the current fully expanded graph using a declarative query syntax.
   // 
   // - example: Ask the graph for specific endpoints such as those of type `NPU` or
   // `NIC`
   rpc QueryGraph(QueryGraphRequest) returns (QueryGraphResponse);
   // streaming version of the rpc QueryGraph
   rpc streamQueryGraph(stream Data) returns (QueryGraphResponse);
-  // Annotate the current fully expanded graph.
+  // Extend the current graph created by the `set_graph` API.
   // 
   // - example: Update specific endpoints with name/value information such as `rank=0`
   rpc AnnotateGraph(AnnotateGraphRequest) returns (AnnotateGraphResponse);
