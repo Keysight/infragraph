@@ -40,7 +40,7 @@ nav:
   - Background: background.md
   - Schema: schema.md
   - Getting Started: create.md
-  - Extending The Schema:
+  - Extending The Graph:
     - Overview: annotate.md
   - Examples: examples.md
   - Validation: validation.md
