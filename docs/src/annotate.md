@@ -1,37 +1,44 @@
 
-# Binding Custom Attributes to Graph Nodes
+# The `annotate_graph` API
 
-The primary purpose of infra.proto is to define and design a generic network fabric. This enables end users to specify the devices as nodes and links as edges. The data model also allows for the definition and design of devices by adding links and components within the device, modeling the device internals as a subgraph.
-Another data model, annotate.proto, allows for the definition and binding of various parameters within the generic infrastructure. Users can bind:
+## Overview
+Once the infrastructure or system of systems has been defined by using the `set_graph` API the base graph can be extended by using the `annotate_graph` API to add additional data using nodes and edges as endpoints for the data.
 
-- Vendor-specific data
-- Additional qualities of the infrastructure
-- Specific device performance attributes, such as:
-  - Latency
-  - Routing tables
+The main objective of the `annotate_graph` API is to separate the infrastructure model from specific use-case models by allowing the graph to be extended with any type of data.
 
-This helps to add more context and content to infrastructure elements.
+This ensures that `InfraGraph` does not morph into an attempt to define every nuance present in a system of systems.
 
-The main objective is to decouple various bindings from the infrastructure, separating the concerns of designing the logical infrastructure from the additional data needed for specific use-cases.
+Any annotation efforts can always be proposed as model or service enhancements by submitting [issues](https://github.com/Keysight/infragraph/issues) or [pull requests](https://github.com/Keysight/infragraph/pulls) to the [InfraGraph repository](https://github.com/Keysight/infragraph).
 
-## Adding a `Rank` attribute to all `NPU` nodes
+### Additional Data
+Some examples of additional data are:
+- AI data such as:
+  - ranks
+  - communication groups
+- Configuration data such as:
+  - network interface card settings
+  - device addresses
+  - device routing tables
 
-The following code demonstrates adding a `rank` attribute to every node that is of type `NPU`.
+The following code examples demonstrates how to use the `query_graph` API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
 
+## Adding `rank` data
+In the [Getting Started](create.md) example, the device `Server` has a specific number of `npu` components.
+
+The following code demonstrates adding an `rank` attribute to every node that is of type `NPU`.
 <details open>
-<summary><strong>Rank Annotation Test</strong></summary>
+<summary><strong>Add a rank to each npu</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_rank_annotations.py" %}
 ```
 </details>
 
+## Adding `ip_address` data
+In the [Getting Started](create.md) example the instances of the `Server` device were created with the name of `host`.
 
-## Adding an `ip_address` attribute to all `NIC` nodes
-
-The following code demonstrates adding an `ip_address` attribute to every node that is of type `NIC`.
-
+The following code demonstrates how to add an `ip_address` attribute to every node that is an instance of `host`.
 <details open>
-<summary><strong>IpAddress Annotation Test</strong></summary>
+<summary><strong>Add an ip_address to each host</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_nic_annotations.py" %}
 ```
