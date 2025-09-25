@@ -7,15 +7,27 @@ theme:
   name: material
   logo: images/infra_logo_favicon.png
   favicon: images/infra_logo_favicon.ico
-  palette:
-    primary: indigo
-    accent: indigo
   features:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.instant
     - navigation.tracking
     - navigation.top
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
 markdown_extensions:
   - tables
   - pymdownx.highlight:
