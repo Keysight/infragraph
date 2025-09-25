@@ -1,3 +1,4 @@
+semantic_version
 build
 openapiart
 networkx

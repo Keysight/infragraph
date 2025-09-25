@@ -46,11 +46,11 @@ paths:
           x-field-uid: 2
   /query_graph:
     post:
-      tags: ['Configuration']
+      tags: ['Actions']
       operationId: query_graph
       x-stream: client
       description: >-
-        Query the current fully expanded graph.
+        Query the current fully expanded graph using a declarative query syntax.
 
           - example: Ask the graph for specific endpoints such as those of type `NPU` or `NIC`
       requestBody:
@@ -72,7 +72,7 @@ paths:
       operationId: annotate_graph
       x-stream: client
       description: >-
-        Annotate the current fully expanded graph.
+        Extend the current graph created by the `set_graph` API.
 
           - example: Update specific endpoints with name/value information such as `rank=0`
       requestBody:

@@ -11,11 +11,10 @@ info:
     can be associated with logical endpoints.
 
     ### Graph Terminology
-    - `vertex` is the fundamental unit or entity within a graph; represented as a point. In this model it is one of the following:
-      - a combination of a component name and a 0 based index such as `asic.0`
-      - a device instance name, a 0 based index, an external component and a 0 based index such as `host.0.nic.0`.
-    - `edge` is a connection between two vertices in a graph. It can be a connection between two component instances or two device instances. The connection also includes a logical label for identifying the type of link between the two vertexes, for example `asic.0`.`ic`.`port.0`
-    - `path` is a sequence of connections that allows for traversal through the graph
+    - an infrastructure `node (vertex)` is the fundamental unit or entity within an infrastructure graph; represented as a endpoint with the following syntax:
+      - a combination of a device instance name and a 0 based index and a component name and a 0 based index such as `switch.0.asic.0` and `switch.0.port.0`
+    - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph such as (`switch.0.asic.0`, `switch.0.port.0`)
+    - `path` is a sequence of edges that allows for traversal through the graph such as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
 
     ### Contributions
     Contributions to the API and models schema can be made in the following ways:

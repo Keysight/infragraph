@@ -31,6 +31,77 @@ components:
         id:
           type: string
           x-field-uid: 1
+    QueryAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+        operator:
+          type: string
+          x-field-uid: 2
+          x-enum:
+            eq:
+              x-field-uid: 1
+            regex:
+              x-field-uid: 2
+            contains:
+              x-field-uid: 3
+        value:
+          type: string
+          x-field-uid: 3
+        logic:
+          type: string
+          x-field-uid: 4
+          x-enum:
+            and:
+              x-field-uid: 1
+            or:
+              x-field-uid: 2
+    QueryNodeId:
+      type: object
+      properties:
+        operator:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            eq:
+              x-field-uid: 1
+            regex:
+              x-field-uid: 2
+            contains:
+              x-field-uid: 3
+        value:
+          type: string
+          x-field-uid: 2
+        logic:
+          type: string
+          x-field-uid: 3
+          x-enum:
+            and:
+              x-field-uid: 1
+            or:
+              x-field-uid: 2
+    QueryNodeFilter:
+      type: object
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+        choice:
+          type: string
+          x-field-uid: 2
+          x-enum:
+            attribute:
+              x-field-uid: 1
+            id:
+              x-field-uid: 2
+        attribute:
+          $ref: "#/components/schemas/QueryAttribute"
+          x-field-uid: 3
+        id:
+          $ref: "#/components/schemas/QueryNodeId"
+          x-field-uid: 4
     QueryRequest:
       type: object
       properties:
@@ -38,10 +109,13 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            node:
+            nodes:
               x-field-uid: 1
-            edge:
-              x-field-uid: 2
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueryNodeFilter"
+          x-field-uid: 2
     Annotation.Node:
       type: object
       properties:
