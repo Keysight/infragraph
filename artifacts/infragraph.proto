@@ -446,10 +446,30 @@ message GraphContent {
 }
 
 // Description missing in models
-message QueryContent {
+message NameValue {
+
+  // Description missing in models
+  optional string name = 1;
+
+  // Description missing in models
+  optional string value = 2;
+}
+
+// Description missing in models
+message QueryResponseItem {
 
   // Description missing in models
   optional string id = 1;
+
+  // Description missing in models
+  repeated NameValue attributes = 2;
+}
+
+// Description missing in models
+message QueryResponseContent {
+
+  // Description missing in models
+  repeated QueryResponseItem matches = 1;
 }
 
 // Description missing in models
@@ -520,18 +540,18 @@ message QueryNodeFilter {
   message Choice {
     enum Enum {
       unspecified = 0;
-      attribute = 1;
-      id = 2;
+      attribute_filter = 1;
+      id_filter = 2;
     }
   }
   // Description missing in models
   optional Choice.Enum choice = 2;
 
   // Description missing in models
-  QueryAttribute attribute = 3;
+  QueryAttribute attribute_filter = 3;
 
   // Description missing in models
-  QueryNodeId id = 4;
+  QueryNodeId id_filter = 4;
 }
 
 // Description missing in models
@@ -540,14 +560,14 @@ message QueryRequest {
   message Choice {
     enum Enum {
       unspecified = 0;
-      nodes = 1;
+      node_filters = 1;
     }
   }
   // Description missing in models
   optional Choice.Enum choice = 1;
 
   // Description missing in models
-  repeated QueryNodeFilter nodes = 2;
+  repeated QueryNodeFilter node_filters = 2;
 }
 
 // Description missing in models
@@ -644,7 +664,7 @@ message GraphResponse {
 
 // Answer to the query request.
 message QueryResponse {
-  QueryContent query_content = 1;
+  QueryResponseContent query_response_content = 1;
 }
 
 // Data that needs to be streamed
@@ -673,7 +693,7 @@ message QueryGraphRequest {
   QueryRequest query_request = 1;
 }
 message QueryGraphResponse {
-  QueryContent query_content = 1;
+  QueryResponseContent query_response_content = 1;
 }
 
 
