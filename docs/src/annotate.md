@@ -23,7 +23,7 @@ The following code examples demonstrates how to use the `query_graph` API in con
 ## Adding `rank` data
 In the [Getting Started](create.md) example, the device `Server` has a specific number of `npu` components.
 
-The following code demonstrates adding an `rank` attribute to every node that is of type `NPU`.
+The following code demonstrates adding a `rank` attribute to every node that is of type `NPU`.
 <details open>
 <summary><strong>Add a rank to each npu</strong></summary>
 ```python
@@ -38,6 +38,6 @@ The following code demonstrates how to add an `ipaddress` attribute to every nod
 <details open>
 <summary><strong>Add an ipaddress to each host</strong></summary>
 ```python
-{% include-markdown "../../src/tests/test_nic_annotations.py" %}
+{% include-markdown "../../src/tests/test_ipaddress_annotations.py" %}
 ```
 </details>
