@@ -25,12 +25,15 @@ async def test_devices(count, device):
 
     - with a count > 1 there should be no connectivity between device instances
     """
+    # create the graph
     device.validate()
     infrastructure = Api().infrastructure()
     infrastructure.devices.append(device)
     infrastructure.instances.add(name=device.name, device=device.name, count=count)
     service = InfraGraphService()
-    service.set_graph(infrastructure.serialize())
+    service.set_graph(infrastructure)
+
+    # validations
     g = service.get_networkx_graph()
     print(f"\ndevice {device.name} is a {g}")
     print(networkx.write_network_text(g, vertical_chains=True))

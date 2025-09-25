@@ -9,18 +9,41 @@ from infragraph.infragraph_service import InfraGraphService
 @pytest.mark.asyncio
 async def test_ipaddress_annotations():
     """Test adding an ipaddress attribute to every server nic node"""
+    # create the graph
     service = InfraGraphService()
-    service.set_graph(ClosFabric().serialize())
+    service.set_graph(ClosFabric())
 
-    nic_endpoints = service.get_endpoints("type", Component.NIC)  # FIXME replace with query_graph API
+    # query the graph for host nics
+    npu_request = QueryRequest()
+    filter = npu_request.node_filters.add(name="nic filter")
+    filter.choice = QueryNodeFilter.ID_FILTER
+    filter.id_filter.operator = QueryNodeId.REGEX
+    filter.id_filter.value = r"host\.\d+\.nic\.\d+"
+    nic_response = service.query_graph(npu_request)
+
+    # annotate the graph
     annotate_request = AnnotateRequest()
-    for idx, nic_endpoint in enumerate(nic_endpoints):
+    for idx, match in enumerate(nic_response.matches):
         annotate_request.nodes.add(
-            name=nic_endpoint, attribute="ipaddress", value=str(ipaddress.ip_address(idx))
+            name=match.id,
+            attribute="ipaddress",
+            value=str(ipaddress.ip_address(idx)),
         )
-    service.annotate_graph(annotate_request.serialize())
-    nic_endpoints = service.get_endpoints("ipaddress")  # FIXME replace with query_graph API
-    assert len(nic_endpoints) == len(annotate_request.nodes)
+    service.annotate_graph(annotate_request)
+
+    # query the graph for ipaddress attributes
+    ipaddress_request = QueryRequest()
+    filter = ipaddress_request.node_filters.add(name="ipaddress filter")
+    filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
+    filter.attribute_filter.name = "ipaddress"
+    filter.attribute_filter.operator = QueryNodeId.REGEX
+    filter.attribute_filter.value = r".*"
+    ipaddress_response = service.query_graph(ipaddress_request)
+
+    # validation
+    assert len(nic_response.matches) > 0
+    assert len(nic_response.matches) == len(annotate_request.nodes)
+    assert len(annotate_request.nodes) == len(ipaddress_response.matches)
 
 
 if __name__ == "__main__":

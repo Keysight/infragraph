@@ -25,11 +25,33 @@ components:
             This contains the returned graph content formatted as a networkx yaml string.
           type: string
           x-field-uid: 2
-    QueryContent:
+    NameValue:
+      type: object
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+        value:
+          type: string
+          x-field-uid: 2
+    QueryResponseItem:
       type: object
       properties:
         id:
           type: string
+          x-field-uid: 1
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/NameValue"
+          x-field-uid: 2
+    QueryResponseContent:
+      type: object
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueryResponseItem"
           x-field-uid: 1
     QueryAttribute:
       type: object
@@ -92,14 +114,14 @@ components:
           type: string
           x-field-uid: 2
           x-enum:
-            attribute:
+            attribute_filter:
               x-field-uid: 1
-            id:
+            id_filter:
               x-field-uid: 2
-        attribute:
+        attribute_filter:
           $ref: "#/components/schemas/QueryAttribute"
           x-field-uid: 3
-        id:
+        id_filter:
           $ref: "#/components/schemas/QueryNodeId"
           x-field-uid: 4
     QueryRequest:
@@ -109,9 +131,9 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            nodes:
+            node_filters:
               x-field-uid: 1
-        nodes:
+        node_filters:
           type: array
           items:
             $ref: "#/components/schemas/QueryNodeFilter"
@@ -201,4 +223,4 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/QueryContent'
+            $ref: '#/components/schemas/QueryResponseContent'

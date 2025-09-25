@@ -7,7 +7,7 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 
 """
 
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
@@ -52,7 +52,7 @@ class InfraGraphService(Api):
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
 
-    def set_graph(self, payload: str) -> None:
+    def set_graph(self, payload: Union[str, Infrastructure]) -> None:
         """Generates a networkx graph, validates it and if there are no problems
         returns the networkx graph as a serialized json string.
 
@@ -63,8 +63,10 @@ class InfraGraphService(Api):
         - adds annotations as node attributes if applicable
             - if an annotation has an endpoint, the data is added to the node as attributes
         """
-        self._infrastructure = Infrastructure()
-        self._infrastructure.deserialize(serialized_object=payload)
+        if isinstance(payload, str):
+            self._infrastructure = Infrastructure().deserialize(payload)
+        else:
+            self._infrastructure = payload
         self._graph = Graph()
         self._add_nodes()
         self._add_device_edges()
@@ -136,7 +138,7 @@ class InfraGraphService(Api):
                             type=component.choice,
                             instance=instance.name,
                             instance_idx=device_idx,
-                            device=instance.name,
+                            device=instance.device,
                         )
 
     def _resolve_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
@@ -293,10 +295,63 @@ class InfraGraphService(Api):
                 endpoints.append(node)
         return endpoints
 
-    def annotate_graph(self, payload):
+    def annotate_graph(self, payload: Union[str, AnnotateRequest]):
         """Annotation the graph using the data provided in the payload"""
-        annotate_request = AnnotateRequest()
-        annotate_request.deserialize(payload)
+        if isinstance(payload, str):
+            annotate_request = AnnotateRequest().deserialize(payload)
+        else:
+            annotate_request: AnnotateRequest = payload
         for annotation_node in annotate_request.nodes:
             endpoint = self._graph.nodes[annotation_node.name]
             endpoint[annotation_node.attribute] = annotation_node.value
+
+    def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
+        """Query the graph"""
+        if isinstance(payload, str):
+            query_request = QueryRequest().deserialize(payload)
+        else:
+            query_request: QueryRequest = payload
+        query_response_content = QueryResponseContent()
+        if query_request.choice == QueryRequest.NODE_FILTERS:
+            node_matches = self._graph.nodes(data=True)
+            for node_filter in query_request.node_filters:
+                if node_filter.choice == QueryNodeFilter.ID_FILTER:
+                    node_matches = self._node_id_filter(node_matches, node_filter.id_filter)  # type: ignore
+                elif node_filter.choice == QueryNodeFilter.ATTRIBUTE_FILTER:
+                    node_matches = self._attribute_filter(node_matches, node_filter.attribute_filter)  # type: ignore
+                else:
+                    raise InfrastructureError(f"Invalid node query filter {node_filter.choice}")
+            for node in node_matches:
+                match = query_response_content.matches.add()
+                match.id = node[0]
+                for k, v in node[1].items():
+                    match.attributes.add(name=k, value=v if isinstance(v, str) else str(v))
+            return query_response_content
+        else:
+            raise NotImplementedError("Query edges not implemented")
+
+    def _node_id_filter(self, nodes: List[Any], query: QueryNodeId) -> List[Any]:
+        results = []
+        for node in nodes:
+            id = node[0]
+            if query.operator == QueryNodeId.EQ and query.value == id:
+                results.append(node)
+            elif query.operator == QueryNodeId.CONTAINS and query.value in id:
+                results.append(node)
+            elif query.operator == QueryNodeId.REGEX and re.match(query.value, id) is not None:
+                results.append(node)
+        return results
+
+    def _attribute_filter(self, nodes: List[Any], query: QueryAttribute) -> List[Any]:
+        results = []
+        for node in nodes:
+            for k, v in node[1].items():
+                if k != query.name:
+                    continue
+                if query.operator == QueryNodeId.EQ and query.value == v:
+                    results.append(node)
+                elif query.operator == QueryNodeId.CONTAINS and query.value in v:
+                    results.append(node)
+                elif query.operator == QueryNodeId.REGEX and re.match(query.value, v) is not None:
+                    results.append(node)
+        return results

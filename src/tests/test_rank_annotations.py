@@ -7,17 +7,38 @@ from infragraph.infragraph_service import InfraGraphService
 
 @pytest.mark.asyncio
 async def test_rank_annotations():
-    """Test adding rank attribute to every npu node"""
+    """Test adding a rank attribute to every npu node"""
+    # create the graph
     service = InfraGraphService()
-    service.set_graph(ClosFabric().serialize())
+    service.set_graph(ClosFabric())
 
-    npu_endpoints = service.get_endpoints("type", Component.NPU)  # FIXME replace with query_graph API
+    # query the graph for host npus
+    npu_request = QueryRequest()
+    filter = npu_request.node_filters.add(name="npu filter")
+    filter.choice = QueryNodeFilter.ID_FILTER
+    filter.id_filter.operator = QueryNodeId.REGEX
+    filter.id_filter.value = r"host\.\d+\.npu\.\d+"
+    npu_response = service.query_graph(npu_request)
+
+    # annotate the graph
     annotate_request = AnnotateRequest()
-    for idx, npu_endpoint in enumerate(npu_endpoints):
-        annotate_request.nodes.add(name=npu_endpoint, attribute="rank", value=str(idx))
-    service.annotate_graph(annotate_request.serialize())
-    npu_endpoints = service.get_endpoints("rank")  # FIXME replace with query_graph API
-    assert len(npu_endpoints) == len(annotate_request.nodes)
+    for idx, match in enumerate(npu_response.matches):
+        annotate_request.nodes.add(name=match.id, attribute="rank", value=str(idx))
+    service.annotate_graph(annotate_request)
+
+    # query the graph for rank attributes
+    rank_request = QueryRequest()
+    filter = rank_request.node_filters.add(name="rank filter")
+    filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
+    filter.attribute_filter.name = "rank"
+    filter.attribute_filter.operator = QueryNodeId.REGEX
+    filter.attribute_filter.value = r"\d+"
+    rank_response = service.query_graph(rank_request)
+
+    # validation
+    assert len(npu_response.matches) > 0
+    assert len(npu_response.matches) == len(annotate_request.nodes)
+    assert len(annotate_request.nodes) == len(rank_response.matches)
 
 
 if __name__ == "__main__":
