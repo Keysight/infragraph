@@ -23,7 +23,7 @@ async def test_ipaddress_annotations():
 
     # annotate the graph
     annotate_request = AnnotateRequest()
-    for idx, match in enumerate(nic_response.matches):
+    for idx, match in enumerate(nic_response.node_matches):
         annotate_request.nodes.add(
             name=match.id,
             attribute="ipaddress",
@@ -41,9 +41,9 @@ async def test_ipaddress_annotations():
     ipaddress_response = service.query_graph(ipaddress_request)
 
     # validation
-    assert len(nic_response.matches) > 0
-    assert len(nic_response.matches) == len(annotate_request.nodes)
-    assert len(annotate_request.nodes) == len(ipaddress_response.matches)
+    assert len(nic_response.node_matches) > 0
+    assert len(nic_response.node_matches) == len(annotate_request.nodes)
+    assert len(annotate_request.nodes) == len(ipaddress_response.node_matches)
 
 
 if __name__ == "__main__":

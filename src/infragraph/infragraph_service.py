@@ -322,7 +322,7 @@ class InfraGraphService(Api):
                 else:
                     raise InfrastructureError(f"Invalid node query filter {node_filter.choice}")
             for node in node_matches:
-                match = query_response_content.matches.add()
+                match = query_response_content.node_matches.add()
                 match.id = node[0]
                 for k, v in node[1].items():
                     match.attributes.add(name=k, value=v if isinstance(v, str) else str(v))

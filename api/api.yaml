@@ -58,10 +58,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/graph.yaml#/components/schemas/QueryRequest'
+              $ref: '../models/query.yaml#/components/schemas/QueryRequest'
       responses:
         '200':
-          $ref: '../models/graph.yaml#/components/responses/QueryResponse'
+          $ref: '../models/query.yaml#/components/responses/QueryResponse'
           x-field-uid: 1
         default:
           $ref: '../models/request.yaml#/components/responses/Failure'

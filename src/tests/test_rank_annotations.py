@@ -22,7 +22,7 @@ async def test_rank_annotations():
 
     # annotate the graph
     annotate_request = AnnotateRequest()
-    for idx, match in enumerate(npu_response.matches):
+    for idx, match in enumerate(npu_response.node_matches):
         annotate_request.nodes.add(name=match.id, attribute="rank", value=str(idx))
     service.annotate_graph(annotate_request)
 
@@ -36,9 +36,9 @@ async def test_rank_annotations():
     rank_response = service.query_graph(rank_request)
 
     # validation
-    assert len(npu_response.matches) > 0
-    assert len(npu_response.matches) == len(annotate_request.nodes)
-    assert len(annotate_request.nodes) == len(rank_response.matches)
+    assert len(npu_response.node_matches) > 0
+    assert len(npu_response.node_matches) == len(annotate_request.nodes)
+    assert len(annotate_request.nodes) == len(rank_response.node_matches)
 
 
 if __name__ == "__main__":
