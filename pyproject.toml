@@ -1,6 +1,31 @@
+[project]
+name = "infragraph"
+description = "Infrastructure as a Graph"
+requires-python = ">=3.8"
+dependencies = [
+    "networkx",
+    "semantic_version",
+]
+authors = [
+    {name = "TBD", email = "tbd@infragraph.org"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+keywords = ["infrastructure", "graph", "chakra", "astrasim"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dynamic = ["version"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path="api/info.yaml"
+pattern="version:\\s*(?P<version>(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?)"
 
 [tool.hatch.build.sources]
 "artifacts/infragraph" = "infragraph"
@@ -21,23 +46,3 @@ exclude = [
 [tool.hatch.build.targets.wheel.sources]
 "src/**" = "infragraph"
 
-[project]
-name = "infragraph"
-version = "0.1.0"
-description = "Infrastructure as a Graph"
-requires-python = ">=3.8"
-dependencies = [
-    "networkx",
-    "semantic_version",
-]
-authors = [
-    {name = "TBD", email = "tbd@infragraph.org"}
-]
-license = {text = "MIT"}
-readme = "README.md"
-keywords = ["infrastructure", "graph", "chakra", "astrasim"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
-]
