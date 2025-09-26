@@ -1,4 +1,4 @@
-These examples demonstrate `describing` a variety of devices and infrastructures using text descriptions and diagrams to `defining` them using a `standardized schema` for capturing infrastructure.
+These examples demonstrate `describing` a variety of devices and infrastructures using text descriptions and diagrams to `defining` them using a `standardized schema`.
 
 ## DGX-A100 Server
 This server diagram acts as an example of how multiple components can be connected to a single component such as multiple gpu components are connected to a single pcie switch.
@@ -10,16 +10,15 @@ The graph model is able to capture the asymmetric layout of the device.
 
 ### Standardized Definition
 <details open>
-<summary><strong>CX5 Device Definition using OpenAPI Device Model</strong></summary>
-```yaml
-{% include-markdown "./examples/cx5.yaml" %}
+<summary><strong>DGX device definition using OpenApiArt generated classes</strong></summary>
+```python
+{% include-markdown "../../src/infragraph/dgx.py" %}
 ```
 </details>
-In addition to defining the DGX-A100 device it also demonstrates how the DGX-A100 device is composed of CX5 device.
-<details open>
-<summary><strong>DGX-A100 Device Definition using OpenAPI Device Model</strong></summary>
+<details closed>
+<summary><strong>DGX device definition as yaml</strong></summary>
 ```yaml
-{% include-markdown "./examples/dgxa100.yaml" %}
+{% include-markdown "./yaml/dgx.yaml" %}
 ```
 </details>
 
@@ -32,9 +31,9 @@ In addition to defining the DGX-A100 device it also demonstrates how the DGX-A10
 
 ### Standardized Definition
 <details open>
-<summary><strong>GH200-MGX Device Definition using OpenAPI Device Model</strong></summary>
-```yaml
-{% include-markdown "./examples/hierarchical-device.yaml" %}
+<summary><strong>GH200-MGX device definition using OpenApiArt generated classes</strong></summary>
+```python
+TBD...
 ```
 </details>
 
@@ -60,8 +59,8 @@ https://mips.com/blog/reimagining-ai-infrastructure-the-power-of-converged-back-
 
 ### Standardized Definition
 <details open>
-<summary><strong>ScaleUp/ScaleOut Infrastructure Definition using OpenAPI Infrastructure Model</strong></summary>
-```yaml
-{% include-markdown "./examples/scaleup-scaleout.yaml" %}
+<summary><strong>ScaleUp/ScaleOut infrastructure definition using OpenApiArt generated classes</strong></summary>
+```python
+TBD...
 ```
 </details>
