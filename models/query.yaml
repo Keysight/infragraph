@@ -20,28 +20,23 @@ components:
           items:
             $ref: "#/components/schemas/NameValue"
           x-field-uid: 2
-    QueryEdge:
-      type: object
-      properties:
-        ep1:
-          type: string
-          x-field-uid: 1
-        ep2:
-          type: string
-          x-field-uid: 2
     QueryShortestPathItem:
       type: object
       required:
         - name
-        - edges
+        - nodes
       properties:
         name:
+          description: |-
+            Name of the shortest path filter
           type: string
           x-field-uid: 1
-        edges:
+        nodes:
+          description: |-
+            An array of node ids that make up the shortest path
           type: array
           items:
-            $ref: "#/components/schemas/QueryEdge"
+            type: string
           x-field-uid: 2
     QueryResponseContent:
       type: object
