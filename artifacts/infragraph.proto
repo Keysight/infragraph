@@ -526,24 +526,14 @@ message QueryResponseItem {
 }
 
 // Description missing in models
-message QueryEdge {
-
-  // Description missing in models
-  optional string ep1 = 1;
-
-  // Description missing in models
-  optional string ep2 = 2;
-}
-
-// Description missing in models
 message QueryShortestPathItem {
 
-  // Description missing in models
+  // Name of the shortest path filter
   // required = true
   optional string name = 1;
 
-  // Description missing in models
-  repeated QueryEdge edges = 2;
+  // An array of node ids that make up the shortest path
+  repeated string nodes = 2;
 }
 
 // Description missing in models
