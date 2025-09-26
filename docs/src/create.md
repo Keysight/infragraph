@@ -1,14 +1,15 @@
-## Case Study: Two Tier Clos Fabric
+# Case Study: Two Tier Clos Fabric
 The main steps in designing a network infrastructure are as follows:
 
 * Use text and/or diagrams to create an `infrastructure description`
 * Then `use the standardized schema to capture the infrastructure description` in a machine readable format by doing the following:
-    * Define `device` subgraphs using `components` and `links` and create `instances` of each device
-    * Define `infrastructure links` to define the types of connectivity that exists between `device instances` in the infrastructure
-    * Create `infrastructure connections` between `device instances` using `infrastructure links`
+    * Add infrastructure `device` subgraphs using `components` and `links` to create `edges` between components
+    * Add infrastructure `instances` to define the number of devices in a reusable manner
+    * Add infrastructure `links` to define additional information that exists between device `instances` in the infrastructure
+    * Add infrastructure `edges` between device `instances`
 
 ## Infrastructure Description
-The following is a diagrammatic and textual description of a `generic` two tier clos fabric that will be modeled using the standardized schema.
+The following is a diagrammatic and textual description of a `generic two tier clos fabric` that will be modeled using the standardized schema.
 
 ![spine and leaf](./images/spine-and-leaf.jpg)
 
