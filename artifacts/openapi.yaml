@@ -20,13 +20,12 @@ info:
     Contributions to the API and models schema can be made in the following ways:
     - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
     - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
-  version: 0.1.0
+  version: 0.2.0
   contact:
     url: https://github.com/keysight/infragraph/issues
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  x-model-guide: https://github.com/keysight/infragraph/blob/main/MODEL-GUIDE.md
 servers:
 - url: /
 paths:
