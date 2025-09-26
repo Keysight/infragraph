@@ -20,7 +20,7 @@ info:
     Contributions to the API and models schema can be made in the following ways:
     - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
     - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
-  version: 0.2.0
+  version: 0.3.0
   contact:
     url: https://github.com/keysight/infragraph/issues
   license:
@@ -720,6 +720,80 @@ components:
             This contains the returned graph content formatted as a networkx yaml string.
           type: string
           x-field-uid: 2
+    Annotation.Node:
+      type: object
+      properties:
+        name:
+          description: |-
+            A fully qualified node name that MUST exist in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        attribute:
+          description: |-
+            The attribute name that will be added to the endpoint.
+          type: string
+          x-field-uid: 2
+        value:
+          description: |-
+            The attribute value that will be added to the endpoint.
+          type: string
+          x-field-uid: 3
+    Annotation.Edge:
+      type: object
+      properties:
+        ep1:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
+            - server.0.npu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 2
+        attribute:
+          description: |-
+            The attribute name that will be added to the edge.
+          type: string
+          x-field-uid: 3
+        value:
+          description: |-
+            The attribute value that will be added to the edge.
+          type: string
+          x-field-uid: 4
+    AnnotateRequest:
+      type: object
+      properties:
+        choice:
+          type: string
+          x-field-uid: 1
+          x-enum:
+            nodes:
+              x-field-uid: 1
+            edges:
+              x-field-uid: 2
+          enum:
+          - nodes
+          - edges
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Node'
+          x-field-uid: 2
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Edge'
+          x-field-uid: 3
     NameValue:
       type: object
       properties:
@@ -740,14 +814,53 @@ components:
           items:
             $ref: '#/components/schemas/NameValue'
           x-field-uid: 2
+    QueryEdge:
+      type: object
+      properties:
+        ep1:
+          type: string
+          x-field-uid: 1
+        ep2:
+          type: string
+          x-field-uid: 2
+    QueryShortestPathItem:
+      type: object
+      required:
+      - name
+      - edges
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryEdge'
+          x-field-uid: 2
     QueryResponseContent:
       type: object
       properties:
-        matches:
+        choice:
+          type: string
+          x-enum:
+            node_matches:
+              x-field-uid: 1
+            shortest_path_matches:
+              x-field-uid: 2
+          x-field-uid: 1
+          enum:
+          - node_matches
+          - shortest_path_matches
+        node_matches:
           type: array
           items:
             $ref: '#/components/schemas/QueryResponseItem'
-          x-field-uid: 1
+          x-field-uid: 2
+        shortest_path_matches:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryShortestPathItem'
+          x-field-uid: 3
     QueryAttribute:
       type: object
       properties:
@@ -836,6 +949,22 @@ components:
         id_filter:
           $ref: '#/components/schemas/QueryNodeId'
           x-field-uid: 4
+    QueryShortestPathFilter:
+      type: object
+      required:
+      - name
+      - source
+      - destination
+      properties:
+        name:
+          type: string
+          x-field-uid: 1
+        source:
+          type: string
+          x-field-uid: 2
+        destination:
+          type: string
+          x-field-uid: 3
     QueryRequest:
       type: object
       properties:
@@ -845,87 +974,28 @@ components:
           x-enum:
             node_filters:
               x-field-uid: 1
+            shortest_path_filters:
+              x-field-uid: 2
           enum:
           - node_filters
+          - shortest_path_filters
         node_filters:
           type: array
           items:
             $ref: '#/components/schemas/QueryNodeFilter'
           x-field-uid: 2
-    Annotation.Node:
-      type: object
-      properties:
-        name:
+        shortest_path_filters:
           description: |-
-            A fully qualified node name that MUST exist in the graph.
-            - server.0.npu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 1
-        attribute:
-          description: |-
-            The attribute name that will be added to the endpoint.
-          type: string
-          x-field-uid: 2
-        value:
-          description: |-
-            The attribute value that will be added to the endpoint.
-          type: string
-          x-field-uid: 3
-    Annotation.Edge:
-      type: object
-      properties:
-        ep1:
-          description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
-            - server.0.npu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 1
-        ep2:
-          description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
-            - server.0.npu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 2
-        attribute:
-          description: |-
-            The attribute name that will be added to the edge.
-          type: string
-          x-field-uid: 3
-        value:
-          description: |-
-            The attribute value that will be added to the edge.
-          type: string
-          x-field-uid: 4
-    AnnotateRequest:
-      type: object
-      properties:
-        choice:
-          type: string
-          x-field-uid: 1
-          x-enum:
-            nodes:
-              x-field-uid: 1
-            edges:
-              x-field-uid: 2
-          enum:
-          - nodes
-          - edges
-        nodes:
+            Under Review: Proposal to abstract the shortest path interface to the graph.
+
+            Add shortest path filters to retrive the shortest path between source and destination nodes
           type: array
           items:
-            $ref: '#/components/schemas/Annotation.Node'
-          x-field-uid: 2
-        edges:
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.Edge'
+            $ref: '#/components/schemas/QueryShortestPathFilter'
           x-field-uid: 3
+          x-status:
+            status: under_review
+            information: Proposal to abstract the shortest path interface to the graph.
     Version:
       description: |-
         Version details

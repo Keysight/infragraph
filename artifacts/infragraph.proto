@@ -1,4 +1,4 @@
-/* InfraGraph 0.2.0
+/* InfraGraph 0.3.0
  * ### Overview
  * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
  * interface for capturing a system of systems suitable for use in co-designing AI/HPC
@@ -446,6 +446,66 @@ message GraphContent {
 }
 
 // Description missing in models
+message AnnotationNode {
+
+  // A fully qualified node name that MUST exist in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string name = 1;
+
+  // The attribute name that will be added to the endpoint.
+  optional string attribute = 2;
+
+  // The attribute value that will be added to the endpoint.
+  optional string value = 3;
+}
+
+// Description missing in models
+message AnnotationEdge {
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep1 = 1;
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep2 = 2;
+
+  // The attribute name that will be added to the edge.
+  optional string attribute = 3;
+
+  // The attribute value that will be added to the edge.
+  optional string value = 4;
+}
+
+// Description missing in models
+message AnnotateRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      nodes = 1;
+      edges = 2;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+
+  // Description missing in models
+  repeated AnnotationNode nodes = 2;
+
+  // Description missing in models
+  repeated AnnotationEdge edges = 3;
+}
+
+// Description missing in models
 message NameValue {
 
   // Description missing in models
@@ -466,10 +526,44 @@ message QueryResponseItem {
 }
 
 // Description missing in models
-message QueryResponseContent {
+message QueryEdge {
 
   // Description missing in models
-  repeated QueryResponseItem matches = 1;
+  optional string ep1 = 1;
+
+  // Description missing in models
+  optional string ep2 = 2;
+}
+
+// Description missing in models
+message QueryShortestPathItem {
+
+  // Description missing in models
+  // required = true
+  optional string name = 1;
+
+  // Description missing in models
+  repeated QueryEdge edges = 2;
+}
+
+// Description missing in models
+message QueryResponseContent {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      node_matches = 1;
+      shortest_path_matches = 2;
+    }
+  }
+  // Description missing in models
+  optional Choice.Enum choice = 1;
+
+  // Description missing in models
+  repeated QueryResponseItem node_matches = 2;
+
+  // Description missing in models
+  repeated QueryShortestPathItem shortest_path_matches = 3;
 }
 
 // Description missing in models
@@ -555,12 +649,29 @@ message QueryNodeFilter {
 }
 
 // Description missing in models
+message QueryShortestPathFilter {
+
+  // Description missing in models
+  // required = true
+  optional string name = 1;
+
+  // Description missing in models
+  // required = true
+  optional string source = 2;
+
+  // Description missing in models
+  // required = true
+  optional string destination = 3;
+}
+
+// Description missing in models
 message QueryRequest {
 
   message Choice {
     enum Enum {
       unspecified = 0;
       node_filters = 1;
+      shortest_path_filters = 2;
     }
   }
   // Description missing in models
@@ -568,66 +679,12 @@ message QueryRequest {
 
   // Description missing in models
   repeated QueryNodeFilter node_filters = 2;
-}
 
-// Description missing in models
-message AnnotationNode {
-
-  // A fully qualified node name that MUST exist in the graph.
-  // - server.0.npu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string name = 1;
-
-  // The attribute name that will be added to the endpoint.
-  optional string attribute = 2;
-
-  // The attribute value that will be added to the endpoint.
-  optional string value = 3;
-}
-
-// Description missing in models
-message AnnotationEdge {
-
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
-  // in the graph.
-  // - server.0.npu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string ep1 = 1;
-
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
-  // in the graph.
-  // - server.0.npu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string ep2 = 2;
-
-  // The attribute name that will be added to the edge.
-  optional string attribute = 3;
-
-  // The attribute value that will be added to the edge.
-  optional string value = 4;
-}
-
-// Description missing in models
-message AnnotateRequest {
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      nodes = 1;
-      edges = 2;
-    }
-  }
-  // Description missing in models
-  optional Choice.Enum choice = 1;
-
-  // Description missing in models
-  repeated AnnotationNode nodes = 2;
-
-  // Description missing in models
-  repeated AnnotationEdge edges = 3;
+  // Under Review: Proposal to abstract the shortest path interface to the graph.
+  // 
+  // Add shortest path filters to retrive the shortest path between source and destination
+  // nodes
+  repeated QueryShortestPathFilter shortest_path_filters = 3;
 }
 
 // Version details
