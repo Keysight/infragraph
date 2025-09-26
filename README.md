@@ -1,12 +1,13 @@
 # InfraGraph (INFRAstructure GRAPH)
 
-InfraGraph or infrastructure graph defines a [model-driven, vendor-neutral, standard
-interface](https://keysight.github.io/infragraph/openapi.html) for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
+InfraGraph defines a [model-driven, vendor-neutral API](https://keysight.github.io/infragraph/openapi.html) for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
 
-This model allows for defining physical infrastructure using graph like terminology.
-Using the base graph definition, an unlimited number of different physical and/or logical characteristics/views
-can be associated with the graph.
+The model and API allows for defining physical infrastructure using a standardized graph like terminology.
+
+In addition to the base graph definition, user provided `annotations` can `extend the graph` allowing for an unlimited number of different physical and/or logical characteristics/view.
+
+Additional information such as background, schema and examples can be found in the [online documentation](https://keysight.github.io/infragraph).
 
 Contributions can be made in the following ways:
-- [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
+- [open an issue](https://github.com/keysight/infragraph/issues) in the repository
 - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
