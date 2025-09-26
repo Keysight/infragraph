@@ -1,0 +1,120 @@
+infrastructure:
+  devices:
+    - name: dgx-a100
+      description: |-
+        Nvidia DGX A100 System consisting of the following components:
+        - 2 cpus
+        - 8 gpus
+        - 8 nics (externally defined as device `cx5` to demonstrate composability)
+        - 4 pcie switches
+        - 6 nvlink switches
+      components:
+        - name: cpu
+          description: AMD Epyc 7742
+          type: cpu
+        - name: npu
+          description: Nvidia A100 GPU
+          type: npu
+        - name: pciesw
+          description: PCI Express Switch Gen 4
+          type: custom
+        - name: nvlsw
+          description: NVLink Switch
+          type: custom
+      links:
+        - name: pcie
+          description: PCIe 3.0
+        - name: nvlink
+          description: NVLINK 3.0
+        - name: fabric
+          description: AMD Infinity Fabric
+      connections:
+        - cpu.0.fabric.cpu.1
+        - cpu.0.pcie.pciesw.0
+        - cpu.0.pcie.pciesw.1
+        - cpu.1.pcie.pciesw.2
+        - cpu.1.pcie.pciesw.3
+        - pciesw.0.pcie.npu.0
+        - pciesw.0.pcie.npu.1
+        - pciesw.1.pcie.npu.2
+        - pciesw.1.pcie.npu.3
+        - pciesw.2.pcie.npu.4
+        - pciesw.2.pcie.npu.5
+        - pciesw.3.pcie.npu.6
+        - pciesw.3.pcie.npu.7
+        - npu.0.nvlink.nvlsw.0
+        - npu.1.nvlink.nvlsw.0
+        - npu.2.nvlink.nvlsw.0
+        - npu.3.nvlink.nvlsw.0
+        - npu.4.nvlink.nvlsw.0
+        - npu.5.nvlink.nvlsw.0
+        - npu.6.nvlink.nvlsw.0
+        - npu.7.nvlink.nvlsw.0
+        - npu.0.nvlink.nvlsw.1
+        - npu.1.nvlink.nvlsw.1
+        - npu.2.nvlink.nvlsw.1
+        - npu.3.nvlink.nvlsw.1
+        - npu.4.nvlink.nvlsw.1
+        - npu.5.nvlink.nvlsw.1
+        - npu.6.nvlink.nvlsw.1
+        - npu.7.nvlink.nvlsw.1
+        - npu.0.nvlink.nvlsw.2
+        - npu.1.nvlink.nvlsw.2
+        - npu.2.nvlink.nvlsw.2
+        - npu.3.nvlink.nvlsw.2
+        - npu.4.nvlink.nvlsw.2
+        - npu.5.nvlink.nvlsw.2
+        - npu.6.nvlink.nvlsw.2
+        - npu.7.nvlink.nvlsw.2
+        - npu.0.nvlink.nvlsw.3
+        - npu.1.nvlink.nvlsw.3
+        - npu.2.nvlink.nvlsw.3
+        - npu.3.nvlink.nvlsw.3
+        - npu.4.nvlink.nvlsw.3
+        - npu.5.nvlink.nvlsw.3
+        - npu.6.nvlink.nvlsw.3
+        - npu.7.nvlink.nvlsw.3
+        - npu.0.nvlink.nvlsw.4
+        - npu.1.nvlink.nvlsw.4
+        - npu.2.nvlink.nvlsw.4
+        - npu.3.nvlink.nvlsw.4
+        - npu.4.nvlink.nvlsw.4
+        - npu.5.nvlink.nvlsw.4
+        - npu.6.nvlink.nvlsw.4
+        - npu.7.nvlink.nvlsw.4
+        - npu.0.nvlink.nvlsw.5
+        - npu.1.nvlink.nvlsw.5
+        - npu.2.nvlink.nvlsw.5
+        - npu.3.nvlink.nvlsw.5
+        - npu.4.nvlink.nvlsw.5
+        - npu.5.nvlink.nvlsw.5
+        - npu.6.nvlink.nvlsw.5
+        - npu.7.nvlink.nvlsw.5
+        - npu.0.nvlink.nvlsw.6
+        - npu.1.nvlink.nvlsw.6
+        - npu.2.nvlink.nvlsw.6
+        - npu.3.nvlink.nvlsw.6
+        - npu.4.nvlink.nvlsw.6
+        - npu.5.nvlink.nvlsw.6
+        - npu.6.nvlink.nvlsw.6
+        - npu.7.nvlink.nvlsw.6
+        - npu.0.nvlink.nvlsw.7
+        - npu.1.nvlink.nvlsw.7
+        - npu.2.nvlink.nvlsw.7
+        - npu.3.nvlink.nvlsw.7
+        - npu.4.nvlink.nvlsw.7
+        - npu.5.nvlink.nvlsw.7
+        - npu.6.nvlink.nvlsw.7
+        - npu.7.nvlink.nvlsw.7
+  instances:
+    - name: server-nic
+      device: cx5
+  connections:
+    - server.0.pciesw.0.pcie.server-nic.0.port.0
+    - server.0.pciesw.0.pcie.server-nic.1.port.0
+    - server.0.pciesw.1.pcie.server-nic.2.port.0
+    - server.0.pciesw.1.pcie.server-nic.3.port.0
+    - server.0.pciesw.2.pcie.server-nic.4.port.0
+    - server.0.pciesw.2.pcie.server-nic.5.port.0
+    - server.0.pciesw.3.pcie.server-nic.6.port.0
+    - server.0.pciesw.3.pcie.server-nic.7.port.0
