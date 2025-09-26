@@ -80,7 +80,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: "Release ${{ steps.get_version.outputs.version }}"
-          body: "View the schema at https://keysight.github.io/infragraph/openapi.html"
+          body: |-
+            The OpenAPI schema for this release (openapi.yaml) is included as part of the assets and can be viewed by loading the included openapi.html document in a browser.
           artifacts: artifacts/openapi.yaml,artifacts/openapi.json,artifacts/infragraph.proto,docs/src/openapi.html,dist/*.*
           tag: ${{ steps.get_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
