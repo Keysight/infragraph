@@ -1,3 +1,4 @@
+[![PyPI](https://img.shields.io/pypi/v/infragraph)](https://pypi.org/project/infragraph/)
 # InfraGraph (INFRAstructure GRAPH)
 
 InfraGraph defines a [model-driven, vendor-neutral API](https://infragraph.dev/openapi.html) for capturing a system of systems suitable for use in co-designing AI/HPC solutions.
