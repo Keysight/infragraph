@@ -10,33 +10,33 @@ Any annotation efforts can always be proposed as model or service enhancements b
 
 ### Additional Data
 Some examples of additional data are:
-- AI data such as:
-  - ranks
-  - communication groups
-- Configuration data such as:
-  - network interface card settings
-  - device addresses
-  - device routing tables
+  - AI data such as:
+    - ranks
+    - communication groups
+  - Configuration data such as:
+    - network interface card settings
+    - device addresses
+    - device routing tables
 
 The following code examples demonstrates how to use the `query_graph` API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
 
 ## Adding `rank` data
-In the [Getting Started](create.md) example, the device `Server` has a specific number of `npu` components.
+In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `npu`.
 
-The following code demonstrates adding a `rank` attribute to every node that is of type `NPU`.
+The following code demonstrates adding a `rank` attribute to every `host` instance that has a component with the name of `npu`.
 <details open>
-<summary><strong>Add a rank to each npu</strong></summary>
+<summary><strong>Add a rank to each host npu</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_rank_annotations.py" %}
 ```
 </details>
 
 ## Adding `ipaddress` data
-In the [Getting Started](create.md) example the instances of the `Server` device were created with the name of `host`.
+In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `nic`.
 
-The following code demonstrates how to add an `ipaddress` attribute to every node that is an instance of `host`.
+The following code demonstrates adding an `ipaddress` attribute to every `host` instance that has a component with the name of `nic`.
 <details open>
-<summary><strong>Add an ipaddress to each host</strong></summary>
+<summary><strong>Add an ipaddress to each host nic</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_ipaddress_annotations.py" %}
 ```
