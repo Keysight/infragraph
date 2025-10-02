@@ -5,6 +5,10 @@ requires-python = ">=3.8"
 dependencies = [
     "networkx",
     "semantic_version",
+    "pyyaml",
+    "requests",
+    "grpcio",
+    "protobuf",
 ]
 authors = [
     {name = "TBD", email = "tbd@infragraph.org"}
