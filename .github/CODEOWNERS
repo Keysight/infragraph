@@ -6,3 +6,6 @@
 # the following owners will be requested for
 # review when someone opens a pull request.
 *       @ajbalogh
+
+# The owner for the this specific file
+/.github/CODEOWNERS @ajbalogh
