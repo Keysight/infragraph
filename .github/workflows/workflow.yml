@@ -29,21 +29,18 @@ jobs:
           Builds the package
           Installs the package
           Runs pytest tests
+          Builds yaml from src devices and infrastructures
+          Builds docs site using src and generated yaml
         run: |
           make clean
           make install
           make test
-          make yaml
+          make docs
 
       - name: Generate Doc from openapi.yaml
         uses: seeebiii/redoc-cli-github-action@v10
         with:
           args: 'bundle artifacts/openapi.yaml -o docs/src/openapi.html'
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          path: artifacts
 
       - name: Get version
         id: get_version
@@ -57,6 +54,11 @@ jobs:
           tag: ${{ steps.get_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: artifacts
 
       - name: Commit generated artifacts
         if: github.event_name != 'pull_request'
@@ -91,7 +93,8 @@ jobs:
         run: |
           make deploy PYPI_TOKEN=${{ secrets.PYPI_TOKEN }}
 
-      - name: Github Pages build and deploy
+      - name: Github Pages deploy
+        if: github.ref == 'refs/heads/main' && steps.check_tag.outputs.exists == 'false'
         run: |
           pip install mkdocs-material mkdocs-include-markdown-plugin mkdocs-print-site-plugin
           mkdocs gh-deploy --force --config-file docs/mkdocs.yml --site-dir docs/site --remote-branch gh-pages
