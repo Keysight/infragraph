@@ -1,0 +1,26 @@
+devices:
+  - name: dgx-a100
+    description: Nvidia DGX A100 System
+    components:
+      - name: cpu
+        description:
+        type: cpu
+        count: 2
+      - name: npu
+        description: Nvidia A100
+        type: npu
+        count: 8
+      - name: nic
+        description: Mellanox ConnectX-5 PCIe 3.0
+        type: nic
+        count: 8
+        external: true
+      - name: pcie-sw
+        description: PCI Express Switch Gen 4
+        type: custom
+        count: 4
+      - name: nv-sw
+        description: NVLink Switch
+        type: custom
+        count: 6
+
