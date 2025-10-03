@@ -96,4 +96,4 @@ jobs:
       - name: Github Pages deploy
         if: github.ref == 'refs/heads/main'
         run: |
-          mkdocs gh-deploy --force --config-file docs/mkdocs.yml --site-dir docs/site --remote-branch gh-pages
+          source .venv/bin/activate && python3 -m mkdocs gh-deploy --force --config-file docs/mkdocs.yml --site-dir docs/site --remote-branch gh-pages
