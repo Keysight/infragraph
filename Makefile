@@ -47,7 +47,7 @@ deploy: ## deploy packages to pypi.org
 .PHONY: docs
 docs: ## generate local documentation to docs/site
 	source .venv/bin/activate && \
-	python3 docs/generate_yaml.py
+	python3 docs/generate_yaml.py && \
 	python3 -m mkdocs build --config-file docs/mkdocs.yml --site-dir site
 
 .PHONY: yaml
