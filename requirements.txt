@@ -5,6 +5,7 @@ networkx
 pytest
 pytest-asyncio
 twine
+mkdocs
 mkdocs-material
 mkdocs-include-markdown-plugin
 mkdocs-print-site-plugin
