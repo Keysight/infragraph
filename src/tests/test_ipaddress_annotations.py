@@ -18,7 +18,7 @@ async def test_ipaddress_annotations():
     filter = npu_request.node_filters.add(name="nic filter")
     filter.choice = QueryNodeFilter.ID_FILTER
     filter.id_filter.operator = QueryNodeId.REGEX
-    filter.id_filter.value = r"host\.\d+\.nic\.\d+"
+    filter.id_filter.value = r"host\.\d+\.mgmt\.\d+"
     nic_response = service.query_graph(npu_request)
 
     # annotate the graph

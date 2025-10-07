@@ -46,10 +46,20 @@ class Server(Device):
             count=npu_factor * 2,
         )
         nic.choice = Component.NIC
+        mgmt = self.components.add(
+            name="mgmt",
+            description="Mgmt Nic",
+            count=1,
+        )
+        mgmt.choice = Component.NIC
 
         cpu_fabric = self.links.add(name="fabric", description="CPU Fabric")
         nvlink = self.links.add(name="nvlink")
         pcie = self.links.add(name="pcie")
+
+        edge = self.edges.add(scheme=DeviceEdge.ONE2ONE, link=pcie.name)
+        edge.ep1.component = mgmt.name
+        edge.ep2.component = f"{cpu.name}[0]"
 
         edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=cpu_fabric.name)
         edge.ep1.component = cpu.name
