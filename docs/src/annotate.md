@@ -32,11 +32,11 @@ The following code demonstrates adding a `rank` attribute to every `host` instan
 </details>
 
 ## Adding `ipaddress` data
-In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `nic`.
+In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a `mgmt` nic component.
 
-The following code demonstrates adding an `ipaddress` attribute to every `host` instance that has a component with the name of `nic`.
+The following code demonstrates adding an `ipaddress` attribute to the `host` instance `mgmt` nic.
 <details open>
-<summary><strong>Add an ipaddress to each host nic</strong></summary>
+<summary><strong>Add an ipaddress to each host mgmt component</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_ipaddress_annotations.py" %}
 ```
