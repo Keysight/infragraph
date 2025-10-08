@@ -4,6 +4,14 @@ components:
       description: |-
         Placeholder for a component that can be extended.
       type: object
+      required:
+        - type
+      properties:
+        type:
+          description: |-
+            This property will be added to the graph node in the form of a `type = value` attribute.
+          type: string
+          x-field-uid: 1
     Component.Device:
       description: |-
         Placeholder for a component that can be extended.
@@ -25,6 +33,10 @@ components:
         Placeholder for a component that can be extended.
       type: object
     Component.Port:
+      description: |-
+        Placeholder for a component that can be extended.
+      type: object
+    Component.Switch:
       description: |-
         Placeholder for a component that can be extended.
       type: object
@@ -56,15 +68,18 @@ components:
           x-field-uid: 3
         choice:
           description: |-
-            Type of component.
+            The type of component.
 
-            - `custom` If the type of a component is not listed as an enum it can be defined using the custom type.
+            The `choice` value will be added to the graph node in the form of a `type = value` attribute.
+
+            - `custom` If the type of a component is not listed as a choice it can be defined using the custom object which includes a type property that allows for a custom type attribute on the graph node.
             - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
             - `cpu` A high level definition for a cpu
             - `npu` A high level definition for a neural processing unit
             - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card
             - `memory` A high level definition for memory
-            - `port` A high level definitiion for an IO port.
+            - `port` A high level definitiion for an IO port
+            - `switch` A high level definition for an internal switch connecting components
           type: string
           x-field-uid: 4
           x-enum:
@@ -82,6 +97,8 @@ components:
               x-field-uid: 6
             port:
               x-field-uid: 7
+            switch:
+              x-field-uid: 8
         custom:
           $ref: "#/components/schemas/Component.Custom"
           x-field-uid: 10
@@ -103,5 +120,8 @@ components:
         port:
           $ref: "#/components/schemas/Component.Port"
           x-field-uid: 16
+        switch:
+          $ref: "#/components/schemas/Component.Switch"
+          x-field-uid: 17
 
 

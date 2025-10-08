@@ -133,9 +133,14 @@ class InfraGraphService(Api):
                 for component in device.components:
                     for component_idx in range(component.count):
                         name = f"{instance.name}.{device_idx}.{component.name}.{component_idx}"
+                        type = (
+                            component.custom.type
+                            if component.choice == Component.CUSTOM
+                            else component.choice
+                        )
                         self._graph.add_node(
                             name,
-                            type=component.choice,
+                            type=type,
                             instance=instance.name,
                             instance_idx=device_idx,
                             device=instance.device,
