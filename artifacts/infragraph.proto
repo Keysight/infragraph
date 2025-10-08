@@ -93,6 +93,10 @@ message Device {
 
 // Placeholder for a component that can be extended.
 message ComponentCustom {
+
+  // This property will be added to the graph node in the form of a `type = value` attribute.
+  // required = true
+  optional string type = 1;
 }
 
 // Placeholder for a component that can be extended.
@@ -117,6 +121,10 @@ message ComponentMemory {
 
 // Placeholder for a component that can be extended.
 message ComponentPort {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentSwitch {
 }
 
 // A container for describing a component.
@@ -146,12 +154,17 @@ message Component {
       nic = 5;
       memory = 6;
       port = 7;
+      switch = 8;
     }
   }
-  // Type of component.
+  // The type of component.
   // 
-  // - `custom` If the type of a component is not listed as an enum it can be defined
-  // using the custom type.
+  // The `choice` value will be added to the graph node in the form of a `type = value`
+  // attribute.
+  // 
+  // - `custom` If the type of a component is not listed as a choice it can be defined
+  // using the custom object which includes a type property that allows for a custom type
+  // attribute on the graph node.
   // - `device` This enum allows a device to be composed of other devices. When this enum
   // is selected the name of the component MUST be the name of a device that exists in
   // the Infrastructure.devices array.
@@ -160,7 +173,8 @@ message Component {
   // - `nic` A high level definition for a network interface card, for more detailed breakdowns
   // create a device representing a specific type network interface card
   // - `memory` A high level definition for memory
-  // - `port` A high level definitiion for an IO port.
+  // - `port` A high level definitiion for an IO port
+  // - `switch` A high level definition for an internal switch connecting components
   // required = true
   optional Choice.Enum choice = 4;
 
@@ -184,6 +198,9 @@ message Component {
 
   // Description missing in models
   ComponentPort port = 16;
+
+  // Description missing in models
+  ComponentSwitch switch = 17;
 }
 
 // A container for specific Link physical Properties.
