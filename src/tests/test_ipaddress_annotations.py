@@ -15,11 +15,13 @@ async def test_ipaddress_annotations():
 
     # query the graph for host nics
     npu_request = QueryRequest()
-    filter = npu_request.node_filters.add(name="nic filter")
-    filter.choice = QueryNodeFilter.ID_FILTER
-    filter.id_filter.operator = QueryNodeId.REGEX
-    filter.id_filter.value = r"host\.\d+\.mgmt\.\d+"
+    filter = npu_request.node_filters.add(name="mgmt nic filter")
+    filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
+    filter.attribute_filter.name = "type"
+    filter.attribute_filter.operator = QueryNodeId.EQ
+    filter.attribute_filter.value = "mgmt-nic"
     nic_response = service.query_graph(npu_request)
+    print(nic_response.node_matches)
 
     # annotate the graph
     annotate_request = AnnotateRequest()
@@ -39,6 +41,7 @@ async def test_ipaddress_annotations():
     filter.attribute_filter.operator = QueryNodeId.REGEX
     filter.attribute_filter.value = r".*"
     ipaddress_response = service.query_graph(ipaddress_request)
+    print(ipaddress_response.node_matches)
 
     # validation
     assert len(nic_response.node_matches) > 0

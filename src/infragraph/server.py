@@ -33,13 +33,13 @@ class Server(Device):
             description="NVLink Switch",
             count=1,
         )
-        nvlsw.choice = Component.CUSTOM
+        nvlsw.choice = Component.SWITCH
         pciesw = self.components.add(
             name="pciesw",
             description="PCI Express Switch Gen 4",
             count=npu_factor,
         )
-        pciesw.choice = Component.CUSTOM
+        pciesw.choice = Component.SWITCH
         nic = self.components.add(
             name="nic",
             description="Generic Nic",
@@ -51,7 +51,7 @@ class Server(Device):
             description="Mgmt Nic",
             count=1,
         )
-        mgmt.choice = Component.NIC
+        mgmt.custom.type = "mgmt-nic"
 
         cpu_fabric = self.links.add(name="fabric", description="CPU Fabric")
         nvlink = self.links.add(name="nvlink")
@@ -88,4 +88,5 @@ class Server(Device):
 
 if __name__ == "__main__":
     device = Server(npu_factor=2)
+    device.validate()
     print(device.serialize(encoding=Device.YAML))
