@@ -3,7 +3,7 @@ import conftest
 import networkx
 from infragraph.infragraph import Api
 from infragraph.infragraph_service import InfraGraphService
-from infragraph.blueprints.rack_fabric import RackFabric
+from infragraph.blueprints.single_tier_fabric import SingleTierFabric
 from infragraph.cx5 import Cx5
 from infragraph.dgx import Dgx
 from infragraph.server import Server
@@ -17,16 +17,15 @@ def print_graph(graph):
         print(f"Edge: ({u}, {v}), Attributes: {attrs}")
 
 @pytest.mark.asyncio
-async def test_rack_fabric_1_dgx():
-    """From an infragraph device, generate a graph and validate the graph.
-
-    - with a count > 1 there should be no connectivity between device instances
+async def test_single_tier_fabric_one_dgx():
+    """
+    Generate a single tier fabric with 1 dgx host and validate the infragraph
     """
     dgx = Dgx()
-    rack_fabric = RackFabric(dgx, 1)
+    single_tier_fabric = SingleTierFabric(dgx, 1)
     # create the graph
     service = InfraGraphService()
-    service.set_graph(rack_fabric)
+    service.set_graph(single_tier_fabric)
 
     # validations
     g = service.get_networkx_graph()
@@ -34,16 +33,15 @@ async def test_rack_fabric_1_dgx():
     print_graph(g)
 
 @pytest.mark.asyncio
-async def test_rack_fabric_3_dgx():
-    """From an infragraph device, generate a graph and validate the graph.
-
-    - with a count > 1 there should be no connectivity between device instances
+async def test_single_tier_fabric_multi_dgx():
+    """
+    Generate a single tier fabric with multi dgx host and validate the infragraph
     """
     dgx = Dgx()
-    rack_fabric = RackFabric(dgx, 3)
+    single_tier_fabric = SingleTierFabric(dgx, 3)
     # create the graph
     service = InfraGraphService()
-    service.set_graph(rack_fabric)
+    service.set_graph(single_tier_fabric)
 
     # validations
     g = service.get_networkx_graph()
@@ -51,16 +49,15 @@ async def test_rack_fabric_3_dgx():
     print_graph(g)
 
 @pytest.mark.asyncio
-async def test_rack_fabric_2_server():
-    """From an infragraph device, generate a graph and validate the graph.
-
-    - with a count > 1 there should be no connectivity between device instances
+async def test_single_tier_fabric_multi_server():
+    """
+    Generate a single tier fabric with multi server host and validate the infragraph
     """
     server = Server()
-    rack_fabric = RackFabric(server, 2)
+    single_tier_fabric = SingleTierFabric(server, 2)
     # create the graph
     service = InfraGraphService()
-    service.set_graph(rack_fabric)
+    service.set_graph(single_tier_fabric)
 
     # validations
     g = service.get_networkx_graph()
