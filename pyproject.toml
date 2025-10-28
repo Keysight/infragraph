@@ -40,7 +40,7 @@ pattern="version:\\s*(?P<version>(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?
 "src/infragraph" = "infragraph"
 "src/tests" = "infragraph/tests"
 "src/docs" = "infragraph/docs"
-"src/infragraph/blueprints/fabric/single_tier" = "infragraph/blueprints/fabric/single_tier"
+"src/infragraph/blueprints/fabrics" = "infragraph/blueprints/fabrics"
 "src/infragraph/blueprints/devices" = "infragraph/blueprints/devices"
 
 [tool.hatch.build.targets.sdist]
