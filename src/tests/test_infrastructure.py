@@ -1,8 +1,7 @@
 import pytest
-import conftest
 import networkx
 from infragraph import *
-from infragraph.closfabric import ClosFabric
+from infragraph.blueprints.fabrics.closfabric import ClosFabric
 from infragraph.infragraph_service import InfraGraphService
 
 

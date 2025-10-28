@@ -1,5 +1,4 @@
 import pytest
-import conftest
 import networkx
 from infragraph.infragraph import Api
 from infragraph.infragraph_service import InfraGraphService

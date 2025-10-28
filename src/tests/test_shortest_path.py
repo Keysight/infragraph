@@ -1,7 +1,7 @@
 from typing import Tuple, Generator
 import pytest
 from infragraph import *
-from infragraph.closfabric import ClosFabric
+from infragraph.blueprints.fabrics.closfabric import ClosFabric
 from infragraph.infragraph_service import InfraGraphService
 
 
