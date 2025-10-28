@@ -1,5 +1,4 @@
 from infragraph import *
-from infragraph.server import Server
 from infragraph.switch import Switch
 from infragraph.infragraph_service import InfraGraphService
 
@@ -22,11 +21,11 @@ class SingleTierFabric(Infrastructure):
         server_nic_component = InfraGraphService.get_component(server, Component.NIC)
         total_ports = server_nic_component.count * server_count
 
-        switch = Switch(total_ports)
-        self.devices.append(server).append(switch)
+        switch_device = Switch(total_ports)
+        self.devices.append(server).append(switch_device)
         
         hosts = self.instances.add(name=server.name, device=server.name, count=server_count)
-        switch = self.instances.add(name="switch", device=switch.name, count=1)
+        switch_instance = self.instances.add(name="switch", device=switch_device.name, count=1)
 
         switch_link = self.links.add(
             name="switch-link",
@@ -34,8 +33,7 @@ class SingleTierFabric(Infrastructure):
         )
         switch_link.physical.bandwidth.gigabits_per_second = 100
 
-        
-        switch_component = InfraGraphService.get_component(switch, Component.PORT)
+        switch_component = InfraGraphService.get_component(switch_device, Component.PORT)
 
         # link each host to one leaf switch
         for idx in range(total_ports):
@@ -46,6 +44,6 @@ class SingleTierFabric(Infrastructure):
             )
             edge.ep1.instance = f"{hosts.name}[{host_index}]"
             edge.ep1.component = f"{server_nic_component.name}[{host_component_index}]"
-            edge.ep2.instance = f"{switch.name}[0]"
+            edge.ep2.instance = f"{switch_instance.name}[0]"
             edge.ep2.component = f"{switch_component.name}[{idx}]"
 

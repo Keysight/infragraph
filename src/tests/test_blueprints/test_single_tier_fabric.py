@@ -1,13 +1,9 @@
 import pytest
-import conftest
 import networkx
-from infragraph.infragraph import Api
 from infragraph.infragraph_service import InfraGraphService
-from infragraph.blueprints.single_tier_fabric import SingleTierFabric
-from infragraph.cx5 import Cx5
+from infragraph.blueprints.single_tier.single_tier_fabric import SingleTierFabric
 from infragraph.dgx import Dgx
 from infragraph.server import Server
-from infragraph.switch import Switch
 
 def print_graph(graph):
     for node, attrs in graph.nodes(data=True):
