@@ -9,7 +9,7 @@ if __package__ in ["", None]:
     print(f"Testing code using src\n{sys.path}")
 
 from infragraph.blueprints.devices.server import Server
-from infragraph.blueprints.devices.switch import Switch
+from infragraph.blueprints.devices.generic_switch import Switch
 from infragraph.blueprints.fabrics.closfabric import ClosFabric
 from infragraph.blueprints.devices.cx5 import Cx5
 from infragraph.blueprints.devices.dgx import Dgx

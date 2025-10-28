@@ -5,7 +5,7 @@ from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.devices.cx5 import Cx5
 from infragraph.blueprints.devices.dgx import Dgx
 from infragraph.blueprints.devices.server import Server
-from infragraph.blueprints.devices.switch import Switch
+from infragraph.blueprints.devices.generic_switch import Switch
 
 
 @pytest.mark.asyncio
