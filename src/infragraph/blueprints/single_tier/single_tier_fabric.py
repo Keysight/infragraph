@@ -8,14 +8,15 @@ class SingleTierFabric(Infrastructure):
     Inputs:
         - server (device instance)
         - server count - 'x'
+        - bandwidth in Gbps
     Output:
         - servers with 'x' count
         - a generic rack switch with n ports where:
             n = server count 'x' * nics in each server
-        - connectivity between servers and rack switches is 100G
+        - connectivity between switch and hosts is the provided bandwidth
     """
 
-    def __init__(self, server: Device, server_count: int):
+    def __init__(self, server: Device, server_count: int, bandwidth: int = 100):
         super().__init__(name="single-tier-fabric", description="Single Tier Fabric")
 
         server_nic_component = InfraGraphService.get_component(server, Component.NIC)
@@ -29,9 +30,9 @@ class SingleTierFabric(Infrastructure):
 
         switch_link = self.links.add(
             name="switch-link",
-            description="Link characteristics for connectivity between servers and leaf switches",
+            description="Link characteristics for connectivity between servers and rack switches",
         )
-        switch_link.physical.bandwidth.gigabits_per_second = 100
+        switch_link.physical.bandwidth.gigabits_per_second = bandwidth
 
         switch_component = InfraGraphService.get_component(switch_device, Component.PORT)
 
