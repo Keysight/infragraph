@@ -12,7 +12,7 @@ The graph model is able to capture the asymmetric layout of the device.
 <details open>
 <summary><strong>DGX device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/dgx.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/dgx.py" %}
 ```
 </details>
 <details closed>

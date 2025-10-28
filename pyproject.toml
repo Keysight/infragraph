@@ -40,14 +40,15 @@ pattern="version:\\s*(?P<version>(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?
 "src/infragraph" = "infragraph"
 "src/tests" = "infragraph/tests"
 "src/docs" = "infragraph/docs"
+"src/infragraph/blueprints/fabrics" = "infragraph/blueprints/fabrics"
+"src/infragraph/blueprints/devices" = "infragraph/blueprints/devices"
 
 [tool.hatch.build.targets.sdist]
 exclude = [
     "**/*",
     "!pyproject.toml",
     "!README.md",
-    "!src/infragraph/*.py",
-    "!src/tests/*.py",
+    "!src/**/*.py",
     "!src/docs/*.*",
 ]
 
