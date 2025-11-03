@@ -1,4 +1,4 @@
-/* InfraGraph 0.4.6
+/* InfraGraph 0.5.0
  * ### Overview
  * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
  * interface for capturing a system of systems suitable for use in co-designing AI/HPC
@@ -36,7 +36,8 @@ option go_package = "./infragraph;infragraph";
 import "google/protobuf/descriptor.proto";
 import "google/protobuf/empty.proto";
 
-// Description missing in models
+// Represents the overall network infrastructure including devices, links, instances,
+// and edges forming the graph.
 message Infrastructure {
 
   // The name of the infrastructure.
@@ -77,7 +78,7 @@ message Device {
   // This will not be used in Infrastructure.connections.
   optional string description = 2;
 
-  // Description missing in models
+  // Array of device components
   repeated Component components = 3;
 
   // All the links that make up this device.
@@ -214,7 +215,8 @@ message LinkPhysicalBandwidth {
       gigatransfers_per_second = 3;
     }
   }
-  // Description missing in models
+  // Choice of bandwidth unit between gigabits_per_second (Gbps), gigabytes_per_second
+  // (GBps), or gigatransfers_per_second (GT/s).
   optional Choice.Enum choice = 1;
 
   // Gigabits per second.
@@ -238,7 +240,7 @@ message LinkPhysicalLatency {
       ns = 3;
     }
   }
-  // Description missing in models
+  // Choice of latecy unit between ms (milliseconds), ns(nanoseconds) and us(microseconds).
   optional Choice.Enum choice = 1;
 
   // Latency in milliseconds
@@ -251,13 +253,14 @@ message LinkPhysicalLatency {
   optional float ns = 4;
 }
 
-// Description missing in models
+// Defines the physical properties of a network link, including bandwidth and latency
+// characteristics.
 message LinkPhysical {
 
-  // Description missing in models
+  // Specifies the bandwidth capacity of the physical link.
   LinkPhysicalBandwidth bandwidth = 1;
 
-  // Description missing in models
+  // Specifies the latency characteristics of the physical link.
   LinkPhysicalLatency latency = 2;
 }
 
@@ -276,7 +279,8 @@ message Link {
   LinkPhysical physical = 3;
 }
 
-// Description missing in models
+// Describes an endpoint consisting of a device and its component, including optional
+// device name and component slice.
 message DeviceEndpoint {
 
   // An optional name of a device that contains the component.
@@ -293,7 +297,8 @@ message DeviceEndpoint {
   optional string component = 2;
 }
 
-// Description missing in models
+// Defines an endpoint referencing an infrastructure instance and its component with
+// slice indexing.
 message InfrastructureEndpoint {
 
   // A name that matches the Instance.name property of an instance object that MUST exist
@@ -318,7 +323,8 @@ message InfrastructureEndpoint {
   optional string component = 2;
 }
 
-// Description missing in models
+// Represents an edge between two infrastructure endpoints with an associated link and
+// edge scheme.
 message InfrastructureEdge {
 
   // A device and component that is one endpoint of the edge
@@ -346,7 +352,8 @@ message InfrastructureEdge {
   optional string link = 4;
 }
 
-// Description missing in models
+// Represents an edge connecting two device endpoints, describing the link and edge
+// scheme.
 message DeviceEdge {
 
   // An optional device and component that is the other endpoint of the edge
@@ -374,7 +381,8 @@ message DeviceEdge {
   optional string link = 4;
 }
 
-// Description missing in models
+// Defines an instance alias referring to a device and specifying how many copies (count)
+// exist for graph modeling.
 message Instance {
 
   // An alias for the device that MUST be used in the Infrastructure edge object.
@@ -433,7 +441,7 @@ message Warning {
   repeated string warnings = 1;
 }
 
-// Description missing in models
+// Request specifying the desired format for the returned graph.
 message GraphRequest {
 
   message Format {
@@ -446,7 +454,8 @@ message GraphRequest {
   optional Format.Enum format = 1;
 }
 
-// Description missing in models
+// The content of the graph response, specifying the format and the serialized graph
+// data.
 message GraphContent {
 
   message Choice {
@@ -455,14 +464,14 @@ message GraphContent {
       networkx = 1;
     }
   }
-  // Description missing in models
+  // Specifies the format of the returned graph content.
   optional Choice.Enum choice = 1;
 
   // This contains the returned graph content formatted as a networkx yaml string.
   optional string networkx = 2;
 }
 
-// Description missing in models
+// Defines an annotation to be applied to a graph node.
 message AnnotationNode {
 
   // A fully qualified node name that MUST exist in the graph.
@@ -478,7 +487,7 @@ message AnnotationNode {
   optional string value = 3;
 }
 
-// Description missing in models
+// Defines an annotation to be applied to a graph edge.
 message AnnotationEdge {
 
   // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
@@ -502,7 +511,8 @@ message AnnotationEdge {
   optional string value = 4;
 }
 
-// Description missing in models
+// Request object specifying which graph elements (nodes or edges) to annotate and the
+// annotations to apply.
 message AnnotateRequest {
 
   message Choice {
@@ -512,37 +522,39 @@ message AnnotateRequest {
       edges = 2;
     }
   }
-  // Description missing in models
+  // Select whether to annotate nodes or edges..
   optional Choice.Enum choice = 1;
 
-  // Description missing in models
+  // List of node annotations to apply when the choice is set to nodes.
   repeated AnnotationNode nodes = 2;
 
-  // Description missing in models
+  // List of edge annotations to apply when the choice is set to edges.
   repeated AnnotationEdge edges = 3;
 }
 
-// Description missing in models
+// Represents a generic name and value pair attribute.
 message NameValue {
 
-  // Description missing in models
+  // Name of the attribute or property.
   optional string name = 1;
 
-  // Description missing in models
+  // Value corresponding to the name.
   optional string value = 2;
 }
 
-// Description missing in models
+// Represents a single item returned from a query, identified by an id and associated
+// attributes.
 message QueryResponseItem {
 
-  // Description missing in models
+  // Unique identifier of the item.
   optional string id = 1;
 
-  // Description missing in models
+  // List of name-value pairs describing item attributes.
   repeated NameValue attributes = 2;
 }
 
-// Description missing in models
+// Represents a shortest path result containing a name and an ordered list of nodes
+// on the path.
 message QueryShortestPathItem {
 
   // Name of the shortest path filter
@@ -553,7 +565,8 @@ message QueryShortestPathItem {
   repeated string nodes = 2;
 }
 
-// Description missing in models
+// The content of a query response, indicating the type of match and containing corresponding
+// results.
 message QueryResponseContent {
 
   message Choice {
@@ -563,20 +576,20 @@ message QueryResponseContent {
       shortest_path_matches = 2;
     }
   }
-  // Description missing in models
+  // Indicates the type of results returned - node matches or shortest path matches.
   optional Choice.Enum choice = 1;
 
-  // Description missing in models
+  // Array of nodes matching the query criteria.
   repeated QueryResponseItem node_matches = 2;
 
-  // Description missing in models
+  // Array of shortest path results matching the query criteria.
   repeated QueryShortestPathItem shortest_path_matches = 3;
 }
 
-// Description missing in models
+// Criteria for filtering nodes based on attribute names, values, and operators.
 message QueryAttribute {
 
-  // Description missing in models
+  // Attribute name to filter on.
   optional string name = 1;
 
   message Operator {
@@ -587,10 +600,10 @@ message QueryAttribute {
       contains = 3;
     }
   }
-  // Description missing in models
+  // Operator used for attribute filtering.
   optional Operator.Enum operator = 2;
 
-  // Description missing in models
+  // Value to compare the attribute against.
   optional string value = 3;
 
   message Logic {
@@ -600,11 +613,11 @@ message QueryAttribute {
       or = 2;
     }
   }
-  // Description missing in models
+  // Logical operation to combine this filter with others.
   optional Logic.Enum logic = 4;
 }
 
-// Description missing in models
+// Criteria for filtering node IDs using specified operators and logical combinations.
 message QueryNodeId {
 
   message Operator {
@@ -615,10 +628,10 @@ message QueryNodeId {
       contains = 3;
     }
   }
-  // Description missing in models
+  // Operator used to filter node IDs.
   optional Operator.Enum operator = 1;
 
-  // Description missing in models
+  // Value pattern for filtering node IDs.
   optional string value = 2;
 
   message Logic {
@@ -628,14 +641,14 @@ message QueryNodeId {
       or = 2;
     }
   }
-  // Description missing in models
+  // Logical operation to combine this ID filter with others.
   optional Logic.Enum logic = 3;
 }
 
-// Description missing in models
+// Defines a filter on nodes, either by attributes or by node IDs.
 message QueryNodeFilter {
 
-  // Description missing in models
+  // Name of this node filter.
   optional string name = 1;
 
   message Choice {
@@ -645,33 +658,33 @@ message QueryNodeFilter {
       id_filter = 2;
     }
   }
-  // Description missing in models
+  // Type of node filter, either attribute or ID based.
   optional Choice.Enum choice = 2;
 
-  // Description missing in models
+  // Attribute-based filter criteria.
   QueryAttribute attribute_filter = 3;
 
-  // Description missing in models
+  // ID-based filter criteria.
   QueryNodeId id_filter = 4;
 }
 
-// Description missing in models
+// Filter specifying the shortest path constraints, with source and destination nodes.
 message QueryShortestPathFilter {
 
-  // Description missing in models
+  // Name of the shortest path filter.
   // required = true
   optional string name = 1;
 
-  // Description missing in models
+  // Node ID from which to start the shortest path.
   // required = true
   optional string source = 2;
 
-  // Description missing in models
+  // Node ID at which the shortest path ends.
   // required = true
   optional string destination = 3;
 }
 
-// Description missing in models
+// A request object specifying filters to be used for querying nodes or shortest paths.
 message QueryRequest {
 
   message Choice {
@@ -681,10 +694,10 @@ message QueryRequest {
       shortest_path_filters = 2;
     }
   }
-  // Description missing in models
+  // Type of filters specified in this query request.
   optional Choice.Enum choice = 1;
 
-  // Description missing in models
+  // List of filters to match nodes.
   repeated QueryNodeFilter node_filters = 2;
 
   // Under Review: Proposal to abstract the shortest path interface to the graph.

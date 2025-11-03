@@ -20,7 +20,7 @@ info:
     Contributions to the API and models schema can be made in the following ways:
     - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
     - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
-  version: 0.4.6
+  version: 0.5.0
   contact:
     url: https://github.com/keysight/infragraph/issues
   license:
@@ -171,6 +171,8 @@ components:
             $ref: '#/components/schemas/QueryResponseContent'
   schemas:
     Infrastructure:
+      description: |-
+        Represents the overall network infrastructure including devices, links, instances, and edges forming the graph.
       type: object
       properties:
         name:
@@ -241,6 +243,8 @@ components:
           type: string
           x-field-uid: 2
         components:
+          description: |-
+            Array of device components
           type: array
           items:
             $ref: '#/components/schemas/Component'
@@ -404,6 +408,8 @@ components:
       type: object
       properties:
         choice:
+          description: |-
+            Choice of bandwidth unit between gigabits_per_second (Gbps), gigabytes_per_second (GBps), or gigatransfers_per_second (GT/s).
           type: string
           x-field-uid: 1
           x-enum:
@@ -438,6 +444,8 @@ components:
       type: object
       properties:
         choice:
+          description: |-
+            Choice of latecy unit between ms (milliseconds), ns(nanoseconds) and us(microseconds).
           type: string
           x-field-uid: 1
           x-enum:
@@ -467,12 +475,18 @@ components:
           type: number
           x-field-uid: 4
     Link.Physical:
+      description: |-
+        Defines the physical properties of a network link, including bandwidth and latency characteristics.
       type: object
       properties:
         bandwidth:
+          description: |-
+            Specifies the bandwidth capacity of the physical link.
           $ref: '#/components/schemas/Link.Physical.Bandwidth'
           x-field-uid: 1
         latency:
+          description: |-
+            Specifies the latency characteristics of the physical link.
           $ref: '#/components/schemas/Link.Physical.Latency'
           x-field-uid: 2
     Link:
@@ -500,6 +514,8 @@ components:
           $ref: '#/components/schemas/Link.Physical'
           x-field-uid: 3
     Device.Endpoint:
+      description: |-
+        Describes an endpoint consisting of a device and its component, including optional device name and component slice.
       type: object
       required:
       - component
@@ -521,6 +537,8 @@ components:
           type: string
           x-field-uid: 2
     Infrastructure.Endpoint:
+      description: |-
+        Defines an endpoint referencing an infrastructure instance and its component with slice indexing.
       type: object
       required:
       - instance
@@ -547,6 +565,8 @@ components:
           type: string
           x-field-uid: 2
     Infrastructure.Edge:
+      description: |-
+        Represents an edge between two infrastructure endpoints with an associated link and edge scheme.
       type: object
       required:
       - ep1
@@ -589,6 +609,8 @@ components:
           type: string
           x-field-uid: 4
     Device.Edge:
+      description: |-
+        Represents an edge connecting two device endpoints, describing the link and edge scheme.
       type: object
       required:
       - ep1
@@ -628,6 +650,8 @@ components:
           type: string
           x-field-uid: 4
     Instance:
+      description: |-
+        Defines an instance alias referring to a device and specifying how many copies (count) exist for graph modeling.
       type: object
       required:
       - name
@@ -713,6 +737,8 @@ components:
             type: string
           x-field-uid: 1
     GraphRequest:
+      description: |-
+        Request specifying the desired format for the returned graph.
       type: object
       properties:
         format:
@@ -726,9 +752,13 @@ components:
           enum:
           - networkx
     GraphContent:
+      description: |-
+        The content of the graph response, specifying the format and the serialized graph data.
       type: object
       properties:
         choice:
+          description: |-
+            Specifies the format of the returned graph content.
           type: string
           x-field-uid: 1
           x-enum:
@@ -742,6 +772,8 @@ components:
           type: string
           x-field-uid: 2
     Annotation.Node:
+      description: |-
+        Defines an annotation to be applied to a graph node.
       type: object
       properties:
         name:
@@ -763,6 +795,8 @@ components:
           type: string
           x-field-uid: 3
     Annotation.Edge:
+      description: |-
+        Defines an annotation to be applied to a graph edge.
       type: object
       properties:
         ep1:
@@ -792,9 +826,13 @@ components:
           type: string
           x-field-uid: 4
     AnnotateRequest:
+      description: |-
+        Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
       type: object
       properties:
         choice:
+          description: |-
+            Select whether to annotate nodes or edges..
           type: string
           x-field-uid: 1
           x-enum:
@@ -806,36 +844,54 @@ components:
           - nodes
           - edges
         nodes:
+          description: |-
+            List of node annotations to apply when the choice is set to nodes.
           type: array
           items:
             $ref: '#/components/schemas/Annotation.Node'
           x-field-uid: 2
         edges:
           type: array
+          description: |-
+            List of edge annotations to apply when the choice is set to edges.
           items:
             $ref: '#/components/schemas/Annotation.Edge'
           x-field-uid: 3
     NameValue:
+      description: |-
+        Represents a generic name and value pair attribute.
       type: object
       properties:
         name:
+          description: |-
+            Name of the attribute or property.
           type: string
           x-field-uid: 1
         value:
+          description: |-
+            Value corresponding to the name.
           type: string
           x-field-uid: 2
     QueryResponseItem:
+      description: |-
+        Represents a single item returned from a query, identified by an id and associated attributes.
       type: object
       properties:
         id:
+          description: |-
+            Unique identifier of the item.
           type: string
           x-field-uid: 1
         attributes:
+          description: |-
+            List of name-value pairs describing item attributes.
           type: array
           items:
             $ref: '#/components/schemas/NameValue'
           x-field-uid: 2
     QueryShortestPathItem:
+      description: |-
+        Represents a shortest path result containing a name and an ordered list of nodes on the path.
       type: object
       required:
       - name
@@ -854,9 +910,13 @@ components:
             type: string
           x-field-uid: 2
     QueryResponseContent:
+      description: |-
+        The content of a query response, indicating the type of match and containing corresponding results.
       type: object
       properties:
         choice:
+          description: |-
+            Indicates the type of results returned - node matches or shortest path matches.
           type: string
           x-enum:
             node_matches:
@@ -868,22 +928,32 @@ components:
           - node_matches
           - shortest_path_matches
         node_matches:
+          description: |-
+            Array of nodes matching the query criteria.
           type: array
           items:
             $ref: '#/components/schemas/QueryResponseItem'
           x-field-uid: 2
         shortest_path_matches:
+          description: |-
+            Array of shortest path results matching the query criteria.
           type: array
           items:
             $ref: '#/components/schemas/QueryShortestPathItem'
           x-field-uid: 3
     QueryAttribute:
+      description: |-
+        Criteria for filtering nodes based on attribute names, values, and operators.
       type: object
       properties:
         name:
+          description: |-
+            Attribute name to filter on.
           type: string
           x-field-uid: 1
         operator:
+          description: |-
+            Operator used for attribute filtering.
           type: string
           x-field-uid: 2
           x-enum:
@@ -898,9 +968,13 @@ components:
           - regex
           - contains
         value:
+          description: |-
+            Value to compare the attribute against.
           type: string
           x-field-uid: 3
         logic:
+          description: |-
+            Logical operation to combine this filter with others.
           type: string
           x-field-uid: 4
           x-enum:
@@ -912,9 +986,13 @@ components:
           - and
           - or
     QueryNodeId:
+      description: |-
+        Criteria for filtering node IDs using specified operators and logical combinations.
       type: object
       properties:
         operator:
+          description: |-
+            Operator used to filter node IDs.
           type: string
           x-field-uid: 1
           x-enum:
@@ -929,9 +1007,13 @@ components:
           - regex
           - contains
         value:
+          description: |-
+            Value pattern for filtering node IDs.
           type: string
           x-field-uid: 2
         logic:
+          description: |-
+            Logical operation to combine this ID filter with others.
           type: string
           x-field-uid: 3
           x-enum:
@@ -943,12 +1025,18 @@ components:
           - and
           - or
     QueryNodeFilter:
+      description: |-
+        Defines a filter on nodes, either by attributes or by node IDs.
       type: object
       properties:
         name:
+          description: |-
+            Name of this node filter.
           type: string
           x-field-uid: 1
         choice:
+          description: |-
+            Type of node filter, either attribute or ID based.
           type: string
           x-field-uid: 2
           x-enum:
@@ -960,12 +1048,18 @@ components:
           - attribute_filter
           - id_filter
         attribute_filter:
+          description: |-
+            Attribute-based filter criteria.
           $ref: '#/components/schemas/QueryAttribute'
           x-field-uid: 3
         id_filter:
+          description: |-
+            ID-based filter criteria.
           $ref: '#/components/schemas/QueryNodeId'
           x-field-uid: 4
     QueryShortestPathFilter:
+      description: |-
+        Filter specifying the shortest path constraints, with source and destination nodes.
       type: object
       required:
       - name
@@ -973,18 +1067,28 @@ components:
       - destination
       properties:
         name:
+          description: |-
+            Name of the shortest path filter.
           type: string
           x-field-uid: 1
         source:
+          description: |-
+            Node ID from which to start the shortest path.
           type: string
           x-field-uid: 2
         destination:
+          description: |-
+            Node ID at which the shortest path ends.
           type: string
           x-field-uid: 3
     QueryRequest:
+      description: |-
+        A request object specifying filters to be used for querying nodes or shortest paths.
       type: object
       properties:
         choice:
+          description: |-
+            Type of filters specified in this query request.
           type: string
           x-field-uid: 1
           x-enum:
@@ -996,6 +1100,8 @@ components:
           - node_filters
           - shortest_path_filters
         node_filters:
+          description: |-
+            List of filters to match nodes.
           type: array
           items:
             $ref: '#/components/schemas/QueryNodeFilter'
