@@ -1,26 +1,33 @@
 components:
   schemas:
     NameValue:
+      description: Represents a generic name and value pair attribute.
       type: object
       properties:
         name:
+          description: Name of the attribute or property.
           type: string
           x-field-uid: 1
         value:
+          description: Value corresponding to the name.
           type: string
           x-field-uid: 2
     QueryResponseItem:
+      description: Represents a single item returned from a query, identified by an id and associated attributes.
       type: object
       properties:
         id:
+          description: Unique identifier of the item.
           type: string
           x-field-uid: 1
         attributes:
+          description: List of name-value pairs describing item attributes.
           type: array
           items:
             $ref: "#/components/schemas/NameValue"
           x-field-uid: 2
     QueryShortestPathItem:
+      description: Represents a shortest path result containing a name and an ordered list of nodes on the path.
       type: object
       required:
         - name
@@ -39,9 +46,11 @@ components:
             type: string
           x-field-uid: 2
     QueryResponseContent:
+      description: The content of a query response, indicating the type of match and containing corresponding results.
       type: object
       properties:
         choice:
+          description: Indicates the type of results returned - node matches or shortest path matches.
           type: string
           x-enum:
             node_matches:
@@ -50,22 +59,27 @@ components:
               x-field-uid: 2
           x-field-uid: 1
         node_matches:
+          description: Array of nodes matching the query criteria.
           type: array
           items:
             $ref: "#/components/schemas/QueryResponseItem"
           x-field-uid: 2
         shortest_path_matches:
+          description: Array of shortest path results matching the query criteria.
           type: array
           items:
             $ref: "#/components/schemas/QueryShortestPathItem"
           x-field-uid: 3
     QueryAttribute:
+      description: Criteria for filtering nodes based on attribute names, values, and operators.
       type: object
       properties:
         name:
+          description: Attribute name to filter on.
           type: string
           x-field-uid: 1
         operator:
+          description: Operator used for attribute filtering.
           type: string
           x-field-uid: 2
           x-enum:
@@ -76,9 +90,11 @@ components:
             contains:
               x-field-uid: 3
         value:
+          description: Value to compare the attribute against.
           type: string
           x-field-uid: 3
         logic:
+          description: Logical operation to combine this filter with others.
           type: string
           x-field-uid: 4
           x-enum:
@@ -87,9 +103,11 @@ components:
             or:
               x-field-uid: 2
     QueryNodeId:
+      description: Criteria for filtering node IDs using specified operators and logical combinations.
       type: object
       properties:
         operator:
+          description: Operator used to filter node IDs.
           type: string
           x-field-uid: 1
           x-enum:
@@ -100,9 +118,11 @@ components:
             contains:
               x-field-uid: 3
         value:
+          description: Value pattern for filtering node IDs.
           type: string
           x-field-uid: 2
         logic:
+          description: Logical operation to combine this ID filter with others.
           type: string
           x-field-uid: 3
           x-enum:
@@ -111,12 +131,15 @@ components:
             or:
               x-field-uid: 2
     QueryNodeFilter:
+      description: Defines a filter on nodes, either by attributes or by node IDs.
       type: object
       properties:
         name:
+          description: Name of this node filter.
           type: string
           x-field-uid: 1
         choice:
+          description: Type of node filter, either attribute or ID based.
           type: string
           x-field-uid: 2
           x-enum:
@@ -125,12 +148,15 @@ components:
             id_filter:
               x-field-uid: 2
         attribute_filter:
+          description: Attribute-based filter criteria.
           $ref: "#/components/schemas/QueryAttribute"
           x-field-uid: 3
         id_filter:
+          description: ID-based filter criteria.
           $ref: "#/components/schemas/QueryNodeId"
           x-field-uid: 4
     QueryShortestPathFilter:
+      description: Filter specifying the shortest path constraints, with source and destination nodes.
       type: object
       required:
         - name
@@ -138,18 +164,23 @@ components:
         - destination
       properties:
         name:
+          description: Name of the shortest path filter.
           type: string
           x-field-uid: 1
         source:
+          description: Node ID from which to start the shortest path.
           type: string
           x-field-uid: 2
         destination:
+          description: Node ID at which the shortest path ends.
           type: string
           x-field-uid: 3
     QueryRequest:
+      description: A request object specifying filters to be used for querying nodes or shortest paths.
       type: object
       properties:
         choice:
+          description: Type of filters specified in this query request.
           type: string
           x-field-uid: 1
           x-enum:
@@ -158,6 +189,7 @@ components:
             shortest_path_filters:
               x-field-uid: 2
         node_filters:
+          description: List of filters to match nodes.
           type: array
           items:
             $ref: "#/components/schemas/QueryNodeFilter"
