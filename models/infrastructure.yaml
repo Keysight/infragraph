@@ -1,6 +1,7 @@
 components:
   schemas:
     Infrastructure:
+      description: Represents the overall network infrastructure including devices, links, instances, and edges forming the graph.
       type: object
       properties:
         name:

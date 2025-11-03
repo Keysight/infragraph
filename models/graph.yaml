@@ -1,6 +1,7 @@
 components:
   schemas:
     GraphRequest:
+      description: Request specifying the desired format for the returned graph.
       type: object
       properties:
         format:
@@ -12,9 +13,11 @@ components:
             networkx:
               x-field-uid: 1
     GraphContent:
+      description: The content of the graph response, specifying the format and the serialized graph data.
       type: object
       properties:
         choice:
+          description: Specifies the format of the returned graph content.
           type: string
           x-field-uid: 1
           x-enum:
@@ -26,6 +29,7 @@ components:
           type: string
           x-field-uid: 2
     Annotation.Node:
+      description: Defines an annotation to be applied to a graph node.
       type: object
       properties:
         name:
@@ -47,6 +51,7 @@ components:
           type: string
           x-field-uid: 3
     Annotation.Edge:
+      description: Defines an annotation to be applied to a graph edge.
       type: object
       properties:
         ep1:
@@ -76,9 +81,11 @@ components:
           type: string
           x-field-uid: 4
     AnnotateRequest:
+      description: Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
       type: object
       properties:
         choice:
+          description: Select whether to annotate nodes or edges..
           type: string
           x-field-uid: 1
           x-enum:
@@ -87,12 +94,14 @@ components:
             edges:
               x-field-uid: 2
         nodes:
+          description: List of node annotations to apply when the choice is set to nodes.
           type: array
           items:
             $ref: "#/components/schemas/Annotation.Node"
           x-field-uid: 2
         edges:
           type: array
+          description: List of edge annotations to apply when the choice is set to edges.
           items:
             $ref: "#/components/schemas/Annotation.Edge"
           x-field-uid: 3

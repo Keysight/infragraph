@@ -6,6 +6,7 @@ components:
       type: object
       properties:
         choice:
+          description: Choice of bandwidth unit between gigabits_per_second (Gbps), gigabytes_per_second (GBps), or gigatransfers_per_second (GT/s).
           type: string
           x-field-uid: 1
           x-enum:
@@ -36,7 +37,8 @@ components:
         A container for specific Link latency properties.
       type: object
       properties:
-        choice:
+        choice: 
+          description: Choice of latecy unit between ms (milliseconds), ns(nanoseconds) and us(microseconds).
           type: string
           x-field-uid: 1
           x-enum:
@@ -63,12 +65,15 @@ components:
           x-field-uid: 4
 
     Link.Physical:
+      description: Defines the physical properties of a network link, including bandwidth and latency characteristics.
       type: object
       properties:
         bandwidth:
+          description: Specifies the bandwidth capacity of the physical link.
           $ref: "#/components/schemas/Link.Physical.Bandwidth"
           x-field-uid: 1
         latency:
+          description: Specifies the latency characteristics of the physical link.
           $ref: "#/components/schemas/Link.Physical.Latency"
           x-field-uid: 2
 
