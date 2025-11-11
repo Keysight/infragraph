@@ -1,0 +1,829 @@
+/* InfraGraph 0.5.1
+ * ### Overview
+ * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
+ * interface for capturing a system of systems suitable for use in co-designing AI/HPC
+ * solutions.
+ * 
+ * This model allows for defining physical infrastructure as a logical system of systems
+ * using graph like terminology.
+ * In addition to defining a logical graph, an unlimited number of different physical
+ * characteristics
+ * can be associated with logical endpoints.
+ * 
+ * ### Graph Terminology
+ * - an infrastructure `node (vertex)` is the fundamental unit or entity within an infrastructure
+ * graph; represented as a endpoint with the following syntax:
+ * - a combination of a device instance name and a 0 based index and a component name
+ * and a 0 based index such as `switch.0.asic.0` and `switch.0.port.0`
+ * - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph
+ * such as (`switch.0.asic.0`, `switch.0.port.0`)
+ * - `path` is a sequence of edges that allows for traversal through the graph such
+ * as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
+ * 
+ * ### Contributions
+ * Contributions to the API and models schema can be made in the following ways:
+ * - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
+ * - [fork the models repository](https://github.com/keysight/infragraph) and submit
+ * a PR
+ * License: MIT */
+
+syntax = "proto3";
+
+package infragraph;
+
+option go_package = "./infragraph;infragraph";
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/empty.proto";
+
+// Represents the overall network infrastructure including devices, links, instances,
+// and edges forming the graph.
+message Infrastructure {
+
+  // The name of the infrastructure.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  optional string name = 1;
+
+  // A detailed description of the infrastructure.
+  optional string description = 2;
+
+  // An inventory of devices and components.
+  repeated Device devices = 3;
+
+  // An inventory of the links present in the infrastructure edges.
+  repeated Link links = 4;
+
+  // An inventory of the device instances present in the infrastructure edges.
+  repeated Instance instances = 5;
+
+  // An array of edge objects used to connect instance devices and components to other
+  // instance
+  // devices and components. These edge objects are used to form a fully qualified qualified
+  // graph.
+  repeated InfrastructureEdge edges = 6;
+}
+
+// A subgraph container for a device and its components, links and edges.
+// The edges form a subgraph of the device.
+message Device {
+
+  // The name of the device being described.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  // required = true
+  optional string name = 1;
+
+  // A description of the device.
+  // This will not be used in Infrastructure.connections.
+  optional string description = 2;
+
+  // Array of device components
+  repeated Component components = 3;
+
+  // All the links that make up this device.
+  repeated Link links = 4;
+
+  // An array of edges that are used to produce a device graph.
+  // These are used to connect components to each other or components
+  // to other device components (composability).
+  // The generated graph edges will be fully qualified using the count property
+  // of the device and component and slice notation of each endpoint in the edge object.
+  repeated DeviceEdge edges = 5;
+}
+
+// Placeholder for a component that can be extended.
+message ComponentCustom {
+
+  // This property will be added to the graph node in the form of a `type = value` attribute.
+  // required = true
+  optional string type = 1;
+}
+
+// Placeholder for a component that can be extended.
+message ComponentDevice {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentCpu {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentNpu {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentNic {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentMemory {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentPort {
+}
+
+// Placeholder for a component that can be extended.
+message ComponentSwitch {
+}
+
+// A container for describing a component.
+// A Component is contained in a Device.
+message Component {
+
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  // required = true
+  optional string name = 1;
+
+  // A description of the component.
+  optional string description = 2;
+
+  // The maxiumim number of this component that will be contained by a single device instance.
+  // This property is used by the infragraph service in edge generation.
+  // required = true
+  optional int32 count = 3;
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      custom = 1;
+      device = 2;
+      cpu = 3;
+      npu = 4;
+      nic = 5;
+      memory = 6;
+      port = 7;
+      switch = 8;
+    }
+  }
+  // The type of component.
+  // 
+  // The `choice` value will be added to the graph node in the form of a `type = value`
+  // attribute.
+  // 
+  // - `custom` If the type of a component is not listed as a choice it can be defined
+  // using the custom object which includes a type property that allows for a custom type
+  // attribute on the graph node.
+  // - `device` This enum allows a device to be composed of other devices. When this enum
+  // is selected the name of the component MUST be the name of a device that exists in
+  // the Infrastructure.devices array.
+  // - `cpu` A high level definition for a cpu
+  // - `npu` A high level definition for a neural processing unit
+  // - `nic` A high level definition for a network interface card, for more detailed breakdowns
+  // create a device representing a specific type network interface card
+  // - `memory` A high level definition for memory
+  // - `port` A high level definitiion for an IO port
+  // - `switch` A high level definition for an internal switch connecting components
+  // required = true
+  optional Choice.Enum choice = 4;
+
+  // Description missing in models
+  ComponentCustom custom = 10;
+
+  // Description missing in models
+  ComponentDevice device = 11;
+
+  // Description missing in models
+  ComponentCpu cpu = 12;
+
+  // Description missing in models
+  ComponentNpu npu = 13;
+
+  // Description missing in models
+  ComponentNic nic = 14;
+
+  // Description missing in models
+  ComponentMemory memory = 15;
+
+  // Description missing in models
+  ComponentPort port = 16;
+
+  // Description missing in models
+  ComponentSwitch switch = 17;
+}
+
+// A container for specific Link physical Properties.
+message LinkPhysicalBandwidth {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      gigabits_per_second = 1;
+      gigabytes_per_second = 2;
+      gigatransfers_per_second = 3;
+    }
+  }
+  // Choice of bandwidth unit between gigabits_per_second (Gbps), gigabytes_per_second
+  // (GBps), or gigatransfers_per_second (GT/s).
+  optional Choice.Enum choice = 1;
+
+  // Gigabits per second.
+  optional float gigabits_per_second = 2;
+
+  // Gigabytes per second.
+  optional float gigabytes_per_second = 3;
+
+  // Gigatrasfers per second.
+  optional float gigatransfers_per_second = 4;
+}
+
+// A container for specific Link latency properties.
+message LinkPhysicalLatency {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      ms = 1;
+      us = 2;
+      ns = 3;
+    }
+  }
+  // Choice of latecy unit between ms (milliseconds), ns(nanoseconds) and us(microseconds).
+  optional Choice.Enum choice = 1;
+
+  // Latency in milliseconds
+  optional float ms = 2;
+
+  // Latency in microseconds.
+  optional float us = 3;
+
+  // Latency in nanoseconds.
+  optional float ns = 4;
+}
+
+// Defines the physical properties of a network link, including bandwidth and latency
+// characteristics.
+message LinkPhysical {
+
+  // Specifies the bandwidth capacity of the physical link.
+  LinkPhysicalBandwidth bandwidth = 1;
+
+  // Specifies the latency characteristics of the physical link.
+  LinkPhysicalLatency latency = 2;
+}
+
+// A container for describing a link used between components.
+message Link {
+
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  // required = true
+  optional string name = 1;
+
+  // A description of the type of link.
+  optional string description = 2;
+
+  // A container for physical properties.
+  LinkPhysical physical = 3;
+}
+
+// Describes an endpoint consisting of a device and its component, including optional
+// device name and component slice.
+message DeviceEndpoint {
+
+  // An optional name of a device that contains the component.
+  // If the property is empty the name of the device is the parent of the edge object.
+  // An endpoint will be generated for every device based on the count.
+  optional string device = 1;
+
+  // The name of a component that exists in the containing device
+  // and the indexes of the component.
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // - example: cx5[0:2]
+  // required = true
+  optional string component = 2;
+}
+
+// Defines an endpoint referencing an infrastructure instance and its component with
+// slice indexing.
+message InfrastructureEndpoint {
+
+  // A name that matches the Instance.name property of an instance object that MUST exist
+  // in the infrastructure instances array.
+  // 
+  // The instance object yields:
+  // - a device name that contains the component and MUST exist in the infrastructure
+  // devices
+  // - a count that is the maximum to be used in the slice notation
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // - example: host[0:2]
+  // required = true
+  optional string instance = 1;
+
+  // The name of a component that MUST exist in the Instance.device specified by the instance
+  // object in the Infrastructure.instances array.
+  // 
+  // The indexes MUST be specified using python slice notation.
+  // - example: npu[0:2]
+  // required = true
+  optional string component = 2;
+}
+
+// Represents an edge between two infrastructure endpoints with an associated link and
+// edge scheme.
+message InfrastructureEdge {
+
+  // A device and component that is one endpoint of the edge
+  // required = true
+  InfrastructureEndpoint ep1 = 1;
+
+  // A device and component that is the other endpoint of the edge
+  // required = true
+  InfrastructureEndpoint ep2 = 2;
+
+  message Scheme {
+    enum Enum {
+      unspecified = 0;
+      one2one = 1;
+      many2many = 2;
+      ring = 3;
+    }
+  }
+  // The scheme that will be used to create edges between the endpoints ep1 and ep2.
+  optional Scheme.Enum scheme = 3;
+
+  // The name of a link that defines additional characteristics of the edge.
+  // The name MUST exist in the links array of the infrastructure.
+  // required = true
+  optional string link = 4;
+}
+
+// Represents an edge connecting two device endpoints, describing the link and edge
+// scheme.
+message DeviceEdge {
+
+  // An optional device and component that is the other endpoint of the edge
+  // required = true
+  DeviceEndpoint ep1 = 1;
+
+  // An optional device and component that is the other endpoint of the edge
+  // required = true
+  DeviceEndpoint ep2 = 2;
+
+  message Scheme {
+    enum Enum {
+      unspecified = 0;
+      one2one = 1;
+      many2many = 2;
+      ring = 3;
+    }
+  }
+  // The scheme that will be used to create edges between the endpoints ep1 and ep2.
+  optional Scheme.Enum scheme = 3;
+
+  // The name of a link that defines additional characteristics of the edge.
+  // The name MUST exist in the links array of the containing device.
+  // required = true
+  optional string link = 4;
+}
+
+// Defines an instance alias referring to a device and specifying how many copies (count)
+// exist for graph modeling.
+message Instance {
+
+  // An alias for the device that MUST be used in the Infrastructure edge object.
+  // Globally unique name of an object. It also serves as the primary key for arrays of
+  // objects.
+  // required = true
+  optional string name = 1;
+
+  // A description of the instance.
+  optional string description = 2;
+
+  // The name of a device that MUST exist in the array of Infrastructure devices.
+  // required = true
+  optional string device = 3;
+
+  // The maximum number of instances that will be created as nodes in the graph.
+  // 
+  // Not all the instances need to be used in the graph edges.
+  // required = true
+  optional int32 count = 4;
+}
+
+// Error response generated while serving API request.
+message Error {
+
+  // Numeric status code based on the underlying transport being used.
+  // The API server MUST set this code explicitly based on following references:
+  // - HTTP 4xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.5
+  // - HTTP 5xx errors: https://datatracker.ietf.org/doc/html/rfc9110#section-15.6
+  // - gRPC errors: https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+  // required = true
+  optional int32 code = 1;
+
+  message Kind {
+    enum Enum {
+      unspecified = 0;
+      validation = 1;
+      internal = 2;
+    }
+  }
+  // Classification of error originating from within API server that may not be mapped
+  // to the value in `code`.
+  // Absence of this field may indicate that the error did not originate from within API
+  // server.
+  optional Kind.Enum kind = 2;
+
+  // List of error messages generated while executing the request.
+  repeated string errors = 3;
+}
+
+// A list of warnings that have occurred while executing the request.
+message Warning {
+
+  // A list of any system specific warnings that have occurred while
+  // executing the request.
+  repeated string warnings = 1;
+}
+
+// Request specifying the desired format for the returned graph.
+message GraphRequest {
+
+  message Format {
+    enum Enum {
+      unspecified = 0;
+      networkx = 1;
+    }
+  }
+  // The format that the graph will be returned in.
+  optional Format.Enum format = 1;
+}
+
+// The content of the graph response, specifying the format and the serialized graph
+// data.
+message GraphContent {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      networkx = 1;
+    }
+  }
+  // Specifies the format of the returned graph content.
+  optional Choice.Enum choice = 1;
+
+  // This contains the returned graph content formatted as a networkx yaml string.
+  optional string networkx = 2;
+}
+
+// Defines an annotation to be applied to a graph node.
+message AnnotationNode {
+
+  // A fully qualified node name that MUST exist in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string name = 1;
+
+  // The attribute name that will be added to the endpoint.
+  optional string attribute = 2;
+
+  // The attribute value that will be added to the endpoint.
+  optional string value = 3;
+}
+
+// Defines an annotation to be applied to a graph edge.
+message AnnotationEdge {
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep1 = 1;
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
+  // in the graph.
+  // - server.0.npu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep2 = 2;
+
+  // The attribute name that will be added to the edge.
+  optional string attribute = 3;
+
+  // The attribute value that will be added to the edge.
+  optional string value = 4;
+}
+
+// Request object specifying which graph elements (nodes or edges) to annotate and the
+// annotations to apply.
+message AnnotateRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      nodes = 1;
+      edges = 2;
+    }
+  }
+  // Select whether to annotate nodes or edges..
+  optional Choice.Enum choice = 1;
+
+  // List of node annotations to apply when the choice is set to nodes.
+  repeated AnnotationNode nodes = 2;
+
+  // List of edge annotations to apply when the choice is set to edges.
+  repeated AnnotationEdge edges = 3;
+}
+
+// Represents a generic name and value pair attribute.
+message NameValue {
+
+  // Name of the attribute or property.
+  optional string name = 1;
+
+  // Value corresponding to the name.
+  optional string value = 2;
+}
+
+// Represents a single item returned from a query, identified by an id and associated
+// attributes.
+message QueryResponseItem {
+
+  // Unique identifier of the item.
+  optional string id = 1;
+
+  // List of name-value pairs describing item attributes.
+  repeated NameValue attributes = 2;
+}
+
+// Represents a shortest path result containing a name and an ordered list of nodes
+// on the path.
+message QueryShortestPathItem {
+
+  // Name of the shortest path filter
+  // required = true
+  optional string name = 1;
+
+  // An array of node ids that make up the shortest path
+  repeated string nodes = 2;
+}
+
+// The content of a query response, indicating the type of match and containing corresponding
+// results.
+message QueryResponseContent {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      node_matches = 1;
+      shortest_path_matches = 2;
+    }
+  }
+  // Indicates the type of results returned - node matches or shortest path matches.
+  optional Choice.Enum choice = 1;
+
+  // Array of nodes matching the query criteria.
+  repeated QueryResponseItem node_matches = 2;
+
+  // Array of shortest path results matching the query criteria.
+  repeated QueryShortestPathItem shortest_path_matches = 3;
+}
+
+// Criteria for filtering nodes based on attribute names, values, and operators.
+message QueryAttribute {
+
+  // Attribute name to filter on.
+  optional string name = 1;
+
+  message Operator {
+    enum Enum {
+      unspecified = 0;
+      eq = 1;
+      regex = 2;
+      contains = 3;
+    }
+  }
+  // Operator used for attribute filtering.
+  optional Operator.Enum operator = 2;
+
+  // Value to compare the attribute against.
+  optional string value = 3;
+
+  message Logic {
+    enum Enum {
+      unspecified = 0;
+      and = 1;
+      or = 2;
+    }
+  }
+  // Logical operation to combine this filter with others.
+  optional Logic.Enum logic = 4;
+}
+
+// Criteria for filtering node IDs using specified operators and logical combinations.
+message QueryNodeId {
+
+  message Operator {
+    enum Enum {
+      unspecified = 0;
+      eq = 1;
+      regex = 2;
+      contains = 3;
+    }
+  }
+  // Operator used to filter node IDs.
+  optional Operator.Enum operator = 1;
+
+  // Value pattern for filtering node IDs.
+  optional string value = 2;
+
+  message Logic {
+    enum Enum {
+      unspecified = 0;
+      and = 1;
+      or = 2;
+    }
+  }
+  // Logical operation to combine this ID filter with others.
+  optional Logic.Enum logic = 3;
+}
+
+// Defines a filter on nodes, either by attributes or by node IDs.
+message QueryNodeFilter {
+
+  // Name of this node filter.
+  optional string name = 1;
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      attribute_filter = 1;
+      id_filter = 2;
+    }
+  }
+  // Type of node filter, either attribute or ID based.
+  optional Choice.Enum choice = 2;
+
+  // Attribute-based filter criteria.
+  QueryAttribute attribute_filter = 3;
+
+  // ID-based filter criteria.
+  QueryNodeId id_filter = 4;
+}
+
+// Filter specifying the shortest path constraints, with source and destination nodes.
+message QueryShortestPathFilter {
+
+  // Name of the shortest path filter.
+  // required = true
+  optional string name = 1;
+
+  // Node ID from which to start the shortest path.
+  // required = true
+  optional string source = 2;
+
+  // Node ID at which the shortest path ends.
+  // required = true
+  optional string destination = 3;
+}
+
+// A request object specifying filters to be used for querying nodes or shortest paths.
+message QueryRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      node_filters = 1;
+      shortest_path_filters = 2;
+    }
+  }
+  // Type of filters specified in this query request.
+  optional Choice.Enum choice = 1;
+
+  // List of filters to match nodes.
+  repeated QueryNodeFilter node_filters = 2;
+
+  // Under Review: Proposal to abstract the shortest path interface to the graph.
+  // 
+  // Add shortest path filters to retrive the shortest path between source and destination
+  // nodes
+  repeated QueryShortestPathFilter shortest_path_filters = 3;
+}
+
+// Version details
+message Version {
+
+  // Version of API specification
+  // default =
+  optional string api_spec_version = 1;
+
+  // Version of SDK generated from API specification
+  // default =
+  optional string sdk_version = 2;
+
+  // Version of application consuming or serving the API
+  // default =
+  optional string app_version = 3;
+}
+
+// The request has succeeded with no application content but the server
+// may return a list of detailed warnings.
+message Success {
+  Warning warning = 1;
+}
+
+// The request did not succeed and server has responded with error details.
+message Failure {
+  Error error = 1;
+}
+
+// The entire fully validated graph content.
+message GraphResponse {
+  GraphContent graph_content = 1;
+}
+
+// Answer to the query request.
+message QueryResponse {
+  QueryResponseContent query_response_content = 1;
+}
+
+// Data that needs to be streamed
+message Data {
+  uint64 chunk_size = 1;
+  bytes datum = 2;
+}
+
+message SetGraphRequest {
+  Infrastructure infrastructure = 1;
+}
+message SetGraphResponse {
+  Warning warning = 1;
+}
+
+
+message GetGraphRequest {
+  GraphRequest graph_request = 1;
+}
+message GetGraphResponse {
+  GraphContent graph_content = 1;
+}
+
+
+message QueryGraphRequest {
+  QueryRequest query_request = 1;
+}
+message QueryGraphResponse {
+  QueryResponseContent query_response_content = 1;
+}
+
+
+message AnnotateGraphRequest {
+  AnnotateRequest annotate_request = 1;
+}
+message AnnotateGraphResponse {
+  Warning warning = 1;
+}
+
+message GetVersionResponse {
+  Version version = 1;
+}
+
+
+// Description missing in models
+//
+// For all RPCs defined in this service, API Server SHOULD provide JSON
+// representation of `Error` message as an error string upon failure, ensuring
+// name of enum constants (instead of value) for `kind` property is present
+// in the representation
+service Openapi {
+
+  // Given an infrastructure object this API method will create a fully qualified infrastructure
+  // graph and validate it.
+  // 
+  // Creating a fully qualified infrastructure graph requires the following steps:
+  // - process each of the infrastructure instance objects by locating the device and
+  // creating a subgraph using the device's edges and substituting the instance name for
+  // the device name.
+  // - process each of the infrastructure edges, looking up the instance to determine
+  // the max count and the name to be substituted for the device and link the subgraphs
+  // to create a complete infrastructure graph
+  rpc SetGraph(SetGraphRequest) returns (SetGraphResponse);
+  // streaming version of the rpc SetGraph
+  rpc streamSetGraph(stream Data) returns (SetGraphResponse);
+  // This will return the current graph.
+  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
+  // streaming version of the rpc GetGraph
+  rpc streamGetGraph(stream Data) returns (GetGraphResponse);
+  // Query the current fully expanded graph using a declarative query syntax.
+  // 
+  // - example: Ask the graph for specific endpoints such as those of type `NPU` or
+  // `NIC`
+  rpc QueryGraph(QueryGraphRequest) returns (QueryGraphResponse);
+  // streaming version of the rpc QueryGraph
+  rpc streamQueryGraph(stream Data) returns (QueryGraphResponse);
+  // Extend the current graph created by the `set_graph` API.
+  // 
+  // - example: Update specific endpoints with name/value information such as `rank=0`
+  rpc AnnotateGraph(AnnotateGraphRequest) returns (AnnotateGraphResponse);
+  // streaming version of the rpc AnnotateGraph
+  rpc streamAnnotateGraph(stream Data) returns (AnnotateGraphResponse);
+  // Description missing in models
+  rpc GetVersion(google.protobuf.Empty) returns (GetVersionResponse);
+}
