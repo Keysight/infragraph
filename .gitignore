@@ -1,4 +1,4 @@
-artifacts
+artifacts/*
 docs/gh-pages
 docs/site
 dist
