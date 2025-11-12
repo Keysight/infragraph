@@ -12,3 +12,4 @@ Additional information such as background, schema and examples can be found in t
 Contributions can be made in the following ways:
 - [open an issue](https://github.com/keysight/infragraph/issues) in the repository
 - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
+- [version update](docs/src/version.md) for infragraph versioning rules
