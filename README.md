@@ -12,3 +12,9 @@ Additional information such as background, schema and examples can be found in t
 Contributions can be made in the following ways:
 - [open an issue](https://github.com/keysight/infragraph/issues) in the repository
 - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
+
+# Versioning Rules
+
+Infragraph follows a structured versioning scheme to maintain consistency across releases and ensure clear dependency management. Each version reflects compatibility, schema evolution, and API stability expectations.
+
+For versioning rules, refer [this readme.](docs/src/version.md)
