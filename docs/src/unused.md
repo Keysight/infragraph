@@ -191,15 +191,15 @@ inventory:
 <br>
 
 
-### Design host with 4 nics and single npu
+### Design host with 4 nics and single xpu
 
-Let's design a host with 4 nics and a single npu
+Let's design a host with 4 nics and a single xpu
 
 ![host](images/host.png)
 
 Our Host has two interconnected components:
 - 4 nics
-- 1 npu
+- 1 xpu
 
 These components are connected to each other via a pcie connection. Therefore to connect two different components, we can use the following notation:
 
@@ -227,18 +227,18 @@ inventory:
           count: 4
           nic:
             ethernet: {}
-        npu:
-          name: npu
+        xpu:
+          name: xpu
           count: 1
-          npu: {}
+          xpu: {}
       links:
         pcie:
           name: pcie
       connections:
-      - npu.0.pcie.nic.0
-      - npu.0.pcie.nic.1
-      - npu.0.pcie.nic.2
-      - npu.0.pcie.nic.3
+      - xpu.0.pcie.nic.0
+      - xpu.0.pcie.nic.1
+      - xpu.0.pcie.nic.2
+      - xpu.0.pcie.nic.3
 ```
 
 </details>
@@ -255,10 +255,10 @@ inventory:
             "HOST": {
                 "name": "HOST",
                 "components": {
-                    "npu": {
-                        "name": "npu",
+                    "xpu": {
+                        "name": "xpu",
                         "count": 1,
-                        "npu": { }
+                        "xpu": { }
                     },
                     "nic": {
                         "name": "nic",
@@ -274,10 +274,10 @@ inventory:
                     }
                 },
                 "connections": [
-                    "npu.0.pcie.nic.0",
-                    "npu.0.pcie.nic.1",
-                    "npu.0.pcie.nic.2",
-                    "npu.0.pcie.nic.3"
+                    "xpu.0.pcie.nic.0",
+                    "xpu.0.pcie.nic.1",
+                    "xpu.0.pcie.nic.2",
+                    "xpu.0.pcie.nic.3"
                 ]
             }
         }
@@ -517,18 +517,18 @@ inventory:
           count: 4
           nic:
             ethernet: {}
-        npu:
-          name: npu
+        xpu:
+          name: xpu
           count: 1
-          npu: {}
+          xpu: {}
       links:
         pcie:
           name: pcie
       connections:
-      - npu.0.pcie.nic.0
-      - npu.0.pcie.nic.1
-      - npu.0.pcie.nic.2
-      - npu.0.pcie.nic.3
+      - xpu.0.pcie.nic.0
+      - xpu.0.pcie.nic.1
+      - xpu.0.pcie.nic.2
+      - xpu.0.pcie.nic.3
     SCALE_OUT_SWITCH:
       name: SCALE_OUT_SWITCH
       components:
@@ -633,10 +633,10 @@ connections:
             "HOST": {
                 "name": "HOST",
                 "components": {
-                    "npu": {
-                        "name": "npu",
+                    "xpu": {
+                        "name": "xpu",
                         "count": 1,
-                        "npu": { }
+                        "xpu": { }
                     },
                     "nic": {
                         "name": "nic",
@@ -652,10 +652,10 @@ connections:
                     }
                 },
                 "connections": [
-                    "npu.0.pcie.nic.0",
-                    "npu.1.pcie.nic.1",
-                    "npu.2.pcie.nic.2",
-                    "npu.3.pcie.nic.3"
+                    "xpu.0.pcie.nic.0",
+                    "xpu.1.pcie.nic.1",
+                    "xpu.2.pcie.nic.2",
+                    "xpu.3.pcie.nic.3"
                 ]
             }
         },

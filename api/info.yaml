@@ -14,7 +14,7 @@ info:
     - an infrastructure `node (vertex)` is the fundamental unit or entity within an infrastructure graph; represented as a endpoint with the following syntax:
       - a combination of a device instance name and a 0 based index and a component name and a 0 based index such as `switch.0.asic.0` and `switch.0.port.0`
     - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph such as (`switch.0.asic.0`, `switch.0.port.0`)
-    - `path` is a sequence of edges that allows for traversal through the graph such as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
+    - `path` is a sequence of edges that allows for traversal through the graph such as [`server.0.xpu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
 
     ### Contributions
     Contributions to the API and models schema can be made in the following ways:

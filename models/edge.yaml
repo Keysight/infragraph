@@ -63,7 +63,7 @@ components:
             The name of a component that MUST exist in the Instance.device specified by the instance object in the Infrastructure.instances array.
 
             The indexes MUST be specified using python slice notation.
-              - example: npu[0:2]
+              - example: xpu[0:2]
           type: string
           x-field-uid: 2
     Infrastructure.Edge:

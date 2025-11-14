@@ -35,7 +35,7 @@ components:
         name:
           description: |-
             A fully qualified node name that MUST exist in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
@@ -57,7 +57,7 @@ components:
         ep1:
           description: |-
             A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
@@ -65,7 +65,7 @@ components:
         ep2:
           description: |-
             A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string

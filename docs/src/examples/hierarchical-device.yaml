@@ -1,9 +1,9 @@
 device:
   - name: gh200-nvl2
     components:
-      - name: npu
+      - name: xpu
         description: Grace Hopper Superchip
-        type: npu
+        type: xpu
         count: 2
         components:
           - name: grace
@@ -12,7 +12,7 @@ device:
             count: 1
           - name: hopper
             description: Hopper GPU
-            type: npu
+            type: xpu
             count: 1
       - name: pcie-ec
         description: Pcie 5.0 x16 Edge Connector
@@ -30,9 +30,9 @@ device:
         description: PCIe 5.0 x16
     connections:
       - grace.0.c2c.hopper.0
-      - cx7.0.pcie.npu.0
+      - cx7.0.pcie.xpu.0
       - cx7.0.pcie.grace.0
-      - cx7.1.pcie.npu.1
+      - cx7.1.pcie.xpu.1
       - cx7.1.pcie.grace.1
 
 

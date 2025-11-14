@@ -20,7 +20,7 @@ components:
       description: |-
         Placeholder for a component that can be extended.
       type: object
-    Component.Npu:
+    Component.Xpu:
       description: |-
         Placeholder for a component that can be extended.
       type: object
@@ -75,7 +75,7 @@ components:
             - `custom` If the type of a component is not listed as a choice it can be defined using the custom object which includes a type property that allows for a custom type attribute on the graph node.
             - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
             - `cpu` A high level definition for a cpu
-            - `npu` A high level definition for a neural processing unit
+            - `xpu` A high level definition for a neural processing unit
             - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card
             - `memory` A high level definition for memory
             - `port` A high level definitiion for an IO port
@@ -89,7 +89,7 @@ components:
               x-field-uid: 2
             cpu:
               x-field-uid: 3
-            npu:
+            xpu:
               x-field-uid: 4
             nic:
               x-field-uid: 5
@@ -108,8 +108,8 @@ components:
         cpu:
           $ref: "#/components/schemas/Component.Cpu"
           x-field-uid: 12
-        npu:
-          $ref: "#/components/schemas/Component.Npu"
+        xpu:
+          $ref: "#/components/schemas/Component.Xpu"
           x-field-uid: 13
         nic:
           $ref: "#/components/schemas/Component.Nic"

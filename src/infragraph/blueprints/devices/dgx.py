@@ -23,12 +23,12 @@ class Dgx(Device):
             count=2,
         )
         cpu.choice = Component.CPU
-        npu = self.components.add(
-            name="npu",
+        xpu = self.components.add(
+            name="xpu",
             description="Nvidia A100 GPU",
             count=8,
         )
-        npu.choice = Component.NPU
+        xpu.choice = Component.XPU
         nvlsw = self.components.add(
             name="nvlsw",
             description="NVLink Switch",
@@ -65,12 +65,12 @@ class Dgx(Device):
         edge.ep2.component = cpu.name
 
         edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=nvlink.name)
-        edge.ep1.component = npu.name
+        edge.ep1.component = xpu.name
         edge.ep2.component = nvlsw.name
 
         for npu_idx, pciesw_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pciesw.count)):
             edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
-            edge.ep1.component = f"{npu.name}[{npu_idx}]"
+            edge.ep1.component = f"{xpu.name}[{npu_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 
         for nic_idx, pciesw_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pciesw.count)):
