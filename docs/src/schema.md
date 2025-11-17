@@ -30,5 +30,5 @@ This repository makes use of [OpenAPIArt](https://github.com/open-traffic-genera
 * auto-generate the following artifacts:
     * openapi schema
     * protobuf schema
-    * [Redocly documentation](https://) of APIs and Models
+    * [Redocly documentation](https://infragraph.dev/openapi.html) of APIs and Models
     * `Python/Go SDKs` that allow for creating `fluent` client/server code over `REST/Protobuf` transports
