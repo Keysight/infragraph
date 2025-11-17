@@ -34,7 +34,7 @@ components:
         endpoint:
           description: |-
             A fully qualified endpoint name
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string

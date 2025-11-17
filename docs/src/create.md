@@ -15,7 +15,7 @@ The following is a diagrammatic and textual description of a `generic two tier c
 
 It consists of the following devices:
 
-* 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one npu via a pcie link.  Also every npu in a server is connected to every other npu by an nvlink switch. In addition the server includes a management nic that is separate from test nics.
+* 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one xpu via a pcie link.  Also every xpu in a server is connected to every other xpu by an nvlink switch. In addition the server includes a management nic that is separate from test nics.
 * 4 `leaf switches` composed of one asic and 16 ethernet ports
 * 3 `spine switches` composed of one asic and 16 ethernet ports
 

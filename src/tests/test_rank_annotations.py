@@ -6,17 +6,17 @@ from infragraph.infragraph_service import InfraGraphService
 
 @pytest.mark.asyncio
 async def test_rank_annotations():
-    """Test adding a rank attribute to every npu node"""
+    """Test adding a rank attribute to every xpu node"""
     # create the graph
     service = InfraGraphService()
     service.set_graph(ClosFabric())
 
     # query the graph for host npus
     npu_request = QueryRequest()
-    filter = npu_request.node_filters.add(name="npu filter")
+    filter = npu_request.node_filters.add(name="xpu filter")
     filter.choice = QueryNodeFilter.ID_FILTER
     filter.id_filter.operator = QueryNodeId.REGEX
-    filter.id_filter.value = r"host\.\d+\.npu\.\d+"
+    filter.id_filter.value = r"host\.\d+\.xpu\.\d+"
     npu_response = service.query_graph(npu_request)
 
     # annotate the graph
