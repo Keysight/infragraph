@@ -52,6 +52,7 @@ nav:
   - Background: background.md
   - Schema: schema.md
   - Getting Started: create.md
+  - Blueprints: blueprints.md
   - Extending The Graph: annotate.md
   - Examples: examples.md
   - Browse API Spec: openapi.html
