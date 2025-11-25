@@ -1,0 +1,26 @@
+components:
+- choice: cpu
+  count: 1
+  description: Offload network processor chip
+  name: asic
+- choice: port
+  count: 2
+  description: The network port on the ConnectX-5 card
+  name: port
+description: Mellanox ConnectX-5
+edges:
+- ep1:
+    component: asic
+  ep2:
+    component: port
+  link: pcie
+  scheme: many2many
+- ep1:
+    component: asic
+  ep2:
+    component: port
+  link: pcie
+  scheme: many2many
+links:
+- name: pcie
+name: cx5

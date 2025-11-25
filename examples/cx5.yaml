@@ -1,0 +1,30 @@
+infrastructure:
+  devices:
+    - name: cx5
+      description: |-
+        Mellanox ConnectX-5
+        - 2 ports
+        - 1 CX5 network processor chip
+        - 1 pcie gn4 bus
+      components:
+        - name: asic
+          description: Offload network processor chip
+          type: cpu
+        - name: port
+          description: |-
+            The network ports on the ConnectX-5 card connect externally to Ethernet switches
+            or other network devices.
+            These ports use SFP28 or QSFP28 transceivers and support various speeds
+            (10/25/40/50/100 Gb/s Ethernet).
+          type: custom
+      links:
+        - name: pcie
+          description: |-
+            The PCIe interface facilitates direct communication of data and control signals
+             between the ConnectX-5 card and the server's CPU and system memory.
+             This includes peer-to-peer communications such as NVIDIA PeerDirect,
+             which enables efficient RDMA access by eliminating unnecessary internal data copies,
+             for example between GPUs and CPUs.
+      connections:
+        - asic.0.pcie.port.0
+        - asic.0.pcie.port.1
