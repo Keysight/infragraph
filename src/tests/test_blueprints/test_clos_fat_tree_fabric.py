@@ -2,9 +2,9 @@ import pytest
 import networkx
 from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.fabrics.clos_fat_tree_fabric import ClosFatTreeFabric
-from infragraph.blueprints.devices.dgx import Dgx
-from infragraph.blueprints.devices.server import Server
-from infragraph.blueprints.devices.generic_switch import Switch
+from infragraph.blueprints.devices.nvidia.dgx import Dgx
+from infragraph.blueprints.devices.generic.server import Server
+from infragraph.blueprints.devices.generic.generic_switch import Switch
 
 def print_graph(graph):
     for node, attrs in graph.nodes(data=True):
