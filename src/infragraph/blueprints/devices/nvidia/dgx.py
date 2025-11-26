@@ -34,13 +34,13 @@ class Dgx(Device):
             description="NVLink Switch",
             count=1,
         )
-        nvlsw.choice = Component.CUSTOM
+        nvlsw.choice = Component.SWITCH
         pciesw = self.components.add(
             name="pciesw",
             description="PCI Express Switch Gen 4",
             count=4,
         )
-        pciesw.choice = Component.CUSTOM
+        pciesw.choice = Component.SWITCH
         if nic_device is None:
             nic = self.components.add(
                 name="nic",

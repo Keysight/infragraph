@@ -1,5 +1,5 @@
 from infragraph import *
-from infragraph.blueprints.devices.generic_switch import Switch
+from infragraph.blueprints.devices.generic.generic_switch import Switch
 from infragraph.infragraph_service import InfraGraphService
 
 
