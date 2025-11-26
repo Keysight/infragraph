@@ -6,9 +6,9 @@ devices:
         description:
         type: cpu
         count: 2
-      - name: npu
+      - name: xpu
         description: Nvidia A100
-        type: npu
+        type: xpu
         count: 8
       - name: nic
         description: Mellanox ConnectX-5 PCIe 3.0

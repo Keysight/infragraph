@@ -75,8 +75,8 @@ components:
             - a fully qualified node name is of the form:
               - device_name.device_index.component_name.component_index
             - examples:
-              - nodes.add(id="dgx.0.npu.0", name="rank", value="0")
-              - nodes.add(id="dgx.0.npu.1", name="rank", value="1"))
+              - nodes.add(id="dgx.0.xpu.0", name="rank", value="0")
+              - nodes.add(id="dgx.0.xpu.1", name="rank", value="1"))
           type: array
           items:
             $ref: "#/components/schemas/Annotation.NodeNameValue"

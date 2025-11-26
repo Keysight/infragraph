@@ -21,11 +21,11 @@ Some examples of additional data are:
 The following code examples demonstrates how to use the `query_graph` API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
 
 ## Adding `rank` data
-In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `npu`.
+In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `xpu`.
 
-The following code demonstrates adding a `rank` attribute to every `host` instance that has a component with the name of `npu`.
+The following code demonstrates adding a `rank` attribute to every `host` instance that has a component with the name of `xpu`.
 <details open>
-<summary><strong>Add a rank to each host npu</strong></summary>
+<summary><strong>Add a rank to each host xpu</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_rank_annotations.py" %}
 ```

@@ -1,9 +1,7 @@
 from typing import Tuple, Generator
 import pytest
-import conftest
-import networkx
 from infragraph import *
-from infragraph.closfabric import ClosFabric
+from infragraph.blueprints.fabrics.closfabric import ClosFabric
 from infragraph.infragraph_service import InfraGraphService
 
 
@@ -15,7 +13,7 @@ async def test_shortest_path(ranks: Tuple[int, int]):
     service.set_graph(ClosFabric().serialize())
 
     # add ranks
-    npu_endpoints = service.get_endpoints("type", Component.NPU)
+    npu_endpoints = service.get_endpoints("type", Component.XPU)
     annotate_request = AnnotateRequest()
     for idx, npu_endpoint in enumerate(npu_endpoints):
         annotate_request.nodes.add(name=npu_endpoint, attribute="rank", value=str(idx))

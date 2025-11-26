@@ -2,10 +2,10 @@ devices:
   - name: VendorA-Server
     description: Generic server supplied by VendorA
     components:
-      - name: npu
+      - name: xpu
         description: Generic Neural Processing Unit
         count: 1
-        type: npu
+        type: xpu
       - name: nic
         description: Generic Ethernet based network interface card
         count: 4
@@ -17,10 +17,10 @@ devices:
           choice: giga_transfers_per_second
           giga_transfers_per_second: 8
     connections:
-      - npu.0.pcie3.nic.0
-      - npu.0.pcie3.nic.1
-      - npu.0.pcie3.nic.2
-      - npu.0.pcie3.nic.3
+      - xpu.0.pcie3.nic.0
+      - xpu.0.pcie3.nic.1
+      - xpu.0.pcie3.nic.2
+      - xpu.0.pcie3.nic.3
   - name: VendorB-Switch
     description: Generic switch supplied by VendorB
     components:

@@ -1,6 +1,7 @@
 components:
   schemas:
     Edge.Common:
+      description: Defines the edge creation scheme pattern used to connect endpoints.
       type: object
       required:
         - scheme
@@ -17,6 +18,7 @@ components:
             ring:
               x-field-uid: 3
     Device.Endpoint:
+      description: Describes an endpoint consisting of a device and its component, including optional device name and component slice.
       type: object
       required:
         - component
@@ -38,6 +40,7 @@ components:
           type: string
           x-field-uid: 2
     Infrastructure.Endpoint:
+      description: Defines an endpoint referencing an infrastructure instance and its component with slice indexing.
       type: object
       required:
         - instance
@@ -60,10 +63,11 @@ components:
             The name of a component that MUST exist in the Instance.device specified by the instance object in the Infrastructure.instances array.
 
             The indexes MUST be specified using python slice notation.
-              - example: npu[0:2]
+              - example: xpu[0:2]
           type: string
           x-field-uid: 2
     Infrastructure.Edge:
+      description: Represents an edge between two infrastructure endpoints with an associated link and edge scheme.
       type: object
       required:
         - ep1
@@ -93,6 +97,7 @@ components:
           type: string
           x-field-uid: 4
     Device.Edge:
+      description: Represents an edge connecting two device endpoints, describing the link and edge scheme.
       type: object
       required:
         - ep1

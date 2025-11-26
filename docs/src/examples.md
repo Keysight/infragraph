@@ -12,7 +12,7 @@ The graph model is able to capture the asymmetric layout of the device.
 <details open>
 <summary><strong>DGX device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/dgx.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/dgx.py" %}
 ```
 </details>
 <details closed>
@@ -24,7 +24,7 @@ The graph model is able to capture the asymmetric layout of the device.
 
 ## GH200-MGX
 ### Description
-#### NPU Component
+#### XPU Component
 ![spine and leaf](./images/gh200.png)
 #### Device
 ![spine and leaf](./images/gh200-mgx.png)
@@ -45,7 +45,7 @@ https://mips.com/blog/reimagining-ai-infrastructure-the-power-of-converged-back-
 
 
 - 1024 hosts
-    - 1 npu/host
+    - 1 xpu/host
     - 10 nics/host
 - 512 scaleup switches
     - 16 ports/switch

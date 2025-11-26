@@ -15,7 +15,7 @@ The following is a diagrammatic and textual description of a `generic two tier c
 
 It consists of the following devices:
 
-* 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one npu via a pcie link.  Also every npu in a server is connected to every other npu by an nvlink switch. In addition the server includes a management nic that is separate from test nics.
+* 4 generic `servers` with each server composed of 4 npus and 4 nics with each nic directly connected to one xpu via a pcie link.  Also every xpu in a server is connected to every other xpu by an nvlink switch. In addition the server includes a management nic that is separate from test nics.
 * 4 `leaf switches` composed of one asic and 16 ethernet ports
 * 3 `spine switches` composed of one asic and 16 ethernet ports
 
@@ -36,7 +36,7 @@ Define a server device based on the infrastructure description.
 <details open>
 <summary><strong>Server device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/server.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/server.py" %}
 ```
 </details>
 <details closed>
@@ -51,7 +51,7 @@ Define a switch device based on the infrastructure description.
 <details open>
 <summary><strong>Switch device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/switch.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/generic_switch.py" %}
 ```
 </details>
 <details closed>
@@ -66,7 +66,7 @@ Define an infrastructure based on the infrastructure description.
 <details open>
 <summary><strong>Two Tier Clos Fabric Infrastructure using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/closfabric.py" %}
+{% include-markdown "../../src/infragraph/blueprints/fabrics/closfabric.py" %}
 ```
 </details>
 

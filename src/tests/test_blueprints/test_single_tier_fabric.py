@@ -1,9 +1,9 @@
 import pytest
 import networkx
 from infragraph.infragraph_service import InfraGraphService
-from infragraph.blueprints.single_tier.single_tier_fabric import SingleTierFabric
-from infragraph.dgx import Dgx
-from infragraph.server import Server
+from infragraph.blueprints.fabrics.single_tier_fabric import SingleTierFabric
+from infragraph.blueprints.devices.dgx import Dgx
+from infragraph.blueprints.devices.server import Server
 
 def print_graph(graph):
     for node, attrs in graph.nodes(data=True):

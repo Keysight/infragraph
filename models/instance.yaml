@@ -1,6 +1,7 @@
 components:
   schemas:
     Instance:
+      description: Defines an instance alias referring to a device and specifying how many copies (count) exist for graph modeling.
       type: object
       required:
         - name

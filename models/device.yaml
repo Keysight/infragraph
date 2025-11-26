@@ -23,6 +23,8 @@ components:
           type: string
           x-field-uid: 2
         components:
+          description: |-
+            Array of device components
           type: array
           items:
             $ref: "./component.yaml#/components/schemas/Component"

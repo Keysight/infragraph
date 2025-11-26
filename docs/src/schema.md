@@ -13,7 +13,7 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 * infrastructure can be described using graph concepts such as vertexes, edges and properties
     * vertexes can be `component` or device `instances`
     * an edge contained by a device subgraph is 2 component instances separated by a link
-        * e.g., `npu.0`.`pcie`.`nic.0`
+        * e.g., `xpu.0`.`pcie`.`nic.0`
     * an edge contained by the infrastructure is 2 device connections separated by a link where a device connection is the device `instance` name and `index` and external `component` name and `index`
         * e.g., `server.0`.`nic.0`.`eth`.`leafsw.0`.`port.0`
     * a path is a collection of infrastructure and device connections between a single source and destination
@@ -30,5 +30,5 @@ This repository makes use of [OpenAPIArt](https://github.com/open-traffic-genera
 * auto-generate the following artifacts:
     * openapi schema
     * protobuf schema
-    * [Redocly documentation](https://) of APIs and Models
+    * [Redocly documentation](https://infragraph.dev/openapi.html) of APIs and Models
     * `Python/Go SDKs` that allow for creating `fluent` client/server code over `REST/Protobuf` transports
