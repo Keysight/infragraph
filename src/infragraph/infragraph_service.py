@@ -57,9 +57,9 @@ class InfraGraphService(Api):
         returns the networkx graph as a serialized json string.
 
         - adds component attributes as node attributes
-            - for example a component with a name of "a100" and type of "npu" will be added
-            to a fully qualified endpoint node of "dgxa100.0.npu.0" with attribute "npu"="a100"
-            allowing for a lookup using networkx.get_node_attributes(graph, 'npu')
+            - for example a component with a name of "a100" and type of "xpu" will be added
+            to a fully qualified endpoint node of "dgxa100.0.xpu.0" with attribute "xpu"="a100"
+            allowing for a lookup using networkx.get_node_attributes(graph, 'xpu')
         - adds annotations as node attributes if applicable
             - if an annotation has an endpoint, the data is added to the node as attributes
         """
@@ -281,7 +281,7 @@ class InfraGraphService(Api):
     def get_component(device: Device, type: str) -> Component:
         """Return a component from the device that matches the type
 
-        type: Literal[cpu, npu, nic, custom, port, device]
+        type: Literal[cpu, xpu, nic, custom, port, device]
         """
         for component in device.components:
             if component.choice == type:

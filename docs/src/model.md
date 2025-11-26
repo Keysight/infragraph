@@ -36,7 +36,7 @@ The Device message defines a device which is a part of the infrastructure. This 
     example:
     ```
     nic.0.pcie.cpu.0
-    npu.0.pcie.nvswitch.0
+    xpu.0.pcie.nvswitch.0
     asic.0.mii.nic.0
     ```
     The **source_component_name** and **destination_component_name** is the name field present in the component message. This name also corresponds to the **key** of the **components** dictionary field which is a part of the device message. Each component message holds a **count** field which defines the number of components present in the device. These fields are defined later in the components section.
@@ -49,7 +49,7 @@ message Component {
   oneof type {
     CustomComponent custom = 10;
     Cpu cpu = 11;
-    Npu npu = 12;
+    Xpu xpu = 12;
     Nic nic = 13;
     Switch switch = 14;
   }
@@ -61,7 +61,7 @@ The component message defines three major fields:
 * count: The count defines the total components present. Lets assume we have a *nic* component with a count of 8. This would create 8 instances of the nic component whose properies would remain the same with a zero based indexing. This is analogous to the concept of classes and objects where the component message acts as the blueprint and count indicates the number of objects created. 
 * type: The component datamodel allows to describe component of a certain type. The type can be:
     * CPU
-    * NPU
+    * XPU
     * NIC
     * Switch
     * Custom
@@ -78,14 +78,14 @@ message Cpu {
 This message defines the CPU type component. This allows the user to assign a certain memory type to the CPU. The MemoryType is covered in the later section.
 
 
-#### NPU Component
+#### XPU Component
 ```proto
 message Npu {
   MemoryType memory = 1;
 }
 ```
 
-This message defines the NPU type component. This allows the user to assign a certain memory type to the NPU. The MemoryType is covered in the later section.
+This message defines the XPU type component. This allows the user to assign a certain memory type to the XPU. The MemoryType is covered in the later section.
 
 #### Custom Component
 
@@ -113,7 +113,7 @@ enum MemoryType {
   MEM_CXL = 3;
 }
 ```
-The user can set either of the memory type to the CPU, NPU or CustomComponent Type. The memory could be either:
+The user can set either of the memory type to the CPU, XPU or CustomComponent Type. The memory could be either:
 * Unspecified
 * Random Access Memory
 * High Bandwidth Memory Interface

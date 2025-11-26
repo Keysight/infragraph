@@ -52,7 +52,7 @@ paths:
       description: >-
         Query the current fully expanded graph using a declarative query syntax.
 
-          - example: Ask the graph for specific endpoints such as those of type `NPU` or `NIC`
+          - example: Ask the graph for specific endpoints such as those of type `XPU` or `NIC`
       requestBody:
         required: true
         content:

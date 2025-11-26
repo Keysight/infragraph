@@ -1,4 +1,4 @@
-/* InfraGraph 0.5.1
+/* InfraGraph 0.6.1
  * ### Overview
  * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
  * interface for capturing a system of systems suitable for use in co-designing AI/HPC
@@ -18,7 +18,7 @@
  * - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph
  * such as (`switch.0.asic.0`, `switch.0.port.0`)
  * - `path` is a sequence of edges that allows for traversal through the graph such
- * as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
+ * as [`server.0.xpu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
  * 
  * ### Contributions
  * Contributions to the API and models schema can be made in the following ways:
@@ -109,7 +109,7 @@ message ComponentCpu {
 }
 
 // Placeholder for a component that can be extended.
-message ComponentNpu {
+message ComponentXpu {
 }
 
 // Placeholder for a component that can be extended.
@@ -151,7 +151,7 @@ message Component {
       custom = 1;
       device = 2;
       cpu = 3;
-      npu = 4;
+      xpu = 4;
       nic = 5;
       memory = 6;
       port = 7;
@@ -170,7 +170,7 @@ message Component {
   // is selected the name of the component MUST be the name of a device that exists in
   // the Infrastructure.devices array.
   // - `cpu` A high level definition for a cpu
-  // - `npu` A high level definition for a neural processing unit
+  // - `xpu` A high level definition for a neural processing unit
   // - `nic` A high level definition for a network interface card, for more detailed breakdowns
   // create a device representing a specific type network interface card
   // - `memory` A high level definition for memory
@@ -189,7 +189,7 @@ message Component {
   ComponentCpu cpu = 12;
 
   // Description missing in models
-  ComponentNpu npu = 13;
+  ComponentXpu xpu = 13;
 
   // Description missing in models
   ComponentNic nic = 14;
@@ -318,7 +318,7 @@ message InfrastructureEndpoint {
   // object in the Infrastructure.instances array.
   // 
   // The indexes MUST be specified using python slice notation.
-  // - example: npu[0:2]
+  // - example: xpu[0:2]
   // required = true
   optional string component = 2;
 }
@@ -475,7 +475,7 @@ message GraphContent {
 message AnnotationNode {
 
   // A fully qualified node name that MUST exist in the graph.
-  // - server.0.npu.0
+  // - server.0.xpu.0
   // - server.6.nic.3
   // - switch.2.asic.0
   optional string name = 1;
@@ -492,14 +492,14 @@ message AnnotationEdge {
 
   // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
   // in the graph.
-  // - server.0.npu.0
+  // - server.0.xpu.0
   // - server.6.nic.3
   // - switch.2.asic.0
   optional string ep1 = 1;
 
   // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
   // in the graph.
-  // - server.0.npu.0
+  // - server.0.xpu.0
   // - server.6.nic.3
   // - switch.2.asic.0
   optional string ep2 = 2;
@@ -813,7 +813,7 @@ service Openapi {
   rpc streamGetGraph(stream Data) returns (GetGraphResponse);
   // Query the current fully expanded graph using a declarative query syntax.
   // 
-  // - example: Ask the graph for specific endpoints such as those of type `NPU` or
+  // - example: Ask the graph for specific endpoints such as those of type `XPU` or
   // `NIC`
   rpc QueryGraph(QueryGraphRequest) returns (QueryGraphResponse);
   // streaming version of the rpc QueryGraph

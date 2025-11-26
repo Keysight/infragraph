@@ -14,13 +14,13 @@ info:
     - an infrastructure `node (vertex)` is the fundamental unit or entity within an infrastructure graph; represented as a endpoint with the following syntax:
       - a combination of a device instance name and a 0 based index and a component name and a 0 based index such as `switch.0.asic.0` and `switch.0.port.0`
     - an infrastructure `edge` is a combination of two `nodes (endpoints)` in a graph such as (`switch.0.asic.0`, `switch.0.port.0`)
-    - `path` is a sequence of edges that allows for traversal through the graph such as [`server.0.npu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
+    - `path` is a sequence of edges that allows for traversal through the graph such as [`server.0.xpu.0`, `server.0.nic.0`, `switch.0.port.0`, `switch.0.asic.0`]
 
     ### Contributions
     Contributions to the API and models schema can be made in the following ways:
     - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
     - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
-  version: 0.5.1
+  version: 0.6.1
   contact:
     url: https://github.com/keysight/infragraph/issues
   license:
@@ -84,7 +84,7 @@ paths:
       description: |-
         Query the current fully expanded graph using a declarative query syntax.
 
-          - example: Ask the graph for specific endpoints such as those of type `NPU` or `NIC`
+          - example: Ask the graph for specific endpoints such as those of type `XPU` or `NIC`
       requestBody:
         required: true
         content:
@@ -287,7 +287,7 @@ components:
       description: |-
         Placeholder for a component that can be extended.
       type: object
-    Component.Npu:
+    Component.Xpu:
       description: |-
         Placeholder for a component that can be extended.
       type: object
@@ -345,7 +345,7 @@ components:
             - `custom` If the type of a component is not listed as a choice it can be defined using the custom object which includes a type property that allows for a custom type attribute on the graph node.
             - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
             - `cpu` A high level definition for a cpu
-            - `npu` A high level definition for a neural processing unit
+            - `xpu` A high level definition for a neural processing unit
             - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card
             - `memory` A high level definition for memory
             - `port` A high level definitiion for an IO port
@@ -359,7 +359,7 @@ components:
               x-field-uid: 2
             cpu:
               x-field-uid: 3
-            npu:
+            xpu:
               x-field-uid: 4
             nic:
               x-field-uid: 5
@@ -373,7 +373,7 @@ components:
           - custom
           - device
           - cpu
-          - npu
+          - xpu
           - nic
           - memory
           - port
@@ -387,8 +387,8 @@ components:
         cpu:
           $ref: '#/components/schemas/Component.Cpu'
           x-field-uid: 12
-        npu:
-          $ref: '#/components/schemas/Component.Npu'
+        xpu:
+          $ref: '#/components/schemas/Component.Xpu'
           x-field-uid: 13
         nic:
           $ref: '#/components/schemas/Component.Nic'
@@ -561,7 +561,7 @@ components:
             The name of a component that MUST exist in the Instance.device specified by the instance object in the Infrastructure.instances array.
 
             The indexes MUST be specified using python slice notation.
-              - example: npu[0:2]
+              - example: xpu[0:2]
           type: string
           x-field-uid: 2
     Infrastructure.Edge:
@@ -779,7 +779,7 @@ components:
         name:
           description: |-
             A fully qualified node name that MUST exist in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
@@ -802,7 +802,7 @@ components:
         ep1:
           description: |-
             A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
@@ -810,7 +810,7 @@ components:
         ep2:
           description: |-
             A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
-            - server.0.npu.0
+            - server.0.xpu.0
             - server.6.nic.3
             - switch.2.asic.0
           type: string
