@@ -17,6 +17,10 @@ class IronwoodRack(Device):
         - CPUs are connected to XPUs via PCIe Gen5 (128 GBPS).
         - CPUs are connected to NICs via PCIe Gen5 (128 GBPS).
     """
+    # Supporting references:
+    # - https://docs.cloud.google.com/tpu/docs/v4
+    # - https://henryhmko.github.io/posts/tpu/tpu.html
+    # - https://newsletter.semianalysis.com/p/google-ai-infrastructure-supremacy
 
     DIMENSION = 4
     XPU_COUNT = 64
