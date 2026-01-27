@@ -2,7 +2,7 @@ import pytest
 import networkx
 from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.fabrics.single_tier_fabric import SingleTierFabric
-from infragraph.blueprints.devices.dgx import Dgx
+from infragraph.blueprints.devices.nvidia.dgx import Dgx
 from infragraph.blueprints.devices.server import Server
 
 def print_graph(graph):
