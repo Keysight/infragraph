@@ -27,6 +27,17 @@ class InfrastructureError(Exception):
 
     pass
 
+class DeviceData:
+    def __init__(self):
+        self.nodes = {}
+        self.edges = {}
+        self.translated_nodes = {}
+    
+    def add_edge(self, ep1, ep2, link):
+        if ep1 in self.edges:
+            self.edges[ep1].append((ep2, link))
+        else:
+            self.edges[ep1] = [(ep2, link)]
 
 class InfraGraphService(Api):
     """InfraGraph Services"""
@@ -34,6 +45,7 @@ class InfraGraphService(Api):
     def __init__(self):
         super().__init__()
         self._graph: Graph = Graph()
+        self._device_data = {}
         self._infrastructure: Infrastructure = Infrastructure()
 
     @property
@@ -52,6 +64,93 @@ class InfraGraphService(Api):
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
 
+    def _generate_device_data(self):
+        # get all the devices
+        for device in self._infrastructure.devices:
+            # iterate the components
+            dd = DeviceData()
+            for component in device.components:
+                for index in range(component.count):
+                    
+                    if component.choice == Component.CUSTOM:
+                        component_type = component.custom.type
+                    else:
+                        component_type = component.choice
+                    dd.nodes[component.name + "." + str(index)] = component_type
+
+            # expand edges here:
+            for edge in device.edges:
+                endpoints1 = self._expand_endpoint(None, device, edge.ep1)
+                endpoints2 = self._expand_endpoint(None, device, edge.ep2)
+                for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
+                    if edge.scheme == DeviceEdge.MANY2MANY:  # cartesion product
+                        for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
+                            if src == dst:
+                                continue
+                            dd.add_edge(src, dst, edge.link)
+                            
+                    elif edge.scheme == DeviceEdge.ONE2ONE:  # meshed product
+                        for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
+                            if src == dst:
+                                continue
+                            dd.add_edge(src, dst, edge.link)
+                    else:
+                        raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
+            self._device_data[device.name] = dd
+    
+    def _generate_device_nodes(self, instance_name, device_name):
+        device_data = self._device_data[device_name]
+        # get the nodes
+        for component_name, component_type in device_data.nodes.items():
+            if component_type == ComponentDevice:
+                # recursive call here
+                self._generate_device_nodes(instance_name=instance_name + "." + component_name, device_name=component_name)
+            # we add others
+            self._graph.add_node(
+                instance_name + "." + component_name,
+                type=component_type,
+                instance=instance_name.split(".")[0],
+                instance_idx=int(instance_name.split(".")[1]),
+                device=device_name,
+            )
+    
+    def _generate_composed_edges(self, instance_name, device_name):
+        device_data = self._device_data[device_name]
+        for component_name, component_type in device_data.nodes.items():
+            if component_type == ComponentDevice:
+                self._generate_composed_edges(instance_name=instance_name + "." + component_name, device_name=component_name)
+
+                for endpoint_1, endpoint_tuple in device_data.edges.items():
+                    source = instance_name + "." + endpoint_1
+                    destination = instance_name + "." + endpoint_tuple[0]
+                    link = endpoint_tuple[1]
+                    self._graph.add_edge(source, destination, link=link)
+
+    def _generate_device_edges(self, instance_name, device_name):
+        device_data = self._device_data[device_name]
+        for src_endpoint, endpoint_list in device_data.edges.items():
+            for dest_endpoint in endpoint_list:
+                source = instance_name + "." + src_endpoint
+                destination = instance_name + "." + dest_endpoint[0]
+                link = dest_endpoint[1]
+                self._graph.add_edge(source, destination, link=link)
+        self._generate_composed_edges(instance_name, device_name)
+
+    def _generate_instance_data(self):
+        for instance in self._infrastructure.instances:
+            # get the device name
+            device_name = instance.device
+            count = instance.count
+            instance_name = instance.name
+            for index in range(0, count):
+                # call the specific class
+                
+                instance_name = instance.name + "." + str(index)
+                # generate node and edges
+                self._generate_device_nodes(instance_name, device_name)
+                self._generate_device_edges(instance_name, device_name)
+
+
     def set_graph(self, payload: Union[str, Infrastructure]) -> None:
         """Generates a networkx graph, validates it and if there are no problems
         returns the networkx graph as a serialized json string.
@@ -68,8 +167,10 @@ class InfraGraphService(Api):
         else:
             self._infrastructure = payload
         self._graph = Graph()
-        self._add_nodes()
-        self._add_device_edges()
+        self._generate_device_data()
+        self._generate_instance_data()
+        # self._add_nodes()
+        # self._add_device_edges()
         self._validate_device_edges()
         self._add_infrastructure_edges()
         self._validate_graph()
@@ -260,13 +361,18 @@ class InfraGraphService(Api):
             component_endpoint = endpoint.component
         else:
             raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
-        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
+        d_start, d_stop, d_step = 0, 1, 1
+        if instance is not None:
+            _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
         component = self._get_component(device, component_endpoint.split("[")[0])
         _, c_start, c_stop, c_step = self._split_endpoint(component.count, endpoint.component)
         for device_idx in range(d_start, d_stop, d_step):
             qualified_endpoints = []
             for idx in range(c_start, c_stop, c_step):
-                qualified_endpoints.append(f"{instance.name}.{device_idx}.{component.name}.{idx}")
+                if instance is not None:
+                    qualified_endpoints.append(f"{instance.name}.{device_idx}.{component.name}.{idx}")
+                else:
+                    qualified_endpoints.append(f"{component.name}.{idx}")
             endpoints.append(qualified_endpoints)
         return endpoints
 
