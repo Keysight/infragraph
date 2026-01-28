@@ -110,12 +110,14 @@ class CCx5(Device):
         # PORT to QSFP
         edge = self.edges.add(scheme=DeviceEdge.ONE2ONE, link=ic.name)
         edge.ep1.component = f"{port.name}[0]"
-        edge.ep2.component = f"{qsfp.name}[0].electrical_port[0]"
+        edge.ep2.device = f"{qsfp.name}[0]"
+        edge.ep2.component = f"electrical_port[0]"
         self.edges.append(edge)
 
         edge = self.edges.add(scheme=DeviceEdge.ONE2ONE, link=ic.name)
         edge.ep1.component = f"{port.name}[1]"
-        edge.ep2.component = f"{qsfp.name}[1].electrical_port[0]"
+        edge.ep2.device = f"{qsfp.name}[1]"
+        edge.ep2.component = f"electrical_port[0]"
         self.edges.append(edge)
 
 class CDgx(Device):
@@ -196,7 +198,8 @@ class CDgx(Device):
 
             for  pciesl_idx in range(pcie_slot.count):
                 edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
-                edge.ep1.component = f"{nic.name}[{pciesl_idx}].{component_name}[0]"
+                edge.ep1.device = f"{nic.name}[{pciesl_idx}]"
+                edge.ep1.component = f"{component_name}[0]"
                 edge.ep2.component = f"{pcie_slot.name}[{pciesl_idx}]"
 
         

@@ -73,11 +73,15 @@ class InfraGraphService(Api):
         endpoints = []
         qualified_endpoints = []
         if isinstance(endpoint, DeviceEndpoint):
+            device_endpoint = endpoint.device
             component_endpoint = endpoint.component
         else:
             raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
         
-        for endpoint_element in component_endpoint.split("."):
+        ce = component_endpoint
+        if device_endpoint is not None:
+            ce = device_endpoint + "." + ce
+        for endpoint_element in ce.split("."):
             # if element is component
             component_name = endpoint_element.split("[")[0]
             if component_name in self._device_data[device_name].components:
