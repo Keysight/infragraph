@@ -243,6 +243,7 @@ class InfraGraphService(Api):
                     instance=instance_name.split(".")[0],
                     instance_idx=int(instance_name.split(".")[1]),
                     device=device_name,
+                    composed_device=instance_name,
                 )
     
     def _generate_composed_edges(self, instance_name, device_name):
@@ -251,12 +252,12 @@ class InfraGraphService(Api):
             if component_type == Component.DEVICE:
                 self._generate_composed_edges(instance_name=instance_name + "." + component_name, device_name=component_name.split(".")[0])
 
-                for endpoint_1, endpoint_list in device_data.edges.items():
-                    for dest_endpoint_tuple in endpoint_list:
-                        source = instance_name + "." + endpoint_1
-                        destination = instance_name + "." + dest_endpoint_tuple[0]
-                        link = dest_endpoint_tuple[1]
-                        self._graph.add_edge(source, destination, link=link)
+            for endpoint_1, endpoint_list in device_data.edges.items():
+                for dest_endpoint_tuple in endpoint_list:
+                    source = instance_name + "." + endpoint_1
+                    destination = instance_name + "." + dest_endpoint_tuple[0]
+                    link = dest_endpoint_tuple[1]
+                    self._graph.add_edge(source, destination, link=link)
 
     def _generate_device_edges(self, instance_name, device_name):
         device_data = self._device_data[device_name]
@@ -295,7 +296,7 @@ class InfraGraphService(Api):
                 self._generate_device_nodes(instance_name, device_name)
                 self._generate_device_edges(instance_name, device_name)
             
-        self.print_graph()   
+        self.print_graph()
         pass
 
 

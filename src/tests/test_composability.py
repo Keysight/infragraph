@@ -1,6 +1,9 @@
 from infragraph import *
 from infragraph.infragraph_service import InfraGraphService
 # pyright: reportArgumentType=false
+from pyvis.network import Network
+
+
 
 class CQSFP(Device):
 
@@ -170,6 +173,18 @@ class CDgx(Device):
         pcie = self.links.add(name="pcie")
         nvlink = self.links.add(name="nvlink")
 
+        for  cpu_idx in range(cpu.count):
+            for idx in range(0, 2):
+                edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
+                edge.ep1.component = f"{cpu.name}[{cpu_idx}]"
+                edge.ep2.component = f"{pciesw.name}[{cpu_idx * 2 + idx}]"
+
+        for  pciesw_idx in range(pciesw.count):
+            for idx in range(0, 2):
+                edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
+                edge.ep1.component = f"{pciesw.name}[{pciesw_idx}]"
+                edge.ep2.component = f"{pcie_slot.name}[{pciesw_idx * 2 + idx}]"
+                
         if nic_device is None:
             nic = self.components.add(
                 name="nic",
@@ -178,10 +193,10 @@ class CDgx(Device):
             )
             nic.choice = Component.NIC
 
-            for nic_idx, pciesw_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pciesw.count)):
+            for nic_idx, pciesl_idx in zip(["0:2", "2:4", "4:6", "6:8"], range(pcie_slot.count)):
                 edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
                 edge.ep1.component = f"{nic.name}[{nic_idx}]"
-                edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
+                edge.ep2.component = f"{pcie_slot.name}[{pciesl_idx}]"
 
         else:
             nic = self.components.add(
@@ -196,11 +211,16 @@ class CDgx(Device):
             #     if component.type == Component.PCIE_ENDPOINT:
             #         # GET THE COMPONENT
 
-            for  pciesl_idx in range(pcie_slot.count):
-                edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
-                edge.ep1.device = f"{nic.name}[{pciesl_idx}]"
-                edge.ep1.component = f"{component_name}[0]"
-                edge.ep2.component = f"{pcie_slot.name}[{pciesl_idx}]"
+            edge = self.edges.add(scheme=DeviceEdge.ONE2ONE, link=pcie.name)
+            edge.ep1.device = f"{nic.name}[0:8]"
+            edge.ep1.component = f"{component_name}[0]"
+            edge.ep2.component = f"{pcie_slot.name}[0:8]"
+
+            # for  pciesl_idx in range(pcie_slot.count):
+            #     edge = self.edges.add(scheme=DeviceEdge.MANY2MANY, link=pcie.name)
+            #     edge.ep1.device = f"{nic.name}[{pciesl_idx}]"
+            #     edge.ep1.component = f"{component_name}[0]"
+            #     edge.ep2.component = f"{pcie_slot.name}[{pciesl_idx}]"
 
         
 
@@ -238,10 +258,39 @@ def test_composability():
     device = CDgx(cx5)
     infrastructure = Api().infrastructure()
     infrastructure.devices.append(device).append(cx5).append(qsfp)
-    infrastructure.instances.add(name=device.name, device=device.name, count=1)
+    infrastructure.instances.add(name=device.name, device=device.name, count=2)
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    #hierarchical in pyvis
+    net = Network(
+        height="750px",
+        width="100%",
+        directed=False,
+        select_menu=True,
+        filter_menu=True 
+    )
+
+    
+    net.from_nx(g)
+
+    net.set_options("""
+    {
+    "layout": {
+        "hierarchical": {
+        "enabled": true,
+        "direction": "UD",
+        "sortMethod": "directed",
+        "levelSeparation": 150,
+        "nodeSpacing": 200
+        }
+    },
+    "physics": {
+        "enabled": false
+    }
+    }
+    """)
+    net.write_html("dgx_1.html")
 
     dump_yaml(infrastructure, "infrastructure_compose")
     print_graph(g)
