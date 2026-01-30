@@ -296,10 +296,6 @@ class InfraGraphService(Api):
                 self._generate_device_nodes(instance_name, device_name)
                 self._generate_device_edges(instance_name, device_name)
             
-        self.print_graph()
-        pass
-
-
     def set_graph(self, payload: Union[str, Infrastructure]) -> None:
         """Generates a networkx graph, validates it and if there are no problems
         returns the networkx graph as a serialized json string.

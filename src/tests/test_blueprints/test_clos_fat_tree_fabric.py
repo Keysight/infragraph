@@ -7,11 +7,12 @@ from infragraph.blueprints.devices.server import Server
 from infragraph.blueprints.devices.generic_switch import Switch
 
 def print_graph(graph):
-    for node, attrs in graph.nodes(data=True):
-        print(f"Node: {node}, Attributes: {attrs}")
+    # for node, attrs in graph.nodes(data=True):
+    #     print(f"Node: {node}, Attributes: {attrs}")
 
-    for u, v, attrs in graph.edges(data=True):
-        print(f"Edge: ({u}, {v}), Attributes: {attrs}")
+    # for u, v, attrs in graph.edges(data=True):
+    #     print(f"Edge: ({u}, {v}), Attributes: {attrs}")
+    pass
 
 def dump_yaml(clos_fabric, filename):
     # import yaml
@@ -41,7 +42,7 @@ async def test_2_tier_16_radix_with_dgx():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    # # print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_2_tier_8_radix_with_server():
@@ -151,7 +152,7 @@ async def test_3_tier_no_oversub_8_radix_with_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    # # print_graph(g)
+    # print_graph(g)
 
 
 @pytest.mark.asyncio
