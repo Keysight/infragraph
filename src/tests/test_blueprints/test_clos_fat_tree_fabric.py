@@ -41,7 +41,7 @@ async def test_2_tier_16_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
@@ -179,7 +179,7 @@ async def test_2_tier_32_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
@@ -208,7 +208,7 @@ async def test_3_tier_32_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 if __name__ == "__main__":
