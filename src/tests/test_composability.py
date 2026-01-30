@@ -1,4 +1,7 @@
 from infragraph import *
+from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
+from infragraph.blueprints.devices.nvidia.cx5 import Cx5
+from infragraph.blueprints.devices.common.transceiver.qsfp import QSFP
 from infragraph.infragraph_service import InfraGraphService
 # pyright: reportArgumentType=false
 from pyvis.network import Network
@@ -256,6 +259,50 @@ def test_composability():
     qsfp = CQSFP()
     cx5 = CCx5()
     device = CDgx(cx5)
+    infrastructure = Api().infrastructure()
+    infrastructure.devices.append(device).append(cx5).append(qsfp)
+    infrastructure.instances.add(name=device.name, device=device.name, count=2)
+    service = InfraGraphService()
+    service.set_graph(infrastructure)
+    g = service.get_networkx_graph()
+    #hierarchical in pyvis
+    net = Network(
+        height="750px",
+        width="100%",
+        directed=False,
+        select_menu=True,
+        filter_menu=True 
+    )
+
+    
+    net.from_nx(g)
+
+    net.set_options("""
+    {
+    "layout": {
+        "hierarchical": {
+        "enabled": true,
+        "direction": "UD",
+        "sortMethod": "directed",
+        "levelSeparation": 150,
+        "nodeSpacing": 200
+        }
+    },
+    "physics": {
+        "enabled": false
+    }
+    }
+    """)
+    net.write_html("dgx_1.html")
+
+    dump_yaml(infrastructure, "infrastructure_compose")
+    # print_graph(g)
+
+
+def test_dgx_composability():
+    qsfp = QSFP("qsfp28_100g")
+    cx5 = Cx5("cx5_100g_dual", qsfp)
+    device = NvidiaDGX("dgx_h100", cx5)
     infrastructure = Api().infrastructure()
     infrastructure.devices.append(device).append(cx5).append(qsfp)
     infrastructure.instances.add(name=device.name, device=device.name, count=2)
