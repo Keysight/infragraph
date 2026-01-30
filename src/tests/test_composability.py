@@ -3,10 +3,8 @@ from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
 from infragraph.blueprints.devices.nvidia.cx5 import Cx5
 from infragraph.blueprints.devices.common.transceiver.qsfp import QSFP
 from infragraph.infragraph_service import InfraGraphService
+import networkx
 # pyright: reportArgumentType=false
-from pyvis.network import Network
-
-
 
 class CQSFP(Device):
 
@@ -240,21 +238,6 @@ class CDgx(Device):
             edge.ep1.component = f"{xpu.name}[{npu_idx}]"
             edge.ep2.component = f"{pciesw.name}[{pciesw_idx}]"
 
-        
-def print_graph(graph):
-    for node, attrs in graph.nodes(data=True):
-        print(f"Node: {node}, Attributes: {attrs}")
-
-    for u, v, attrs in graph.edges(data=True):
-        print(f"Edge: ({u}, {v}), Attributes: {attrs}")
-
-def dump_yaml(clos_fabric, filename):
-    import yaml
-    with open(filename + ".yaml", "w") as file:
-        data = clos_fabric.serialize("dict")
-        yaml.dump(data, file, default_flow_style=False, indent=4)
-    pass
-
 def test_composability():
     qsfp = CQSFP()
     cx5 = CCx5()
@@ -265,39 +248,8 @@ def test_composability():
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
-    #hierarchical in pyvis
-    net = Network(
-        height="750px",
-        width="100%",
-        directed=False,
-        select_menu=True,
-        filter_menu=True 
-    )
-
-    
-    net.from_nx(g)
-
-    net.set_options("""
-    {
-    "layout": {
-        "hierarchical": {
-        "enabled": true,
-        "direction": "UD",
-        "sortMethod": "directed",
-        "levelSeparation": 150,
-        "nodeSpacing": 200
-        }
-    },
-    "physics": {
-        "enabled": false
-    }
-    }
-    """)
-    net.write_html("dgx_1.html")
-
-    dump_yaml(infrastructure, "infrastructure_compose")
-    # print_graph(g)
-
+    print(f"\nInfrastructure is a {g}")
+    print(networkx.write_network_text(g, vertical_chains=True))
 
 def test_dgx_composability():
     qsfp = QSFP("qsfp28_100g")
@@ -309,35 +261,5 @@ def test_dgx_composability():
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
-    #hierarchical in pyvis
-    net = Network(
-        height="750px",
-        width="100%",
-        directed=False,
-        select_menu=True,
-        filter_menu=True 
-    )
-
-    
-    net.from_nx(g)
-
-    net.set_options("""
-    {
-    "layout": {
-        "hierarchical": {
-        "enabled": true,
-        "direction": "UD",
-        "sortMethod": "directed",
-        "levelSeparation": 150,
-        "nodeSpacing": 200
-        }
-    },
-    "physics": {
-        "enabled": false
-    }
-    }
-    """)
-    net.write_html("dgx_1.html")
-
-    dump_yaml(infrastructure, "infrastructure_compose")
-    print_graph(g)
+    print(f"\nInfrastructure is a {g}")
+    print(networkx.write_network_text(g, vertical_chains=True))
