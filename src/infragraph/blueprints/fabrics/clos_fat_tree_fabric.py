@@ -1,4 +1,4 @@
-from infragraph import Device, Infrastructure, Component, InfrastructureEdge
+from infragraph import *
 from infragraph.infragraph_service import InfraGraphService
 
 
