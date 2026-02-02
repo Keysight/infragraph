@@ -329,13 +329,13 @@ class NvidiaDGX(Device):
 
     def _add_symbolic_nics(self, desc: str):
         nic = self.components.add(
-            name="desc",
+            name=desc,
             description=desc,
             count=self.pciesl.count,
         )
         nic.choice = Component.NIC
 
-        self._wire_slots_to_nics("nic")
+        self._wire_slots_to_nics(desc)
 
     def _add_device_nics(self, dev: Device):
         nic = self.components.add(
