@@ -135,7 +135,7 @@ src/infragraph/blueprints/fabrics/
 ```
 
 
-### Example: Creating a Single Tier Fabric with Multiple DGX Hosts
+### Creating a Single Tier Fabric with Multiple DGX Hosts
 
 The following example demonstrates how to use the `SingleTierFabric` class to create a simple fabric connecting two DGX devices via a generic switch:
 
@@ -159,7 +159,7 @@ The `SingleTierFabric` blueprint returns an Infragraph object that includes two 
 
 ---
 
-### Example: Creating a CLOS Fat Tree Fabric with DGX Hosts
+### Creating a CLOS Fat Tree Fabric with DGX Hosts
 
 The following example demonstrates how to use the `ClosFatTreeFabric` class to create a clos fat tree fabric connecting dgx devices via a generic switch:
 
