@@ -3,7 +3,7 @@ import networkx
 from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.fabrics.single_tier_fabric import SingleTierFabric
 from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
-from infragraph.blueprints.devices.server import Server
+from infragraph.blueprints.devices.generic.server import Server
 
 def print_graph(graph):
     for node, attrs in graph.nodes(data=True):

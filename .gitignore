@@ -680,3 +680,4 @@ docs/src/yaml
 *.lib
 *.html
 *.txt
+src/tests/printed/*
