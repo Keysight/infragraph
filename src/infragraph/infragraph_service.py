@@ -237,11 +237,12 @@ class InfraGraphService(Api):
                 self._generate_device_nodes(instance_name=instance_name + "." + component_name, device_name=component_name.split(".")[0])
             # we add others
             else:
+                instance, index = instance_name.rsplit(".", 1)
                 self._graph.add_node(
                     instance_name + "." + component_name,
                     type=component_type,
-                    instance=instance_name.split(".")[0],
-                    instance_idx=int(instance_name.split(".")[1]),
+                    instance=instance,
+                    instance_idx=int(index),
                     device=device_name,
                     composed_device=instance_name,
                 )

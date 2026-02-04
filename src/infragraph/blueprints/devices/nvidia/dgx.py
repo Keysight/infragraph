@@ -165,7 +165,7 @@ class NvidiaDGX(Device):
         self.profile = profile
         self.cfg = DGX_PROFILE_CATALOG[profile]
 
-        self.name = f"NVIDIA_{profile.upper()}"
+        self.name = f"{profile}"
         self.description = "NVIDIA DGX System"
 
         self.cpu = self._add_cpu()
