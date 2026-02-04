@@ -268,20 +268,7 @@ class InfraGraphService(Api):
                 link = dest_endpoint[1]
                 self._graph.add_edge(source, destination, link=link)
         self._generate_composed_edges(instance_name, device_name)
-
-    def print_graph(self):
-        with open("graph_dump.txt", "w", encoding="utf-8") as f:
-            for node, attrs in self._graph.nodes(data=True):
-                f.write(f"Node: {node}, Attributes: {attrs}\n")
-                print(f"Node: {node}, Attributes: {attrs}")
-
-            f.write("\n")  # blank line between nodes and edges
-
-            for u, v, attrs in self._graph.edges(data=True):
-                f.write(f"Edge: ({u}, {v}), Attributes: {attrs}\n")
-                print(f"Edge: ({u}, {v}), Attributes: {attrs}")
-
-            
+         
     def _generate_instance_data(self):
         for instance in self._infrastructure.instances:
             # get the device name
@@ -314,8 +301,6 @@ class InfraGraphService(Api):
         self._graph = Graph()
         self._generate_device_data()
         self._generate_instance_data()
-        # self._add_nodes()
-        # self._add_device_edges()
         self._validate_device_edges()
         self._parse_infrastructure_edges()
         self._validate_graph()
@@ -348,121 +333,9 @@ class InfraGraphService(Api):
             raise ValueError("Graph is not set. Please call set_graph() first.")
         return yaml.dump(json_graph.node_link_data(self._graph, edges="edges"))
 
-    def _isa_component(self, device_name: str):
-        """Return whether or not the device is a component of another device"""
-        for device in self._infrastructure.devices:
-            for component in device.components:
-                if component.name == device_name and component.choice == Component.DEVICE:
-                    return True
-        return False
-
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
         return networkx.shortest_path(self._graph, endpoint1, endpoint2)
-
-    def _get_device(self, device_name: str) -> Device:
-        """Given a device name return the device object"""
-        for device in self._infrastructure.devices:
-            if device.name == device_name:
-                return device
-        raise InfrastructureError(f"Device {device_name} does not exist in Infrastructure.devices")
-
-    def _add_nodes(self):
-        """Add all device instances as nodes to the graph
-        - add component type, instance name, instance index, device name as attributes
-        """
-        for instance in self._infrastructure.instances:
-            if self._isa_component(instance.device):
-                continue
-            device = self._get_device(instance.device)
-            for device_idx in range(instance.count):
-                for component in device.components:
-                    for component_idx in range(component.count):
-                        name = f"{instance.name}.{device_idx}.{component.name}.{component_idx}"
-                        type = (
-                            component.custom.type
-                            if component.choice == Component.CUSTOM
-                            else component.choice
-                        )
-                        self._graph.add_node(
-                            name,
-                            type=type,
-                            instance=instance.name,
-                            instance_idx=device_idx,
-                            device=instance.device,
-                        )
-
-    def _resolve_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
-        """Given an infrastructure endpoint return the Instance and Device"""
-        instance_name = endpoint.instance.split("[")[0]
-        for instance in self._infrastructure.instances:
-            if instance.name == instance_name:
-                device = self._get_device(instance.device)
-                return (instance, device)
-        raise InfrastructureError(f"Instance '{instance_name}' does not exist in infrastructure instances")
-
-    def _add_infrastructure_edges(self):
-        """Generate infrastructure edges and add them to the graph"""
-        for edge in self._infrastructure.edges:
-            instance1, device1 = self._resolve_instance(edge.ep1)
-            endpoints1 = self._expand_endpoint(instance1, device1, edge.ep1)
-            instance2, device2 = self._resolve_instance(edge.ep2)
-            endpoints2 = self._expand_endpoint(instance2, device2, edge.ep2)
-            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.scheme == InfrastructureEdge.MANY2MANY:  # cartesion product
-                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
-                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps, strict=False)]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                else:
-                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
-
-    def _add_device_edges(self):
-        """Add all device edges to the graph.
-
-        - Do not add edges when the device is referenced as a component in another device.
-        """
-        for instance in self._infrastructure.instances:
-            if self._isa_component(instance.device):
-                continue
-            device = self._get_device(instance.device)
-            for edge in device.edges:
-                self._add_device_edge(instance, device, edge)
-
-    def _add_device_edge(self, instance: Instance, device: Device, edge: DeviceEdge) -> None:
-        """Validate edges and add them to the graph
-
-        Substitute the instance name for the device name.
-
-        instance.name = "test"
-        instance.device = "dgx"
-        edge.ep1.device = "dgx[0:8]" -> test.0 -> test.7
-        edge.ep1.component = "a100[0:8]" -> a100.0 -> a100.7
-
-        edge.ep1.device = "dgx[0:8]" -> dgx.0 -> dgx.7
-        edge.ep1.component = "pciesw[0]" -> pciesw.0
-        """
-        for edge in device.edges:
-            endpoints1 = self._expand_endpoint(instance, device, edge.ep1)
-            endpoints2 = self._expand_endpoint(instance, device, edge.ep2)
-            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.scheme == DeviceEdge.MANY2MANY:  # cartesion product
-                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                elif edge.scheme == DeviceEdge.ONE2ONE:  # meshed product
-                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                else:
-                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
     def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, int, int, int]:
         """Given an endpoint return a list of endpoint strings.
@@ -489,50 +362,6 @@ class InfraGraphService(Api):
                     if slice_piece != "":
                         slice_pieces[idx] = int(slice_piece)
         return (name, slice_pieces[0], slice_pieces[1], slice_pieces[2])
-
-    def _expand_endpoint(
-        self,
-        instance: Instance,
-        device: Device,
-        endpoint: Union[InfrastructureEndpoint, DeviceEndpoint],
-    ) -> List[List[str]]:
-        """Return a list for every instance index to a list of fully qualified instance endpoint names"""
-        endpoints = []
-        if isinstance(endpoint, InfrastructureEndpoint):
-            device_endpoint = endpoint.instance
-            component_endpoint = endpoint.component
-        elif isinstance(endpoint, DeviceEndpoint):
-            device_endpoint = device.name if endpoint.device is None else endpoint.device
-            component_endpoint = endpoint.component
-        else:
-            raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
-        
-        # expansion of device
-        d_start, d_stop, d_step = 0, 1, 1
-        if instance is not None:
-            _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
-        
-        # expansion of component
-        component = self._get_component(device, component_endpoint.split("[")[0])
-        _, c_start, c_stop, c_step = self._split_endpoint(component.count, endpoint.component)
-        
-        # add device and component together here
-        for device_idx in range(d_start, d_stop, d_step):
-            qualified_endpoints = []
-            for idx in range(c_start, c_stop, c_step):
-                if instance is not None:
-                    qualified_endpoints.append(f"{instance.name}.{device_idx}.{component.name}.{idx}")
-                else:
-                    qualified_endpoints.append(f"{component.name}.{idx}")
-            endpoints.append(qualified_endpoints)
-        return endpoints
-
-    def _get_component(self, device: Device, name: str) -> Component:
-        """Return a component given a name"""
-        for component in device.components:
-            if component.name == name:
-                return component
-        raise ValueError(f"Component {name} does not exist in Device {device.name}")
 
     @staticmethod
     def get_component(device: Device, type: str) -> Component:

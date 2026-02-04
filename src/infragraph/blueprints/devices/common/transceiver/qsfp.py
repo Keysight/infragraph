@@ -11,7 +11,7 @@ QsfpVariant = Literal[
 
 QSFP_VARIANT_CATALOG: Dict[QsfpVariant, dict] = {
     "qsfp_plus_40g": {
-        "form_factor": "QSFP+",
+        "form_factor": "QSFP_PLUS",
         "speed": "40Gb",
         "lanes": 4,
     },
