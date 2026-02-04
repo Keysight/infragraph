@@ -196,7 +196,7 @@ The CLOS Fat Tree fabric builds a scalable network using multiple levels of iden
 - **Bandwidth array:** Link speeds at each level, e.g., host-to-edge (tier_0), edge-to-aggregation (tier_0 -> tier_1), aggregation-to-spine (tier_1 -> tier_2).
 
 
-### Use Case L = 2 (Two-level Fat Tree)
+### Two-Level Fat-Tree: Network Sizing Computation
 1. **switch downlink**: k/2 
 2. **Number of Hosts:** 
     = (2 * (switch_downlink) ^ Levels)/ (total ports in host)
@@ -208,7 +208,7 @@ The CLOS Fat Tree fabric builds a scalable network using multiple levels of iden
 
 **Connections:** Hosts → tier_0 (rack) → tier_1 (spines).
 
-### Use Case L = 3 (Three-level Fat Tree)
+### Three-Level Fat-Tree Topology: Network Sizing Computation
 1. **switch downlink**: k/2 
 2. **Number of Hosts:** 
     = (2 * (switch_downlink) ^ Levels)/ (total ports in host)
