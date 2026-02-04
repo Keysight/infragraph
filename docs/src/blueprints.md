@@ -48,7 +48,9 @@ All QSFP variants share the same internal topology:
 Only the **capabilities** (form factor, speed, and lane count) differ across variants, and these are strictly controlled using a variant catalog.
 
 
-#### Example: `qsfp.py` Blueprint located in /src/infragraph/blueprints/devices/common
+#### Example: `qsfp.py` 
+
+``Location: /src/infragraph/blueprints/devices/common``
 
 <details open>
 <summary><strong>QSFP device definition using OpenApiArt generated classes</strong></summary>
@@ -63,7 +65,11 @@ Infragraph supports modeling a **device inside another device**, where the neste
 
 The idea is that we can add a **CX5** device to a **DGX**, and then add a **QSFP** to the **CX5**:
 
+### Example: Composing DGX-CX5-QSFP
+<details open>
+<summary><strong>DGX composed of CX5 which has QSFP as a device</strong></summary>
 ```python
+
 qsfp = QSFP("qsfp28_100g")
 cx5 = Cx5(variant="cx5_100g_single", transceiver=qsfp)
 dgx = NvidiaDGX("dgx_h100", cx5)
@@ -74,7 +80,9 @@ infrastructure.instances.add(name=dgx.name, device=dgx.name, count=1)
 service = InfraGraphService()
 service.set_graph(infrastructure)
 g = service.get_networkx_graph()
+
 ```
+</details>
 
 This creates a single **DGX h100** variant composed of a **CX5 100g single port** which is composed of a **QSFP 28 100g**. Generated YAML:
 
@@ -85,12 +93,14 @@ This creates a single **DGX h100** variant composed of a **CX5 100g single port*
 ```
 </details>
 
+### Example: DGX with CX5 as a NIC
 
-In some scenarios, a user may prefer to model ``CX5`` as an **abstracted NIC** within a ``DGX`` device rather than as a fully instantiated device.
+In some scenarios, a user may prefer to model ``cx5`` as an **abstracted NIC** within a ``dgx`` device rather than as a fully instantiated device.
 
-To add ``CX5`` as a `NIC` component, the user can initialize the ``DGX`` device by passing the CX5 variant directly, as shown below:
+To add ``cx5`` as a `NIC` component, the user can initialize the ``dgx`` device by passing the CX5 variant directly, as shown below:
 
-
+<details open>
+<summary><strong>DGX with CX5 as NIC</strong></summary>
 ```python
 dgx_profile = "dgx_h100"
 cx5_variant = "cx5_100g_single"
@@ -102,8 +112,9 @@ service = InfraGraphService()
 service.set_graph(infrastructure)
 g = service.get_networkx_graph()
 ```
+</details>
 
-This creates a `CX5` as a nic component in `DGX` device. Generated YAML:
+This creates a `cx5` as a nic component in `dgx` device. Generated YAML:
 
 <details closed>
 <summary><strong>DGX with CX5 NIC definition as yaml</strong></summary>
@@ -130,6 +141,7 @@ The following example demonstrates how to use the `SingleTierFabric` class to cr
 
 
 ```python
+
 from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
 from infragraph.blueprints.fabrics.single_tier_fabric import SingleTierFabric
 
@@ -139,6 +151,7 @@ dgx = NvidiaDGX()
 # Create a single-tier fabric connecting two DGX devices via a single switch
 fabric = SingleTierFabric(dgx, 2) # 2 DGX devices
 # 'fabric' now contains the infrastructure graph with two DGX devices and the connecting switch
+
 ```
 
 
@@ -152,6 +165,7 @@ The following example demonstrates how to use the `ClosFatTreeFabric` class to c
 
 
 ```python
+
 from infragraph.blueprints.fabrics.clos_fat_tree_fabric import ClosFatTreeFabric
 from infragraph.blueprints.devices.dgx import NvidiaDGX
 from infragraph.blueprints.devices.generic.generic_switch import Switch
@@ -165,6 +179,7 @@ switch = Switch(port_count=16)
 # Create a clos fat tree fabric with switch radix as 16 and with two levels:
 clos_fat_tree = ClosFatTreeFabric(switch, dgx, 2, [])
 # 'fabric' now contains the infrastructure graph with two tier clos fat tree fabric
+
 ```
 
 ### CLOS Fat Tree Fabric Overview
