@@ -18,7 +18,7 @@ The graph model is able to capture the asymmetric layout of the device.
 <details closed>
 <summary><strong>DGX device definition as yaml</strong></summary>
 ```yaml
-{% include-markdown "./yaml/NVIDIA_DGX_H100.yaml" %}
+{% include-markdown "./yaml/dgx_h100.yaml" %}
 ```
 </details>
 
