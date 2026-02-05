@@ -9,12 +9,12 @@ OsfpVariant = Literal[
 OSFP_VARIANT_CATALOG: Dict[OsfpVariant, dict] = {
     "osfp_400g": {
         "form_factor": "OSFP",
-        "speed": "400Gb",
+        "speed": "400Gbps",
         "lanes": 8,
     },
     "osfp_800g": {
         "form_factor": "OSFP",
-        "speed": "800Gb",
+        "speed": "800Gbps",
         "lanes": 8,
     },
 }

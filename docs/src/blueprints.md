@@ -50,7 +50,7 @@ Only the **capabilities** (form factor, speed, and lane count) differ across var
 
 #### Example: `qsfp.py` 
 
-``Location: /src/infragraph/blueprints/devices/common``
+``Location: /src/infragraph/blueprints/devices/common/transceiver``
 
 <details open>
 <summary><strong>QSFP device definition using OpenApiArt generated classes</strong></summary>
@@ -133,7 +133,7 @@ All fabric blueprints are located in:
 ```
 src/infragraph/blueprints/fabrics/
 ```
-
+**Please note that fabric builders only work with non-composed devices.**
 
 ### Creating a Single Tier Fabric with Multiple DGX Hosts
 
@@ -234,7 +234,5 @@ The CLOS Fat Tree fabric builds a scalable network using multiple levels of iden
 - Spine sets = 16
 
 **Connections:** Hosts → tier_0 → tier_1 (spine switches).
-
-**Please note that fabric builders only work with non-composed devices.**
 
 ---

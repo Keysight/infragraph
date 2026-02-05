@@ -12,27 +12,27 @@ QsfpVariant = Literal[
 QSFP_VARIANT_CATALOG: Dict[QsfpVariant, dict] = {
     "qsfp_plus_40g": {
         "form_factor": "QSFP_PLUS",
-        "speed": "40Gb",
+        "speed": "40Gbps",
         "lanes": 4,
     },
     "qsfp28_100g": {
         "form_factor": "QSFP28",
-        "speed": "100Gb",
+        "speed": "100Gbps",
         "lanes": 4,
     },
     "qsfp56_200g": {
         "form_factor": "QSFP56",
-        "speed": "200Gb",
+        "speed": "200Gbps",
         "lanes": 4,
     },
     "qsfp_dd_400g": {
         "form_factor": "QSFP-DD",
-        "speed": "400Gb",
+        "speed": "400Gbps",
         "lanes": 8,
     },
     "qsfp_dd_800g": {
         "form_factor": "QSFP-DD",
-        "speed": "800Gb",
+        "speed": "800Gbps",
         "lanes": 8,
     }
 }
@@ -41,7 +41,7 @@ class QSFP(Device):
     """
     InfraGraph model of a QSFP-family pluggable transceiver.
 
-    This class represents QSFP+, QSFP28, QSFP56, QSFP-DD, and OSFP
+    This class represents QSFP+, QSFP28, QSFP56, QSFP-DD 400 & 800G
     optical modules. All variants share the same internal topology:
     a one-to-one binding between an electrical host interface and
     an optical media interface.

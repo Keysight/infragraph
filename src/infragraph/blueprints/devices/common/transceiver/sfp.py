@@ -11,22 +11,22 @@ SfpVariant = Literal[
 SFP_VARIANT_CATALOG: Dict[SfpVariant, dict] = {
     "sfp_1g": {
         "form_factor": "SFP",
-        "speed": "1Gb",
+        "speed": "1Gbps",
         "lanes": 1,
     },
     "sfp_plus_10g": {
         "form_factor": "SFP+",
-        "speed": "10Gb",
+        "speed": "10Gbps",
         "lanes": 1,
     },
     "sfp28_25g": {
         "form_factor": "SFP28",
-        "speed": "25Gb",
+        "speed": "25Gbps",
         "lanes": 1,
     },
     "sfp56_50g": {
         "form_factor": "SFP56",
-        "speed": "50Gb",
+        "speed": "50Gbps",
         "lanes": 1,
     },
 }
