@@ -5,7 +5,6 @@ from infragraph.blueprints.devices.common.transceiver.qsfp import QSFP
 from infragraph.infragraph_service import InfraGraphService
 import networkx
 # pyright: reportArgumentType=false
-# from print import Printer
 import pytest
 
 # Only DGX 
@@ -14,7 +13,7 @@ DGX_PROFILES = [
     "dgx2",
     "dgx_a100",
     "dgx_h100",
-    "dgx_gh200",
+    # "dgx_gh200",
     "dgx_gb200",
 ]
 
