@@ -77,7 +77,7 @@ DGX_PROFILE_CATALOG: Dict[DgxProfile, dict] = {
         "pciesw": {
             "description": "Broadcom / PLX PCIe Gen4 Switch",
             "fabric": "pcie_gen4",
-            "count": 6,   # aligned with NVSwitch + NIC fanout
+            "count": 5,
         },
         "pciesl": {
             "description": "PCIe Gen4 x16 slots (NIC / storage)",
@@ -101,7 +101,7 @@ DGX_PROFILE_CATALOG: Dict[DgxProfile, dict] = {
         "pciesw": {
             "description": "Broadcom PCIe Gen5 Switch",
             "fabric": "pcie_gen5",
-            "count": 4,
+            "count": 3,
         },
         "pciesl": {
             "description": "PCIe Gen5 x16 slots (ConnectX / BlueField)",
@@ -448,18 +448,13 @@ class NvidiaDGX(Device):
                 e.ep1.component = f"{self.pciesl.name}[{pciesl_idx}]"
                 e.ep2.component = f"{self.xpu.name}[{pciesl_idx}]"
 
-            for nvsw_idx in range(0, self.nvsw.count):
-                e = self.edges.add(DeviceEdge.MANY2MANY, self.pcie.name)
-                e.ep1.component = f"{self.nvsw.name}[{nvsw_idx}]"
-                e.ep2.component = f"{self.xpu.name}[0:8]"
-            
             e = self.edges.add(DeviceEdge.MANY2MANY, self.pcie.name)
             e.ep1.component = f"{self.nvsw.name}[0:4]"
             e.ep2.component = f"{self.pciesw.name}[2]"
 
             e = self.edges.add(DeviceEdge.ONE2ONE, self.pcie.name)
-            e.ep1.component = f"{self.cpu}[0]"
-            e.ep2.component = f"{self.pciesw}[2]"
+            e.ep1.component = f"{self.cpu.name}[0]"
+            e.ep2.component = f"{self.pciesw.name}[2]"
             return
 
         if self.profile == "dgx_gb200":
@@ -473,6 +468,8 @@ class NvidiaDGX(Device):
                 e = self.edges.add(DeviceEdge.MANY2MANY, self.c2c_fabric.name)
                 e.ep1.component = f"{self.cpu.name}[{cpu_idx}]"
                 e.ep2.component = f"{self.xpu.name}[{2*cpu_idx}:{2*cpu_idx + 2}]"
+            
+            return
 
     def _wire_xpu(self):
         if self.profile == "dgx1":
@@ -507,6 +504,18 @@ class NvidiaDGX(Device):
             e3.ep1.component = "nvlsw[0:6]"
             e3.ep2.component = "nvlsw[6:12]"
             return
+        
+        if self.profile == "dgx_h100":
+            e = self.edges.add(DeviceEdge.MANY2MANY, self.pcie.name)
+            e.ep1.component = f"{self.nvsw.name}[0:4]"
+            e.ep2.component = f"{self.xpu.name}[0:8]"
+
+        if self.profile == "dgx_a100":
+            # xpu to nvlink switch
+            e = self.edges.add(DeviceEdge.MANY2MANY, self.xpu_fabric.name)
+            e.ep1.component = f"{self.xpu.name}[0:8]"
+            e.ep2.component = f"{self.nvsw.name}[0:6]"
+            return
 
         if self.profile == "dgx_gb200":
             # xpu to nvlink switch
@@ -530,14 +539,22 @@ class NvidiaDGX(Device):
             raise TypeError("nic_device must be None, str, or Device")
 
     def _add_generic_nics(self):
+        nic_name = "nic"
+        if self.profile == "dgx1" or self.profile == "dgx2":
+            nic_name = "cx5"
+        elif self.profile == "dgx_a100":
+            nic_name = "cx6"    
+        elif self.profile == "dgx_h100" or self.profile == "dgx_gb200":
+            nic_name = "cx7"
+        
         nic = self.components.add(
-            name="nic",
+            name=nic_name,
             description="NVIDIA ConnectX / BlueField",
             count=self.pciesl.count,
         )
         nic.choice = Component.NIC
 
-        self._wire_slots_to_nics("nic")
+        self._wire_slots_to_nics(nic_name)
 
     def _add_symbolic_nics(self, desc: str):
         nic = self.components.add(
