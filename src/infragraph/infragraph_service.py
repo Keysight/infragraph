@@ -69,7 +69,52 @@ class InfraGraphService(Api):
         device_name: str,
         endpoint: DeviceEndpoint,
     ) -> List[List[str]]:
-        """Return a list for every instance index to a list of fully qualified instance endpoint names"""
+        """
+        Expand a device endpoint into its fully qualified dot-notation representation.
+
+        Args:
+            device_name (str): Name of the root device.
+            endpoint (DeviceEndpoint): Endpoint expression to expand.
+
+        General Process:
+        - Split the endpoint string by "." to obtain individual endpoint elements.
+        - Retrieve the corresponding DeviceData object from `device_dict`
+        using `device_name`.
+        - For each endpoint element:
+            - Validate that the component exists in the current DeviceData.
+            - Validate index ranges (including single index and slice syntax).
+            - Expand the component into dot notation (e.g., "<component>.<index>").
+            - Store the expanded results.
+            - If the component represents a DEVICE-type component, update
+            `device_name` and retrieve the nested DeviceData for the next iteration.
+        - Continue iterating until all endpoint elements are processed.
+        - Return the fully expanded list of dot-notation endpoint paths.
+
+        Example 1:
+            device_name = "server"
+            endpoint = "nic[0]"
+
+            - Split into: ["nic[0]"]
+            - Validate "nic" against server DeviceData.
+            - Expand to: ["nic.0"]
+            - Return: ["nic.0"]
+
+        Example 2:
+            device_name = "server"
+            endpoint = "cx5[0:2].pcie_endpoint[0]"
+
+            - Split into: ["cx5[0:2]", "pcie_endpoint[0]"]
+            - Expand "cx5[0:2]" → ["cx5.0", "cx5.1"]
+            (component is of type DEVICE, so device_name becomes "cx5")
+            - Retrieve DeviceData for "cx5"
+            - Expand "pcie_endpoint[0]" → ["pcie_endpoint.0"]
+            - Compute cartesian product with previous expansions:
+                ["cx5.0.pcie_endpoint.0",
+                "cx5.1.pcie_endpoint.0"]
+
+        Returns:
+            List[str]: Fully expanded endpoint paths in dot notation.
+        """
         endpoints = []
         qualified_endpoints = []
         if isinstance(endpoint, DeviceEndpoint):
@@ -131,10 +176,8 @@ class InfraGraphService(Api):
                 generated_endpoints = []
                 for idx in range(c_start, c_stop, c_step):
                     generated_endpoints.append(f"{component_name}.{idx}")
-                
                 if len(qualified_endpoints) == 0:
                     qualified_endpoints.extend(generated_endpoints)
-                
                 else:
                     temp_endpoints = qualified_endpoints.copy()
                     qualified_endpoints = []
@@ -157,6 +200,22 @@ class InfraGraphService(Api):
         return endpoints
 
     def _parse_device_components(self):
+        """
+        Parse infrastructure devices and their components, and construct a DeviceData
+        object for each device.
+
+        For every parsed device:
+        - A DeviceData instance is created.
+        - All device components are stored in the `nodes` dictionary of the DeviceData
+        object, where:
+            - Key: "<component_name>.<index>"
+            - Value: Component type (e.g., "switch", "cpu", "xpu", "nic", "custom", etc.)
+
+        Each DeviceData object is then stored in `self._device_data`, where:
+        - Key: device.name
+        - Value: Corresponding DeviceData instance
+        """
+
         for device in self._infrastructure.devices:
             # iterate the components and generate component-node information
             dd = DeviceData()
@@ -172,6 +231,17 @@ class InfraGraphService(Api):
             self._device_data[device.name] = dd
             
     def _parse_device_edges(self):
+        """
+        Parse infrastructure devices and their edges.
+
+        For each device:
+        - Parse all defined edges between components.
+        - Expand each edge into dot notation (e.g., "<component>.<index>").
+        - Store the expanded edge information in the corresponding DeviceData object.
+
+        The resulting edges are associated with their respective device’s DeviceData
+        instance for further processing.
+        """
         for device in self._infrastructure.devices:
             # iterate the devices and generate - expand edges
             # expand edges here:
@@ -204,6 +274,9 @@ class InfraGraphService(Api):
         raise InfrastructureError(f"Instance '{instance_name}' does not exist in infrastructure instances")
 
     def _parse_infrastructure_edges(self):
+        """
+        This parses the global infrastructure edges and expands the instances and endpoints
+        """
         for edge in self._infrastructure.edges:
             instance1 = self._parse_edge_instance(edge.ep1)
             endpoints1 = self._expand_instance_endpoint(instance1, edge.ep1)
@@ -224,11 +297,49 @@ class InfraGraphService(Api):
                     raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
     def _generate_device_data(self):
-        # get all the devices
+        """
+        Generate device data, including all components and edges defined within a
+        device definition.
+
+        This method:
+        - Parses and constructs all components belonging to the device.
+        - Parses and registers all edges between components.
+        - Creates a dict in self: _device_data with key as device name and value as the DeviceData obj
+        that holds the nodes and edges present inside a device
+        """
+
         self._parse_device_components()
         self._parse_device_edges()    
     
-    def _generate_device_nodes(self, instance_name, device_name):
+    def _generate_device_nodes(self, instance_name: str, device_name: str):
+        """
+        Generate NetworkX nodes for a given device instance.
+
+        Args:
+            device_name (str): Name of the device definition.
+            instance_name (str): Fully qualified instance name used as prefix
+                for graph node creation.
+
+        Process:
+        - Retrieve the corresponding DeviceData object using `device_name`.
+        - Iterate over the `nodes` dictionary of the DeviceData object:
+            - Key: "<component_name>.<component_index>"
+            - Value: Component type (e.g., DEVICE, CPU, NIC, SWITCH, etc.)
+
+        For each component:
+        - If the component type is DEVICE:
+            - Perform a recursive call to expand the nested device.
+            - The new instance name is constructed as:
+                instance_name + "." + component_name
+            - The new device name is derived from:
+                component_name (without the index)
+        - If the component is any non-DEVICE type:
+            - Add the node to the NetworkX graph.
+            - Prefix the node name with `instance_name` to ensure uniqueness.
+
+        This method recursively expands all nested DEVICE components
+        and adds leaf-level components as graph nodes.
+        """
         device_data = self._device_data[device_name]
         # get the nodes
         for component_name, component_type in device_data.nodes.items():
@@ -248,6 +359,39 @@ class InfraGraphService(Api):
                 )
     
     def _generate_composed_edges(self, instance_name, device_name):
+        """
+        Recursively generate composed (nested) device edges using a depth-first strategy.
+
+        Process:
+        - Retrieve the corresponding DeviceData object from `_device_data`
+        using the provided `device_name`.
+        - Iterate over the `nodes` dictionary (components) of the device.
+        - For each component:
+            - If the component type is DEVICE:
+                - Construct the new instance prefix by appending the component
+                name to the current `instance_name`.
+                - Perform a recursive call using:
+                    - The nested device name
+                    - The updated instance prefix
+                - Continue this process until a component is reached that
+                does not contain further DEVICE definitions.
+
+        Traversal Strategy:
+        - This method follows a Depth-First Search (DFS) approach.
+        - Recursion continues down the hierarchy until leaf components
+        (non-DEVICE types) are reached.
+
+        Edge Generation:
+        - Once the recursion reaches the deepest level (no further DEVICE
+        components), iterate over the `edges` dictionary of that device.
+        - Add each edge to the NetworkX graph.
+        - During each recursive level, the `instance_name` prefix is extended,
+        ensuring that all generated edges are fully qualified
+        (e.g., parent.child.subchild.component).
+
+        This guarantees that all nested device edges are expanded and added
+        to the graph with correct hierarchical instance naming.
+        """
         device_data = self._device_data[device_name]
         for component_name, component_type in device_data.nodes.items():
             if component_type == Component.DEVICE:
@@ -260,7 +404,70 @@ class InfraGraphService(Api):
                     link = dest_endpoint_tuple[1]
                     self._graph.add_edge(source, destination, link=link)
 
-    def _generate_device_edges(self, instance_name, device_name):
+    def _generate_device_edges(self, instance_name: str, device_name: str):
+        """
+        Generate and add edges to the NetworkX graph for a given device instance.
+
+        Args:
+            device_name (str): Name of the device definition.
+            instance_name (str): Fully qualified instance name used as prefix
+                for graph edge creation.
+
+        Process:
+        - Retrieve the corresponding DeviceData object using `device_name`.
+        - Iterate over the `edges` dictionary of the DeviceData object:
+            - Key: ep1 (e.g., "nic.0")
+            - Value: Tuple of (ep2, link_name)
+            (e.g., ("cpu.0", "pcie"))
+
+        For each edge:
+        - Prefix both endpoints with `instance_name` to construct the fully
+        qualified graph edge.
+        - Add the edge to the NetworkX graph, preserving the link metadata
+        (e.g., link name).
+
+        Composed Devices:
+        - If a component is of type DEVICE, recursively call
+        `_generate_composed_edges` to:
+            - Retrieve the nested device’s DeviceData.
+            - Generate and add all internal edges of that composed device.
+        - This ensures that both top-level and nested device edges are
+        fully expanded into the graph.
+
+        Examples:
+
+        1) Simple Component Edge
+        Device: server
+        Edge definition:
+            nic[0] - cpu[0] (link: pcie)
+
+        Stored in edges dict as (from device - edge expansion):
+            "nic.0" -> ("cpu.0", "pcie")
+
+        For instance "server.0", the resulting graph edge:
+            "server.0.nic.0" -- "server.0.cpu.0"
+            (link="pcie")
+
+        2) Composed Device Edge
+        Device: server
+        Edge definition:
+            cx5[0].pcie_endpoint[0] - pcie_slot[0] (link: pcie)
+
+        Stored in edges dict as (from device - edge expansion):
+            "cx5.0.pcie_endpoint.0" -> ("pcie_slot.0", "pcie")
+
+        For instance "server.0", partial expanded edge:
+            "server.0.cx5.0.pcie_endpoint.0"
+                --
+            "server.0.pcie_slot.0"
+            (link="pcie")
+
+        A recursive call then retrieves all internal edges of device "cx5"
+        and adds them to the graph with the appropriate instance prefix.
+
+        This method ensures that all direct and recursively composed device
+        edges are fully represented in the NetworkX graph.
+        """
         device_data = self._device_data[device_name]
         for src_endpoint, endpoint_list in device_data.edges.items():
             for dest_endpoint in endpoint_list:
@@ -271,6 +478,21 @@ class InfraGraphService(Api):
         self._generate_composed_edges(instance_name, device_name)
          
     def _generate_instance_data(self):
+        """
+        Iterate over all infrastructure instances and generate their expanded
+        topology (nodes and edges).
+
+        This method:
+        - Iterates through each infrastructure definition.
+        - For each infrastructure item, iterates over the declared instance count.
+        - For every instance, recursively generates all nodes and edges of the device.
+        - Uses the corresponding DeviceData object from the `_device_data` dictionary
+        as the source of component and edge definitions.
+
+        The result is a fully expanded representation of all infrastructure
+        instances, including their recursively resolved components and
+        interconnections.
+        """
         for instance in self._infrastructure.instances:
             # get the device name
             device_name = instance.device
