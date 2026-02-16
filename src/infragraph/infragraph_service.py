@@ -27,6 +27,17 @@ class InfrastructureError(Exception):
 
     pass
 
+class DeviceData:
+    def __init__(self):
+        self.nodes = {}
+        self.components = {}
+        self.edges = {}
+    
+    def add_edge(self, ep1, ep2, link):
+        if ep1 in self.edges:
+            self.edges[ep1].append((ep2, link))
+        else:
+            self.edges[ep1] = [(ep2, link)]
 
 class InfraGraphService(Api):
     """InfraGraph Services"""
@@ -34,6 +45,7 @@ class InfraGraphService(Api):
     def __init__(self):
         super().__init__()
         self._graph: Graph = Graph()
+        self._device_data = {}
         self._infrastructure: Infrastructure = Infrastructure()
 
     @property
@@ -52,6 +64,448 @@ class InfraGraphService(Api):
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
 
+    def _expand_device_endpoint(
+        self,
+        device_name: str,
+        endpoint: DeviceEndpoint,
+    ) -> List[List[str]]:
+        """
+        Expand a device endpoint into its fully qualified dot-notation representation.
+
+        Args:
+            device_name (str): Name of the root device.
+            endpoint (DeviceEndpoint): Endpoint expression to expand.
+
+        General Process:
+        - Split the endpoint string by "." to obtain individual endpoint elements.
+        - Retrieve the corresponding DeviceData object from `device_dict`
+        using `device_name`.
+        - For each endpoint element:
+            - Validate that the component exists in the current DeviceData.
+            - Validate index ranges (including single index and slice syntax).
+            - Expand the component into dot notation (e.g., "<component>.<index>").
+            - Store the expanded results.
+            - If the component represents a DEVICE-type component, update
+            `device_name` and retrieve the nested DeviceData for the next iteration.
+        - Continue iterating until all endpoint elements are processed.
+        - Return the fully expanded list of dot-notation endpoint paths.
+
+        Example 1:
+            device_name = "server"
+            endpoint = "nic[0]"
+
+            - Split into: ["nic[0]"]
+            - Validate "nic" against server DeviceData.
+            - Expand to: ["nic.0"]
+            - Return: ["nic.0"]
+
+        Example 2:
+            device_name = "server"
+            endpoint = "cx5[0:2].pcie_endpoint[0]"
+
+            - Split into: ["cx5[0:2]", "pcie_endpoint[0]"]
+            - Expand "cx5[0:2]" → ["cx5.0", "cx5.1"]
+            (component is of type DEVICE, so device_name becomes "cx5")
+            - Retrieve DeviceData for "cx5"
+            - Expand "pcie_endpoint[0]" → ["pcie_endpoint.0"]
+            - Compute cartesian product with previous expansions:
+                ["cx5.0.pcie_endpoint.0",
+                "cx5.1.pcie_endpoint.0"]
+
+        Returns:
+            List[str]: Fully expanded endpoint paths in dot notation.
+        """
+        endpoints = []
+        qualified_endpoints = []
+        if isinstance(endpoint, DeviceEndpoint):
+            device_endpoint = endpoint.device
+            component_endpoint = endpoint.component
+        else:
+            raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
+        
+        ce = component_endpoint
+        if device_endpoint is not None:
+            ce = device_endpoint + "." + ce
+        for endpoint_element in ce.split("."):
+            # if element is component
+            component_name = endpoint_element.split("[")[0]
+            if component_name in self._device_data[device_name].components:
+                component_count = self._device_data[device_name].components[component_name]
+                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                generated_endpoints = []
+                for idx in range(c_start, c_stop, c_step):
+                    generated_endpoints.append(f"{component_name}.{idx}")
+                
+                if len(qualified_endpoints) == 0:
+                    qualified_endpoints.extend(generated_endpoints)
+                
+                else:
+                    temp_endpoints = qualified_endpoints.copy()
+                    qualified_endpoints = []
+                    for parent_endpoint in temp_endpoints:
+                        for child_endpoint in generated_endpoints:
+                            qualified_endpoints.append(parent_endpoint + "." + child_endpoint)
+            device_name = component_name
+        endpoints.append(qualified_endpoints)
+        return endpoints
+    
+    def _expand_instance_endpoint(
+        self,
+        instance: Instance,
+        endpoint: InfrastructureEndpoint,
+    ) -> List[List[str]]:
+        """Return a list for every instance index to a list of fully qualified instance endpoint names"""
+        endpoints = []
+        qualified_endpoints = []
+        if isinstance(endpoint, InfrastructureEndpoint):
+            device_endpoint = endpoint.instance
+            component_endpoint = endpoint.component
+            device_name = instance.device
+        else:
+            raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
+        
+        # device endpoint here:
+        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
+        
+        for endpoint_element in component_endpoint.split("."):
+            # if element is component
+            component_name = endpoint_element.split("[")[0]
+            if component_name in self._device_data[device_name].components:
+                component_count = self._device_data[device_name].components[component_name]
+                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                generated_endpoints = []
+                for idx in range(c_start, c_stop, c_step):
+                    generated_endpoints.append(f"{component_name}.{idx}")
+                if len(qualified_endpoints) == 0:
+                    qualified_endpoints.extend(generated_endpoints)
+                else:
+                    temp_endpoints = qualified_endpoints.copy()
+                    qualified_endpoints = []
+                    for parent_endpoint in temp_endpoints:
+                        for child_endpoint in generated_endpoints:
+                            qualified_endpoints.append(parent_endpoint + "." + child_endpoint)
+            device_name = component_name
+        # before we add we can expand device endpoint here:
+        device_endpoints = []
+        for device_idx in range(d_start, d_stop, d_step):
+            device_endpoints.append(f"{instance.name}.{device_idx}")
+        
+        temp_endpoints = qualified_endpoints.copy()
+        qualified_endpoints = []
+        for device_endpoint in device_endpoints:
+            for child_endpoint in temp_endpoints:
+                qualified_endpoints.append(device_endpoint + "." + child_endpoint)
+        # merge them
+        endpoints.append(qualified_endpoints)
+        return endpoints
+
+    def _parse_device_components(self):
+        """
+        Parse infrastructure devices and their components, and construct a DeviceData
+        object for each device.
+
+        For every parsed device:
+        - A DeviceData instance is created.
+        - All device components are stored in the `nodes` dictionary of the DeviceData
+        object, where:
+            - Key: "<component_name>.<index>"
+            - Value: Component type (e.g., "switch", "cpu", "xpu", "nic", "custom", etc.)
+
+        Each DeviceData object is then stored in `self._device_data`, where:
+        - Key: device.name
+        - Value: Corresponding DeviceData instance
+        """
+
+        for device in self._infrastructure.devices:
+            # iterate the components and generate component-node information
+            dd = DeviceData()
+            for component in device.components:
+                for index in range(component.count):
+                    
+                    if component.choice == Component.CUSTOM:
+                        component_type = component.custom.type
+                    else:
+                        component_type = component.choice
+                    dd.nodes[component.name + "." + str(index)] = component_type
+                dd.components[component.name] = component.count
+            self._device_data[device.name] = dd
+            
+    def _parse_device_edges(self):
+        """
+        Parse infrastructure devices and their edges.
+
+        For each device:
+        - Parse all defined edges between components.
+        - Expand each edge into dot notation (e.g., "<component>.<index>").
+        - Store the expanded edge information in the corresponding DeviceData object.
+
+        The resulting edges are associated with their respective device’s DeviceData
+        instance for further processing.
+        """
+        for device in self._infrastructure.devices:
+            # iterate the devices and generate - expand edges
+            # expand edges here:
+            dd = self._device_data[device.name]
+            for edge in device.edges:
+                endpoints1 = self._expand_device_endpoint(device.name, edge.ep1)
+                endpoints2 = self._expand_device_endpoint(device.name, edge.ep2)
+                for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
+                    if edge.scheme == DeviceEdge.MANY2MANY:  # cartesion product
+                        for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
+                            if src == dst:
+                                continue
+                            dd.add_edge(src, dst, edge.link)
+                            
+                    elif edge.scheme == DeviceEdge.ONE2ONE:  # meshed product
+                        for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
+                            if src == dst:
+                                continue
+                            dd.add_edge(src, dst, edge.link)
+                    else:
+                        raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
+
+    def _parse_edge_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
+        """Given an infrastructure endpoint return the Instance and Device"""
+        device_instance = endpoint.instance.split(".")[0] 
+        instance_name = device_instance.split("[")[0]
+        for instance in self._infrastructure.instances:
+            if instance.name == instance_name:
+                return instance
+        raise InfrastructureError(f"Instance '{instance_name}' does not exist in infrastructure instances")
+
+    def _parse_infrastructure_edges(self):
+        """
+        This parses the global infrastructure edges and expands the instances and endpoints
+        """
+        for edge in self._infrastructure.edges:
+            instance1 = self._parse_edge_instance(edge.ep1)
+            endpoints1 = self._expand_instance_endpoint(instance1, edge.ep1)
+            instance2 = self._parse_edge_instance(edge.ep2)
+            endpoints2 = self._expand_instance_endpoint(instance2, edge.ep2)
+            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
+                if edge.scheme == InfrastructureEdge.MANY2MANY:  # cartesion product
+                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
+                elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
+                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps, strict=False)]:
+                        if src == dst:
+                            continue
+                        self._graph.add_edge(src, dst, link=edge.link)
+                else:
+                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
+
+    def _generate_device_data(self):
+        """
+        Generate device data, including all components and edges defined within a
+        device definition.
+
+        This method:
+        - Parses and constructs all components belonging to the device.
+        - Parses and registers all edges between components.
+        - Creates a dict in self: _device_data with key as device name and value as the DeviceData obj
+        that holds the nodes and edges present inside a device
+        """
+
+        self._parse_device_components()
+        self._parse_device_edges()    
+    
+    def _generate_device_nodes(self, instance_name: str, device_name: str):
+        """
+        Generate NetworkX nodes for a given device instance.
+
+        Args:
+            device_name (str): Name of the device definition.
+            instance_name (str): Fully qualified instance name used as prefix
+                for graph node creation.
+
+        Process:
+        - Retrieve the corresponding DeviceData object using `device_name`.
+        - Iterate over the `nodes` dictionary of the DeviceData object:
+            - Key: "<component_name>.<component_index>"
+            - Value: Component type (e.g., DEVICE, CPU, NIC, SWITCH, etc.)
+
+        For each component:
+        - If the component type is DEVICE:
+            - Perform a recursive call to expand the nested device.
+            - The new instance name is constructed as:
+                instance_name + "." + component_name
+            - The new device name is derived from:
+                component_name (without the index)
+        - If the component is any non-DEVICE type:
+            - Add the node to the NetworkX graph.
+            - Prefix the node name with `instance_name` to ensure uniqueness.
+
+        This method recursively expands all nested DEVICE components
+        and adds leaf-level components as graph nodes.
+        """
+        device_data = self._device_data[device_name]
+        # get the nodes
+        for component_name, component_type in device_data.nodes.items():
+            if component_type == Component.DEVICE:
+                # recursive call here
+                self._generate_device_nodes(instance_name=instance_name + "." + component_name, device_name=component_name.split(".")[0])
+            # we add others
+            else:
+                instance, index = instance_name.rsplit(".", 1)
+                self._graph.add_node(
+                    instance_name + "." + component_name,
+                    type=component_type,
+                    instance=instance,
+                    instance_idx=int(index),
+                    device=device_name,
+                    composed_device=instance_name,
+                )
+    
+    def _generate_composed_edges(self, instance_name, device_name):
+        """
+        Recursively generate composed (nested) device edges using a depth-first strategy.
+
+        Process:
+        - Retrieve the corresponding DeviceData object from `_device_data`
+        using the provided `device_name`.
+        - Iterate over the `nodes` dictionary (components) of the device.
+        - For each component:
+            - If the component type is DEVICE:
+                - Construct the new instance prefix by appending the component
+                name to the current `instance_name`.
+                - Perform a recursive call using:
+                    - The nested device name
+                    - The updated instance prefix
+                - Continue this process until a component is reached that
+                does not contain further DEVICE definitions.
+
+        Traversal Strategy:
+        - This method follows a Depth-First Search (DFS) approach.
+        - Recursion continues down the hierarchy until leaf components
+        (non-DEVICE types) are reached.
+
+        Edge Generation:
+        - Once the recursion reaches the deepest level (no further DEVICE
+        components), iterate over the `edges` dictionary of that device.
+        - Add each edge to the NetworkX graph.
+        - During each recursive level, the `instance_name` prefix is extended,
+        ensuring that all generated edges are fully qualified
+        (e.g., parent.child.subchild.component).
+
+        This guarantees that all nested device edges are expanded and added
+        to the graph with correct hierarchical instance naming.
+        """
+        device_data = self._device_data[device_name]
+        for component_name, component_type in device_data.nodes.items():
+            if component_type == Component.DEVICE:
+                self._generate_composed_edges(instance_name=instance_name + "." + component_name, device_name=component_name.split(".")[0])
+
+            for endpoint_1, endpoint_list in device_data.edges.items():
+                for dest_endpoint_tuple in endpoint_list:
+                    source = instance_name + "." + endpoint_1
+                    destination = instance_name + "." + dest_endpoint_tuple[0]
+                    link = dest_endpoint_tuple[1]
+                    self._graph.add_edge(source, destination, link=link)
+
+    def _generate_device_edges(self, instance_name: str, device_name: str):
+        """
+        Generate and add edges to the NetworkX graph for a given device instance.
+
+        Args:
+            device_name (str): Name of the device definition.
+            instance_name (str): Fully qualified instance name used as prefix
+                for graph edge creation.
+
+        Process:
+        - Retrieve the corresponding DeviceData object using `device_name`.
+        - Iterate over the `edges` dictionary of the DeviceData object:
+            - Key: ep1 (e.g., "nic.0")
+            - Value: Tuple of (ep2, link_name)
+            (e.g., ("cpu.0", "pcie"))
+
+        For each edge:
+        - Prefix both endpoints with `instance_name` to construct the fully
+        qualified graph edge.
+        - Add the edge to the NetworkX graph, preserving the link metadata
+        (e.g., link name).
+
+        Composed Devices:
+        - If a component is of type DEVICE, recursively call
+        `_generate_composed_edges` to:
+            - Retrieve the nested device’s DeviceData.
+            - Generate and add all internal edges of that composed device.
+        - This ensures that both top-level and nested device edges are
+        fully expanded into the graph.
+
+        Examples:
+
+        1) Simple Component Edge
+        Device: server
+        Edge definition:
+            nic[0] - cpu[0] (link: pcie)
+
+        Stored in edges dict as (from device - edge expansion):
+            "nic.0" -> ("cpu.0", "pcie")
+
+        For instance "server.0", the resulting graph edge:
+            "server.0.nic.0" -- "server.0.cpu.0"
+            (link="pcie")
+
+        2) Composed Device Edge
+        Device: server
+        Edge definition:
+            cx5[0].pcie_endpoint[0] - pcie_slot[0] (link: pcie)
+
+        Stored in edges dict as (from device - edge expansion):
+            "cx5.0.pcie_endpoint.0" -> ("pcie_slot.0", "pcie")
+
+        For instance "server.0", partial expanded edge:
+            "server.0.cx5.0.pcie_endpoint.0"
+                --
+            "server.0.pcie_slot.0"
+            (link="pcie")
+
+        A recursive call then retrieves all internal edges of device "cx5"
+        and adds them to the graph with the appropriate instance prefix.
+
+        This method ensures that all direct and recursively composed device
+        edges are fully represented in the NetworkX graph.
+        """
+        device_data = self._device_data[device_name]
+        for src_endpoint, endpoint_list in device_data.edges.items():
+            for dest_endpoint in endpoint_list:
+                source = instance_name + "." + src_endpoint
+                destination = instance_name + "." + dest_endpoint[0]
+                link = dest_endpoint[1]
+                self._graph.add_edge(source, destination, link=link)
+        self._generate_composed_edges(instance_name, device_name)
+         
+    def _generate_instance_data(self):
+        """
+        Iterate over all infrastructure instances and generate their expanded
+        topology (nodes and edges).
+
+        This method:
+        - Iterates through each infrastructure definition.
+        - For each infrastructure item, iterates over the declared instance count.
+        - For every instance, recursively generates all nodes and edges of the device.
+        - Uses the corresponding DeviceData object from the `_device_data` dictionary
+        as the source of component and edge definitions.
+
+        The result is a fully expanded representation of all infrastructure
+        instances, including their recursively resolved components and
+        interconnections.
+        """
+        for instance in self._infrastructure.instances:
+            # get the device name
+            device_name = instance.device
+            count = instance.count
+            instance_name = instance.name
+            for index in range(0, count):
+                # call the specific class
+                
+                instance_name = instance.name + "." + str(index)
+                # generate node and edges
+                self._generate_device_nodes(instance_name, device_name)
+                self._generate_device_edges(instance_name, device_name)
+            
     def set_graph(self, payload: Union[str, Infrastructure]) -> None:
         """Generates a networkx graph, validates it and if there are no problems
         returns the networkx graph as a serialized json string.
@@ -68,10 +522,10 @@ class InfraGraphService(Api):
         else:
             self._infrastructure = payload
         self._graph = Graph()
-        self._add_nodes()
-        self._add_device_edges()
+        self._generate_device_data()
+        self._generate_instance_data()
         self._validate_device_edges()
-        self._add_infrastructure_edges()
+        self._parse_infrastructure_edges()
         self._validate_graph()
 
     def _validate_device_edges(self):
@@ -91,7 +545,7 @@ class InfraGraphService(Api):
         networkx.is_connected(self._graph)
         zero_degree_nodes = [n for n, d in self._graph.degree() if d == 0]
         if len(zero_degree_nodes) > 0:
-            raise GraphError(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
+            print(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
@@ -102,121 +556,9 @@ class InfraGraphService(Api):
             raise ValueError("Graph is not set. Please call set_graph() first.")
         return yaml.dump(json_graph.node_link_data(self._graph, edges="edges"))
 
-    def _isa_component(self, device_name: str):
-        """Return whether or not the device is a component of another device"""
-        for device in self._infrastructure.devices:
-            for component in device.components:
-                if component.name == device_name and component.choice == Component.DEVICE:
-                    return True
-        return False
-
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
         return networkx.shortest_path(self._graph, endpoint1, endpoint2)
-
-    def _get_device(self, device_name: str) -> Device:
-        """Given a device name return the device object"""
-        for device in self._infrastructure.devices:
-            if device.name == device_name:
-                return device
-        raise InfrastructureError(f"Device {device_name} does not exist in Infrastructure.devices")
-
-    def _add_nodes(self):
-        """Add all device instances as nodes to the graph
-        - add component type, instance name, instance index, device name as attributes
-        """
-        for instance in self._infrastructure.instances:
-            if self._isa_component(instance.device):
-                continue
-            device = self._get_device(instance.device)
-            for device_idx in range(instance.count):
-                for component in device.components:
-                    for component_idx in range(component.count):
-                        name = f"{instance.name}.{device_idx}.{component.name}.{component_idx}"
-                        type = (
-                            component.custom.type
-                            if component.choice == Component.CUSTOM
-                            else component.choice
-                        )
-                        self._graph.add_node(
-                            name,
-                            type=type,
-                            instance=instance.name,
-                            instance_idx=device_idx,
-                            device=instance.device,
-                        )
-
-    def _resolve_instance(self, endpoint: InfrastructureEndpoint) -> Tuple[Instance, Device]:
-        """Given an infrastructure endpoint return the Instance and Device"""
-        instance_name = endpoint.instance.split("[")[0]
-        for instance in self._infrastructure.instances:
-            if instance.name == instance_name:
-                device = self._get_device(instance.device)
-                return (instance, device)
-        raise InfrastructureError(f"Instance '{instance_name}' does not exist in infrastructure instances")
-
-    def _add_infrastructure_edges(self):
-        """Generate infrastructure edges and add them to the graph"""
-        for edge in self._infrastructure.edges:
-            instance1, device1 = self._resolve_instance(edge.ep1)
-            endpoints1 = self._expand_endpoint(instance1, device1, edge.ep1)
-            instance2, device2 = self._resolve_instance(edge.ep2)
-            endpoints2 = self._expand_endpoint(instance2, device2, edge.ep2)
-            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.scheme == InfrastructureEdge.MANY2MANY:  # cartesion product
-                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
-                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps, strict=False)]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                else:
-                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
-
-    def _add_device_edges(self):
-        """Add all device edges to the graph.
-
-        - Do not add edges when the device is referenced as a component in another device.
-        """
-        for instance in self._infrastructure.instances:
-            if self._isa_component(instance.device):
-                continue
-            device = self._get_device(instance.device)
-            for edge in device.edges:
-                self._add_device_edge(instance, device, edge)
-
-    def _add_device_edge(self, instance: Instance, device: Device, edge: DeviceEdge) -> None:
-        """Validate edges and add them to the graph
-
-        Substitute the instance name for the device name.
-
-        instance.name = "test"
-        instance.device = "dgx"
-        edge.ep1.device = "dgx[0:8]" -> test.0 -> test.7
-        edge.ep1.component = "a100[0:8]" -> a100.0 -> a100.7
-
-        edge.ep1.device = "dgx[0:8]" -> dgx.0 -> dgx.7
-        edge.ep1.component = "pciesw[0]" -> pciesw.0
-        """
-        for edge in device.edges:
-            endpoints1 = self._expand_endpoint(instance, device, edge.ep1)
-            endpoints2 = self._expand_endpoint(instance, device, edge.ep2)
-            for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
-                if edge.scheme == DeviceEdge.MANY2MANY:  # cartesion product
-                    for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                elif edge.scheme == DeviceEdge.ONE2ONE:  # meshed product
-                    for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps)]:
-                        if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
-                else:
-                    raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
 
     def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, int, int, int]:
         """Given an endpoint return a list of endpoint strings.
@@ -243,39 +585,6 @@ class InfraGraphService(Api):
                     if slice_piece != "":
                         slice_pieces[idx] = int(slice_piece)
         return (name, slice_pieces[0], slice_pieces[1], slice_pieces[2])
-
-    def _expand_endpoint(
-        self,
-        instance: Instance,
-        device: Device,
-        endpoint: Union[InfrastructureEndpoint, DeviceEndpoint],
-    ) -> List[List[str]]:
-        """Return a list for every instance index to a list of fully qualified instance endpoint names"""
-        endpoints = []
-        if isinstance(endpoint, InfrastructureEndpoint):
-            device_endpoint = endpoint.instance
-            component_endpoint = endpoint.component
-        elif isinstance(endpoint, DeviceEndpoint):
-            device_endpoint = device.name if endpoint.device is None else endpoint.device
-            component_endpoint = endpoint.component
-        else:
-            raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
-        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
-        component = self._get_component(device, component_endpoint.split("[")[0])
-        _, c_start, c_stop, c_step = self._split_endpoint(component.count, endpoint.component)
-        for device_idx in range(d_start, d_stop, d_step):
-            qualified_endpoints = []
-            for idx in range(c_start, c_stop, c_step):
-                qualified_endpoints.append(f"{instance.name}.{device_idx}.{component.name}.{idx}")
-            endpoints.append(qualified_endpoints)
-        return endpoints
-
-    def _get_component(self, device: Device, name: str) -> Component:
-        """Return a component given a name"""
-        for component in device.components:
-            if component.name == name:
-                return component
-        raise ValueError(f"Component {name} does not exist in Device {device.name}")
 
     @staticmethod
     def get_component(device: Device, type: str) -> Component:

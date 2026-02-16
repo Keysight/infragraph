@@ -166,9 +166,12 @@ message Component {
   // - `custom` If the type of a component is not listed as a choice it can be defined
   // using the custom object which includes a type property that allows for a custom type
   // attribute on the graph node.
-  // - `device` This enum allows a device to be composed of other devices. When this enum
-  // is selected the name of the component MUST be the name of a device that exists in
-  // the Infrastructure.devices array.
+  // - `device` This enum allows a device to be composed of other devices.
+  // - When this enum is selected the name of the component MUST be the name of a device
+  // that exists in the Infrastructure.devices array.
+  // - The `device name` will be used to lookup the value of the `instance name` which
+  // MUST be combined  with the `component name` to produce a unique name when producing
+  // graph nodes.
   // - `cpu` A high level definition for a cpu
   // - `xpu` A high level definition for a neural processing unit
   // - `nic` A high level definition for a network interface card, for more detailed breakdowns
@@ -283,9 +286,15 @@ message Link {
 // device name and component slice.
 message DeviceEndpoint {
 
-  // An optional name of a device that contains the component.
-  // If the property is empty the name of the device is the parent of the edge object.
-  // An endpoint will be generated for every device based on the count.
+  // This property is optional and should only be used when device composition is required.
+  // - Device composition occurs when a device includes a component whose choice property
+  // is set to device
+  // - This property value MUST match a Device.name in an item in the Infrastructure.devices
+  // array
+  // - The Device.name value MUST match an Instance.device value in the Infrastructure.instances
+  // array
+  // - This property value MUST be combined with the component name to generate a unique
+  // endpoint
   optional string device = 1;
 
   // The name of a component that exists in the containing device
@@ -317,8 +326,9 @@ message InfrastructureEndpoint {
   // The name of a component that MUST exist in the Instance.device specified by the instance
   // object in the Infrastructure.instances array.
   // 
-  // The indexes MUST be specified using python slice notation.
-  // - example: xpu[0:2]
+  // The indexes MUST be specified using python slice notation. Some examples are:
+  // - xpu[0:2]
+  // - dgx.cx5[0]
   // required = true
   optional string component = 2;
 }

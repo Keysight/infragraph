@@ -2,8 +2,8 @@ import pytest
 import networkx
 from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.fabrics.single_tier_fabric import SingleTierFabric
-from infragraph.blueprints.devices.dgx import Dgx
-from infragraph.blueprints.devices.server import Server
+from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
+from infragraph.blueprints.devices.generic.server import Server
 
 def print_graph(graph):
     for node, attrs in graph.nodes(data=True):
@@ -17,7 +17,7 @@ async def test_single_tier_fabric_one_dgx():
     """
     Generate a single tier fabric with 1 dgx host and validate the infragraph
     """
-    dgx = Dgx()
+    dgx = NvidiaDGX()
     single_tier_fabric = SingleTierFabric(dgx, 1)
     # create the graph
     service = InfraGraphService()
@@ -26,14 +26,14 @@ async def test_single_tier_fabric_one_dgx():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_single_tier_fabric_multi_dgx():
     """
     Generate a single tier fabric with multi dgx host and validate the infragraph
     """
-    dgx = Dgx()
+    dgx = NvidiaDGX()
     single_tier_fabric = SingleTierFabric(dgx, 3)
     # create the graph
     service = InfraGraphService()
@@ -42,7 +42,7 @@ async def test_single_tier_fabric_multi_dgx():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_single_tier_fabric_multi_server():
@@ -58,7 +58,7 @@ async def test_single_tier_fabric_multi_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 if __name__ == "__main__":
     pytest.main(["-s", __file__])

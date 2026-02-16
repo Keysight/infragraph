@@ -73,7 +73,9 @@ components:
             The `choice` value will be added to the graph node in the form of a `type = value` attribute.
 
             - `custom` If the type of a component is not listed as a choice it can be defined using the custom object which includes a type property that allows for a custom type attribute on the graph node.
-            - `device` This enum allows a device to be composed of other devices. When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
+            - `device` This enum allows a device to be composed of other devices.
+              - When this enum is selected the name of the component MUST be the name of a device that exists in the Infrastructure.devices array.
+              - The `device name` will be used to lookup the value of the `instance name` which MUST be combined  with the `component name` to produce a unique name when producing graph nodes.
             - `cpu` A high level definition for a cpu
             - `xpu` A high level definition for a neural processing unit
             - `nic` A high level definition for a network interface card, for more detailed breakdowns create a device representing a specific type network interface card

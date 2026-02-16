@@ -2,16 +2,17 @@ import pytest
 import networkx
 from infragraph.infragraph_service import InfraGraphService
 from infragraph.blueprints.fabrics.clos_fat_tree_fabric import ClosFatTreeFabric
-from infragraph.blueprints.devices.dgx import Dgx
-from infragraph.blueprints.devices.server import Server
-from infragraph.blueprints.devices.generic_switch import Switch
+from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
+from infragraph.blueprints.devices.generic.server import Server
+from infragraph.blueprints.devices.generic.generic_switch import Switch
 
 def print_graph(graph):
-    for node, attrs in graph.nodes(data=True):
-        print(f"Node: {node}, Attributes: {attrs}")
+    # for node, attrs in graph.nodes(data=True):
+    #     print(f"Node: {node}, Attributes: {attrs}")
 
-    for u, v, attrs in graph.edges(data=True):
-        print(f"Edge: ({u}, {v}), Attributes: {attrs}")
+    # for u, v, attrs in graph.edges(data=True):
+    #     print(f"Edge: ({u}, {v}), Attributes: {attrs}")
+    pass
 
 def dump_yaml(clos_fabric, filename):
     # import yaml
@@ -25,7 +26,7 @@ async def test_2_tier_16_radix_with_dgx():
     """
     Generate two tier clos fabric with switch radix 16 and dgx hosts
     """
-    dgx = Dgx()
+    dgx = NvidiaDGX()
     switch = Switch(port_count=16)
     clos_fat_tree = ClosFatTreeFabric(switch, dgx, 2, [])
     # create the graph
@@ -40,8 +41,8 @@ async def test_2_tier_16_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print(networkx.write_network_text(g, vertical_chains=True))
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_2_tier_8_radix_with_server():
@@ -66,7 +67,7 @@ async def test_2_tier_8_radix_with_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_3_tier_4_radix_with_server():
@@ -94,7 +95,7 @@ async def test_3_tier_4_radix_with_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_3_tier_no_oversub_4_radix_with_server():
@@ -122,7 +123,7 @@ async def test_3_tier_no_oversub_4_radix_with_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_3_tier_no_oversub_8_radix_with_server():
@@ -151,7 +152,7 @@ async def test_3_tier_no_oversub_8_radix_with_server():
     # validations
     g = service.get_networkx_graph()
     print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print_graph(g)
 
 
 @pytest.mark.asyncio
@@ -159,7 +160,7 @@ async def test_2_tier_32_radix_with_dgx():
     """
     Generate a 2 tier fabric with dgx hosts and switch radix as 32
     """
-    dgx = Dgx()
+    dgx = NvidiaDGX()
     switch = Switch(port_count=32)
     clos_fat_tree = ClosFatTreeFabric(switch, dgx, 2, [])
     assert len(clos_fat_tree.instances) == 3
@@ -178,15 +179,15 @@ async def test_2_tier_32_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print(networkx.write_network_text(g, vertical_chains=True))
+    # print_graph(g)
 
 @pytest.mark.asyncio
 async def test_3_tier_32_radix_with_dgx():
     """
     Generate a 2 tier fabric with dgx hosts and switch radix as 32
     """
-    dgx = Dgx()
+    dgx = NvidiaDGX()
     switch = Switch(port_count=32)
     clos_fat_tree = ClosFatTreeFabric(switch, dgx, 3, [])
     assert len(clos_fat_tree.instances) == 4
@@ -207,8 +208,8 @@ async def test_3_tier_32_radix_with_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
-    print_graph(g)
+    # print(networkx.write_network_text(g, vertical_chains=True))
+    # print_graph(g)
 
 if __name__ == "__main__":
     pytest.main(["-s", __file__])

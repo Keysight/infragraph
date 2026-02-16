@@ -36,7 +36,7 @@ Define a server device based on the infrastructure description.
 <details open>
 <summary><strong>Server device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/blueprints/devices/server.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/generic/server.py" %}
 ```
 </details>
 <details closed>
@@ -51,7 +51,7 @@ Define a switch device based on the infrastructure description.
 <details open>
 <summary><strong>Switch device definition using OpenApiArt generated classes</strong></summary>
 ```python
-{% include-markdown "../../src/infragraph/blueprints/devices/generic_switch.py" %}
+{% include-markdown "../../src/infragraph/blueprints/devices/generic/generic_switch.py" %}
 ```
 </details>
 <details closed>

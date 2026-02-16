@@ -11,6 +11,9 @@ An overview of the [schema](schema.md) and it's repository.
 ### Getting Started
 A simple generic case study demonstrating how to [get started](create.md).
 
+### Blueprints
+This section defines blueprints for devices and fabrics, enabling users to model various vendor-specific devices and standard fabric architectures.
+
 ### Extending the case study with additional data
 This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on.
 
