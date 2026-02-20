@@ -50,6 +50,7 @@ extra:
 nav:
   - Overview: index.md
   - Background: background.md
+  - Chakra Ecosystem: ecosystem.md
   - Schema: schema.md
   - Getting Started: create.md
   - Blueprints: blueprints.md
