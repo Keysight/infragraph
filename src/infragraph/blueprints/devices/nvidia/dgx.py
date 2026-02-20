@@ -53,7 +53,7 @@ DGX_PROFILE_CATALOG: Dict[DgxProfile, dict] = {
         "pciesw": {
             "description": "Broadcom / PLX PEX8796 PCIe Switch",
             "fabric": "pcie_gen3",
-            "count": 8,
+            "count": 14,
         },
         "pciesl": {
             "description": "Internal PCIe x16 endpoints (GPU + NVSwitch)",
@@ -268,7 +268,7 @@ class NvidiaDGX(Device):
         if count <= 0:
             return None
         sw = self.components.add(
-            name="nvlsw",
+            name="nvsw",
             description="NVIDIA NVSwitch",
             count=count,
         )
@@ -521,7 +521,7 @@ class NvidiaDGX(Device):
             # xpu to nvlink switch
             e = self.edges.add(DeviceEdge.MANY2MANY, self.xpu_fabric.name)
             e.ep1.component = f"{self.xpu.name}[0:4]"
-            e.ep2.component = f"{self.nvsw.name}[0:19]"
+            e.ep2.component = f"{self.nvsw.name}[0:18]"
             return
         
     # NIC handling
