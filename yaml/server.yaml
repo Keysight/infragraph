@@ -1,0 +1,71 @@
+components:
+- choice: cpu
+  count: 1
+  description: Generic CPU
+  name: cpu
+- choice: xpu
+  count: 2
+  description: Generic GPU/XPU
+  name: xpu
+- choice: switch
+  count: 1
+  description: NVLink Switch
+  name: nvlsw
+- choice: switch
+  count: 1
+  description: PCI Express Switch Gen 4
+  name: pciesw
+- choice: nic
+  count: 2
+  description: Generic Nic
+  name: nic
+- choice: custom
+  count: 1
+  custom:
+    type: mgmt-nic
+  description: Mgmt Nic
+  name: mgmt
+description: A generic server with npu_factor * 4 xpu(s)
+edges:
+- ep1:
+    component: mgmt
+  ep2:
+    component: cpu[0]
+  link: pcie
+  scheme: one2one
+- ep1:
+    component: cpu
+  ep2:
+    component: cpu
+  link: fabric
+  scheme: many2many
+- ep1:
+    component: xpu
+  ep2:
+    component: nvlsw
+  link: nvlink
+  scheme: many2many
+- ep1:
+    component: cpu[0]
+  ep2:
+    component: pciesw[0]
+  link: pcie
+  scheme: many2many
+- ep1:
+    component: xpu[0:2]
+  ep2:
+    component: pciesw[0]
+  link: pcie
+  scheme: many2many
+- ep1:
+    component: nic[0:2]
+  ep2:
+    component: pciesw[0]
+  link: pcie
+  scheme: many2many
+links:
+- description: CPU Fabric
+  name: fabric
+- name: nvlink
+- name: pcie
+name: server

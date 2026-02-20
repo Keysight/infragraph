@@ -1,0 +1,36 @@
+infrastructure:
+  devices:
+    - name: generic-server
+      description: Generic Server
+      components:
+        - name: xpu
+          description: Generic XPU
+          type: xpu
+        - name: nic
+          description: Generic Network Interface Card
+          type: nic
+          external: true
+        - name: nvlsw
+          description: NVLink Switch
+          type: custom
+      links:
+        - name: pcie
+          description: PCIe Interconnect
+          bandwidth:
+            choice: gigabytes_per_second
+            gigabytes_per_second: 32
+        - name: nvlink
+          description: NvLink
+          bandwidth:
+            choice: gigabytes_per_second
+            gigabytes_per_second: 128
+      connections:
+        - xpu.0.pcie.nic.0
+        - xpu.1.pcie.nic.1
+        - xpu.2.pcie.nic.2
+        - xpu.3.pcie.nic.3
+        - xpu.0.nvlink.nvlsw.0
+        - xpu.1.nvlink.nvlsw.0
+        - xpu.2.nvlink.nvlsw.0
+        - xpu.3.nvlink.nvlsw.0
+
