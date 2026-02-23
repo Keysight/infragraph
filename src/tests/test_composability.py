@@ -40,6 +40,11 @@ def test_dgx(dgx_profile):
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    for node, attrs in g.nodes(data=True):
+        assert attrs, f"Node {node} has empty attributes"
+
+    for u, v, attrs in g.edges(data=True):
+        assert attrs, f"Edge ({u}, {v}) has empty attributes"
     # print(f"\nInfrastructure is a {g}")
     # print(networkx.write_network_text(g, vertical_chains=True))
 
@@ -53,6 +58,11 @@ def test_dgx_with_cx5_str(dgx_profile, cx5_variant):
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    for node, attrs in g.nodes(data=True):
+        assert attrs, f"Node {node} has empty attributes"
+
+    for u, v, attrs in g.edges(data=True):
+        assert attrs, f"Edge ({u}, {v}) has empty attributes"
     # print(f"\nInfrastructure is a {g}")
     # print(networkx.write_network_text(g, vertical_chains=True))
 
@@ -67,6 +77,11 @@ def test_dgx_with_cx5_obj(dgx_profile, cx5_variant):
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    for node, attrs in g.nodes(data=True):
+        assert attrs, f"Node {node} has empty attributes"
+
+    for u, v, attrs in g.edges(data=True):
+        assert attrs, f"Edge ({u}, {v}) has empty attributes"
     # print(f"\nInfrastructure is a {g}")
     # print(networkx.write_network_text(g, vertical_chains=True))
 
@@ -82,6 +97,11 @@ def test_dgx_with_cx5_obj_qsfp_str(dgx_profile, cx5_variant, qsfp_variant):
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    for node, attrs in g.nodes(data=True):
+        assert attrs, f"Node {node} has empty attributes"
+
+    for u, v, attrs in g.edges(data=True):
+        assert attrs, f"Edge ({u}, {v}) has empty attributes"
     # print(f"\nInfrastructure is a {g}")
     # print(networkx.write_network_text(g, vertical_chains=True))
 
@@ -98,5 +118,10 @@ def test_dgx_with_cx5_obj_qsfp_obj(dgx_profile, cx5_variant, qsfp_variant):
     service = InfraGraphService()
     service.set_graph(infrastructure)
     g = service.get_networkx_graph()
+    for node, attrs in g.nodes(data=True):
+        assert attrs, f"Node {node} has empty attributes"
+
+    for u, v, attrs in g.edges(data=True):
+        assert attrs, f"Edge ({u}, {v}) has empty attributes"
     # print(f"\nInfrastructure is a {g}")
     # print(networkx.write_network_text(g, vertical_chains=True))
