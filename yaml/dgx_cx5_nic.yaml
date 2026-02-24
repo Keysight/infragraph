@@ -1,0 +1,187 @@
+devices:
+- components:
+  - choice: cpu
+    count: 2
+    description: AMD EPYC 9654 (Genoa)
+    name: cpu
+  - choice: xpu
+    count: 8
+    description: NVIDIA H100 / H200 SXM5
+    name: xpu
+  - choice: switch
+    count: 4
+    description: NVIDIA NVSwitch
+    name: nvsw
+  - choice: switch
+    count: 3
+    description: Broadcom PCIe Gen5 Switch
+    name: pciesw
+  - choice: custom
+    count: 8
+    custom:
+      type: pcie_slot
+    description: PCIe Gen5 x16 slots (ConnectX / BlueField)
+    name: pciesl
+  - choice: nic
+    count: 8
+    description: cx5_100g_single
+    name: cx5_100g_single
+  description: NVIDIA DGX System
+  edges:
+  - ep1:
+      component: cpu
+    ep2:
+      component: cpu
+    link: cpu_fabric
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesl[0:3]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[1]
+    ep2:
+      component: pciesl[4:7]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesw[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: cpu[1]
+    ep2:
+      component: pciesw[1]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[0]
+    ep2:
+      component: xpu[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[1]
+    ep2:
+      component: xpu[1]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[2]
+    ep2:
+      component: xpu[2]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[3]
+    ep2:
+      component: xpu[3]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[4]
+    ep2:
+      component: xpu[4]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[5]
+    ep2:
+      component: xpu[5]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[6]
+    ep2:
+      component: xpu[6]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[7]
+    ep2:
+      component: xpu[7]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: nvsw[0:4]
+    ep2:
+      component: pciesw[2]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesw[2]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: nvsw[0:4]
+    ep2:
+      component: xpu[0:8]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: pciesl[0]
+    ep2:
+      component: cx5_100g_single[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[1]
+    ep2:
+      component: cx5_100g_single[1]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[2]
+    ep2:
+      component: cx5_100g_single[2]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[3]
+    ep2:
+      component: cx5_100g_single[3]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[4]
+    ep2:
+      component: cx5_100g_single[4]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[5]
+    ep2:
+      component: cx5_100g_single[5]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[6]
+    ep2:
+      component: cx5_100g_single[6]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[7]
+    ep2:
+      component: cx5_100g_single[7]
+    link: pcie
+    scheme: one2one
+  links:
+  - description: infinity_fabric
+    name: cpu_fabric
+  - description: nvlink_4
+    name: xpu_fabric
+  - description: PCI Express PCIE_GEN5 x16
+    name: pcie
+  name: dgx_h100
+instances:
+- count: 1
+  device: dgx_h100
+  name: dgx_h100
+name: dgx_cx5_nic

@@ -1,0 +1,222 @@
+devices:
+- components:
+  - choice: cpu
+    count: 2
+    description: AMD EPYC 9654 (Genoa)
+    name: cpu
+  - choice: xpu
+    count: 8
+    description: NVIDIA H100 / H200 SXM5
+    name: xpu
+  - choice: switch
+    count: 4
+    description: NVIDIA NVSwitch
+    name: nvsw
+  - choice: switch
+    count: 3
+    description: Broadcom PCIe Gen5 Switch
+    name: pciesw
+  - choice: custom
+    count: 8
+    custom:
+      type: pcie_slot
+    description: PCIe Gen5 x16 slots (ConnectX / BlueField)
+    name: pciesl
+  - choice: device
+    count: 8
+    description: Mellanox ConnectX-5 100GbE NIC
+    name: cx5_100gbe
+  description: NVIDIA DGX System
+  edges:
+  - ep1:
+      component: cpu
+    ep2:
+      component: cpu
+    link: cpu_fabric
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesl[0:3]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[1]
+    ep2:
+      component: pciesl[4:7]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesw[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: cpu[1]
+    ep2:
+      component: pciesw[1]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[0]
+    ep2:
+      component: xpu[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[1]
+    ep2:
+      component: xpu[1]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[2]
+    ep2:
+      component: xpu[2]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[3]
+    ep2:
+      component: xpu[3]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[4]
+    ep2:
+      component: xpu[4]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[5]
+    ep2:
+      component: xpu[5]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[6]
+    ep2:
+      component: xpu[6]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: pciesl[7]
+    ep2:
+      component: xpu[7]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: nvsw[0:4]
+    ep2:
+      component: pciesw[2]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesw[2]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: nvsw[0:4]
+    ep2:
+      component: xpu[0:8]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: pcie_endpoint[0]
+      device: cx5_100gbe[0:8]
+    ep2:
+      component: pciesl[0:8]
+    link: pcie
+    scheme: one2one
+  links:
+  - description: infinity_fabric
+    name: cpu_fabric
+  - description: nvlink_4
+    name: xpu_fabric
+  - description: PCI Express PCIE_GEN5 x16
+    name: pcie
+  name: dgx_h100
+- components:
+  - choice: custom
+    count: 1
+    custom:
+      type: pcie_endpoint
+    description: PCI Express GEN3 x16 endpoint
+    name: pcie_endpoint
+  - choice: cpu
+    count: 1
+    description: ConnectX-5 network processing ASIC
+    name: asic
+  - choice: port
+    count: 1
+    description: Ethernet port (100GbE)
+    name: port
+  - choice: device
+    count: 1
+    description: QSFP transceiver device
+    name: qsfp28
+  description: Mellanox ConnectX-5 100GbE NIC
+  edges:
+  - ep1:
+      component: pcie_endpoint
+    ep2:
+      component: asic
+    link: pcie_internal
+    scheme: one2one
+  - ep1:
+      component: asic
+    ep2:
+      component: port
+    link: serdes
+    scheme: many2many
+  - ep1:
+      component: port[0]
+    ep2:
+      component: electrical_port[0]
+      device: qsfp28[0]
+    link: electrical
+    scheme: one2one
+  - ep1:
+      component: port[0]
+    ep2:
+      component: electrical_port[0]
+      device: qsfp28[0]
+    link: electrical
+    scheme: one2one
+  links:
+  - description: Internal PCIe GEN3 fabric
+    name: pcie_internal
+  - description: High-speed SerDes lanes
+    name: serdes
+  - description: Electrical interface to transceiver
+    name: electrical
+  name: cx5_100gbe
+- components:
+  - choice: port
+    count: 1
+    description: Electrical host interface (4 lanes)
+    name: electrical_port
+  - choice: port
+    count: 1
+    description: Optical media interface (100Gbps)
+    name: optical_port
+  description: QSFP28 100Gbps Transceiver
+  edges:
+  - ep1:
+      component: electrical_port
+    ep2:
+      component: optical_port
+    link: internal_binding
+    scheme: one2one
+  links:
+  - description: Electrical-to-optical signal binding
+    name: internal_binding
+  name: qsfp28
+instances:
+- count: 1
+  device: dgx_h100
+  name: dgx_h100
+name: dgx_cx5_qsfp_composed
