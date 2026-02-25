@@ -5,6 +5,9 @@ This documentation covers the following:
 ### Background
 The [background](background.md) details and justification behind the schema.
 
+### Chakra Ecosystem
+The [Chakra Ecosystem](ecosystem.md) talks about the Chakra + InfraGraph ecosystem. How they complements each other to describe AI workloads and underlying infrastructures respectively.
+
 ### Schema
 An overview of the [schema](schema.md) and it's repository.
 
