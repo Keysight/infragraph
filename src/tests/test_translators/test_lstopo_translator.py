@@ -6,9 +6,11 @@ from infragraph.translators.lstopo_translator import LstopoParser
 
 @pytest.mark.asyncio
 async def test_supermicro_hyper_221H():
-    current_dir = os.getcwd()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     mock_data_path = os.path.join(current_dir, "mock_data")
-    mock_file_path = os.path.join(mock_data_path, "supermicro.xml")
+    mock_file_path = os.path.abspath(
+        os.path.join(mock_data_path, "supermicro.xml")
+    )
     lstopo_parser = LstopoParser(mock_file_path)
 
     infra_device = lstopo_parser.parse()
@@ -38,15 +40,16 @@ async def test_supermicro_hyper_221H():
 
 @pytest.mark.asyncio
 async def test_nvidia_dgx_2h():
-    current_dir = os.getcwd()
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     mock_data_path = os.path.join(current_dir, "mock_data")
-    mock_file_path = os.path.join(mock_data_path, "NVIDIA-DGX2H-2pa24co+16nvml+1nvswitch+10ib.xml")
+    mock_file_path = os.path.abspath(
+        os.path.join(mock_data_path, "NVIDIA-DGX2H-2pa24co+16nvml+1nvswitch+10ib.xml")
+    )
     lstopo_parser = LstopoParser(mock_file_path)
 
     infra_device = lstopo_parser.parse()
     infra_device_serialized = infra_device.serialize("yaml")
     infra_device_dict = yaml.safe_load(infra_device_serialized)
-
 
     assert "components" in infra_device_dict
     assert "edges" in infra_device_dict
@@ -72,7 +75,3 @@ async def test_nvidia_dgx_2h():
 
     links = infra_device_dict["links"]
     assert len(links) == 2
-
-
-    
-
