@@ -15,7 +15,8 @@ XPU_PCI_CLASS = {
 }
 
 XPU_VENDOR_CLASS = {
-    "102b": "Matrox card/controller"
+    "102b": "Matrox card/controller",
+    "10de": "Nvidia GPU"
 }
 
 NIC_PCI_CLASS = {
@@ -130,15 +131,13 @@ class LstopoParser:
         
         # Check if it's a GPU
         if pci_code in XPU_PCI_CLASS:
-            self._extract_gpu_info(obj)
-        elif pci_vendor in XPU_VENDOR_CLASS:
-            self._extract_vendor_gpu_info(obj, pci_vendor)
-        
+            self._extract_gpu_info(obj, pci_vendor)
+   
         # Check if it's a NIC
         elif pci_code in NIC_PCI_CLASS:
             self._extract_nic_info(obj, pci_vendor)
     
-    def _extract_gpu_info(self, obj: ET.Element):
+    def _extract_gpu_info(self, obj: ET.Element, pci_vendor: str):
         """Extract GPU information from PCI device."""
         # Check for GPU model in OSDev
         osdevs = obj.findall("object[@type='OSDev']")
@@ -148,19 +147,13 @@ class LstopoParser:
                     if info.get("name") == "GPUModel":
                         self.gpu_models.append(info.get("value"))
                         return
-        
         # Fallback to PCIDevice info
         pci_device_elem = obj.find("info[@name='PCIDevice']")
         if pci_device_elem is not None:
             self.gpu_models.append(pci_device_elem.get("value"))
-    
-    def _extract_vendor_gpu_info(self, obj: ET.Element, pci_vendor: str):
-        """Extract GPU info for specific vendors."""
-        pci_device_elem = obj.find("./info[@name='PCIDevice']")
-        if pci_device_elem is not None:
-            self.gpu_models.append(pci_device_elem.get("value"))
         else:
-            self.gpu_models.append(XPU_VENDOR_CLASS[pci_vendor])
+            if pci_vendor in XPU_VENDOR_CLASS:
+                self.gpu_models.append(XPU_VENDOR_CLASS[pci_vendor])
     
     def _extract_nic_info(self, obj: ET.Element, pci_vendor: str):
         """Extract NIC information from PCI device."""
@@ -335,10 +328,14 @@ class LstopoParser:
         for info in obj.findall(".//info"):
             if info.get("name") == "GPUModel":
                 return info.get("value")
-        
+
         # Check for NIC by OSDev/Address
         if obj.find(".//object[@type='OSDev']/info[@name='Address']") is not None:
             return NIC_VENDOR_CLASS.get(pci_vendor)
+        
+        # add gpu device as vendor name if no info about PCIDevice or GPUModel 
+        if pci_vendor in XPU_VENDOR_CLASS:
+            return XPU_VENDOR_CLASS[pci_vendor]
         
         return None
     
@@ -508,6 +505,9 @@ def parse_lstopo_xml(file_path: str) -> Device:
     parser = LstopoParser(file_path)
     return parser.parse()
 
+def run(input_path: str, output: str = "yaml"):
+    device = parse_lstopo_xml(input_path)
+    return device.serialize(output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -528,13 +528,4 @@ if __name__ == "__main__":
     )
     
     args = parser.parse_args()
-    
-    device = parse_lstopo_xml(args.input)
-    
-    if args.output == "json":
-        print(device.serialize("json"))
-    elif args.output == "yaml":
-        print()
-        print(device.serialize("yaml"))
-    else:
-        device.serialize("dict")
+    print(run(args.input, args.output))
