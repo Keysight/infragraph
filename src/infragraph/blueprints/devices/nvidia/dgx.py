@@ -506,7 +506,7 @@ class NvidiaDGX(Device):
             return
         
         if self.profile == "dgx_h100":
-            e = self.edges.add(DeviceEdge.MANY2MANY, self.pcie.name)
+            e = self.edges.add(DeviceEdge.MANY2MANY, self.xpu_fabric.name)
             e.ep1.component = f"{self.nvsw.name}[0:4]"
             e.ep2.component = f"{self.xpu.name}[0:8]"
 
