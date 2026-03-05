@@ -37,6 +37,11 @@ class LstopoParser:
     """Parser for lstopo XML files to generate device topology graphs."""
     
     def __init__(self, file_path: str):
+        _, ext = os.path.splitext(file_path)
+        if ext.lower() != ".xml":
+            raise ValueError(
+                f"LstopoParser expects an XML file, got '{ext}' instead."
+            )
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
         self.device = Device()
