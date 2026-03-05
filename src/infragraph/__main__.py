@@ -1,36 +1,21 @@
-import importlib
 import click
+from infragraph.translators.translator_handler import run_translator
 
 
-@click.command()
-@click.option(
-    "-t",
-    "--translator",
-    required=True,
-    type=click.Choice(["lstopo", "lspci"]),
-    help="Translator to use",
-)
-@click.option(
-    "--input",
-    "input_file",
-    required=True,
-    type=click.Path(exists=True),
-    help="Input file",
-)
-@click.option(
-    "--output",
-    default="yaml",
-    type=click.Choice(["json", "yaml", "dict"]),
-    help="Output format",
-)
-def main(translator, input_file, output):
-    module = importlib.import_module(
-        f"infragraph.translators.{translator}_translator"
-    )
+@click.group()
+def cli():
+    pass
 
-    result = module.run(input_file, output)
-    click.echo(result)
+@cli.command()
+@click.argument("tool", type=click.Choice(["lstopo", "lspci"]))
+@click.option("-i", "--input", "input_file", required=True, help="Input file path")
+@click.option("-o", "--output", "output_file", default="dev.yaml", help="Output file path")
+@click.option("--dump", type=click.Choice(["dict", "json", "yaml"]), default="yaml")
+def translator(tool, input_file, output_file, dump):
+    """Run selected translator"""
+    run_translator(tool, input_file, output_file, dump)
 
+# we can add some more cli.command() eg for visualizer.
 
 if __name__ == "__main__":
-    main()
+    cli()

@@ -1,5 +1,5 @@
+import os
 import xml.etree.ElementTree as ET
-import argparse
 from infragraph import *
 from typing import Dict, List, Set, Tuple
 
@@ -500,32 +500,33 @@ class LstopoParser:
                 edge.ep2.component = f"{self.nvlsw.name}[{nvswitch_key[5:]}]"
 
 
-def parse_lstopo_xml(file_path: str) -> Device:
-    """Parse lstopo XML file and return Device object."""
-    parser = LstopoParser(file_path)
-    return parser.parse()
+def run_lstopo_parser(
+    input_file: str,
+    output_file: str = "devices.yaml",
+    dump_format: str = "yaml",
+) -> str:
+    """
+    Parse an lstopo file and export it in the requested format.
+    """
 
-def run(input_path: str, output: str = "yaml"):
-    device = parse_lstopo_xml(input_path)
-    return device.serialize(output)
+    if not os.path.isfile(input_file):
+        raise FileNotFoundError(f"Input file not found: {input_file}")
+    print(output_file)
+    _, ext = os.path.splitext(output_file)
+    ext = ext.lstrip(".").lower()
+    print(ext, "asdfas")
+    print(dump_format,"   asfdafd")
+    if ext != dump_format.lower():
+        raise ValueError(
+            f"Output extension '.{ext}' does not match format '{dump_format}'."
+        )
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Parse lstopo XML and generate device topology"
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="yaml",
-        choices=["json", "yaml", "dict"],
-        help="Output format (json, yaml, or dict)"
-    )
-    parser.add_argument(
-        "--input",
-        type=str,
-        required=True,
-        help="Path to lstopo XML file"
-    )
-    
-    args = parser.parse_args()
-    print(run(args.input, args.output))
+    parser = LstopoParser(input_file)
+    device_model = parser.parse()
+
+    serialized_data = device_model.serialize(dump_format)
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(serialized_data)
+
+    return serialized_data
