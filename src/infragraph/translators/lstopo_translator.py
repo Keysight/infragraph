@@ -37,7 +37,6 @@ class LstopoParser:
     """Parser for lstopo XML files to generate device topology graphs."""
     
     def __init__(self, file_path: str):
-        self.file_path = file_path
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
         self.device = Device()
@@ -511,11 +510,8 @@ def run_lstopo_parser(
 
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
-    print(output_file)
     _, ext = os.path.splitext(output_file)
     ext = ext.lstrip(".").lower()
-    print(ext, "asdfas")
-    print(dump_format,"   asfdafd")
     if ext != dump_format.lower():
         raise ValueError(
             f"Output extension '.{ext}' does not match format '{dump_format}'."
