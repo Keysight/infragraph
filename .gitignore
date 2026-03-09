@@ -677,7 +677,7 @@ src/infragraph/infragraph.py
 src/infragraph/infragraph_pb2*
 src/docs
 docs/src/yaml
-*.lib
-*.html
-*.txt
-src/tests/printed/*
+src/hwloc/devices_xml
+src/hwloc/devices_svg
+dev.json
+src/tests/test_notebooks/
