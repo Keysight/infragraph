@@ -57,6 +57,6 @@ yaml: ## generate yaml contents for docs
 	python3 docs/generate_yaml.py
 
 .PHONY: pre-test-notebook
-pre-test:
+pre-test-notebook:
 	rm -rf src/tests/test_notebooks
 	cd src && python3 convert_nb_to_script.py
