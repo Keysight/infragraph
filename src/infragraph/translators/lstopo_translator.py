@@ -50,7 +50,8 @@ class LstopoParser:
         self.gpu_models = []
         self.nics = []
         self.nv_switch_count = 0
-        self.bridge_to_pcidevice: Dict[str, List[str]] = {}
+        self.root_bridge_to_pcidevice: Dict[str, List[str]] = {}
+        self.pci_bridge_to_pcidevice: Dict[str, List[str]] = {}
         self.pcidevice_to_component: Dict[str, List[str]] = {}
         self.pcidevice_is_nvslw: Dict[str, List[str]] = {}
         self.package_to_root_map: Dict[str, int] = {}
@@ -67,7 +68,6 @@ class LstopoParser:
         bridge_map, bridge_count, root_count = self._build_pci_bridge_dict()
         self._create_bridge_components(root_count, bridge_count)
         self._create_topology_edges(bridge_map)
-        
         return self.device
     
     def _extract_device_name(self):
@@ -293,7 +293,11 @@ class LstopoParser:
                 for child in obj:
                     if len(child) != 0 and child.tag == "object" and child.get("type") == "Bridge":
                         parse_bridge(child, root_key)
-        
+                    elif child.get("type") == "PCIDev" and child.get("pci_type")[:4] in XPU_PCI_CLASS or child.get("pci_type")[:4] in NIC_PCI_CLASS:
+                        # connect the pci device directly to the root bridge
+                        self._process_root_pci_device(child, root_key, pci_device_index)
+                        pci_device_index += 1
+                        
         return bridge_map, bridge_index, root_index
     
     def _process_pci_device(self, obj: ET.Element, bridge_key: str, 
@@ -302,7 +306,7 @@ class LstopoParser:
         pci_device_key = f"pci_device{pci_device_index}"
         
         # Map bridge to PCI device
-        self.bridge_to_pcidevice.setdefault(bridge_key, []).append(pci_device_key)
+        self.pci_bridge_to_pcidevice.setdefault(bridge_key, []).append(pci_device_key)
         
         # Check if NVSwitch
         if obj.get("subtype") == "NVSwitch":
@@ -318,6 +322,18 @@ class LstopoParser:
             component_name = self._get_component_name_from_pci_device(obj, pci_vendor)
             if component_name:
                 self.pcidevice_to_component.setdefault(pci_device_key, []).append(component_name)
+    
+    def _process_root_pci_device(self, obj: ET.Element, root_key: str, pci_device_index: int):
+        root_pci_device_key = f"pci_device{pci_device_index}"
+        self.root_bridge_to_pcidevice.setdefault(root_key, []).append(root_pci_device_key)
+        pci_type = obj.get("pci_type", "")
+        pci_code = pci_type[:4]
+        pci_vendor = pci_type[6:10]
+        
+        if pci_code in XPU_PCI_CLASS or pci_code in NIC_PCI_CLASS:
+            component_name = self._get_component_name_from_pci_device(obj, pci_vendor)
+            if component_name:
+                self.pcidevice_to_component.setdefault(root_pci_device_key, []).append(component_name)
     
     def _get_component_name_from_pci_device(self, obj: ET.Element, pci_vendor: str) -> str:
         """Extract component name from PCI device element."""
@@ -382,6 +398,7 @@ class LstopoParser:
         self._connect_cpu_to_root_bridges()
         self._connect_bridges(bridge_map)
         self._connect_pci_devices_to_bridges()
+        self._connect_pci_devices_to_root_bridges()
         self._connect_pci_devices_to_components()
     
     def _connect_cpu_to_root_bridges(self):
@@ -425,7 +442,7 @@ class LstopoParser:
     
     def _connect_pci_devices_to_bridges(self):
         """Connect PCI devices to their parent bridges."""
-        for bridge_key, pci_devices in self.bridge_to_pcidevice.items():
+        for bridge_key, pci_devices in self.pci_bridge_to_pcidevice.items():
             bridge_index = bridge_key[10:]
             for pci_device_key in pci_devices:
                 edge = self.device.edges.add(
@@ -434,6 +451,19 @@ class LstopoParser:
                 )
                 edge.ep1.component = f"{self.pci_bridge.name}[{bridge_index}]"
                 edge.ep2.component = f"{self.pci_device.name}[{pci_device_key[10:]}]"
+    
+    def _connect_pci_devices_to_root_bridges(self):
+        """Connect PCI devices to the root bridges."""
+        for bridge_key, pci_devices in self.root_bridge_to_pcidevice.items():
+            bridge_index = bridge_key[4:]
+            for pci_device_key in pci_devices:
+                edge = self.device.edges.add(
+                    scheme=DeviceEdge.MANY2MANY,
+                    link=self.pci.name
+                )
+                edge.ep1.component = f"{self.root_bridge.name}[{bridge_index}]"
+                edge.ep2.component = f"{self.pci_device.name}[{pci_device_key[10:]}]"
+    
     
     def _connect_pci_devices_to_components(self):
         """Connect PCI devices to actual NIC/GPU/NVSwitch components."""
