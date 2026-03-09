@@ -23,6 +23,7 @@ generate: ## generate artifacts using OpenApiArt
 test: ## run unit tests on the src/infragraph files
 	source .venv/bin/activate && \
 	pip uninstall -y infragraph && \
+	make pre-test-notebook
 	pytest -s
 
 .PHONY: package
@@ -54,3 +55,8 @@ docs: ## generate local documentation to docs/site
 yaml: ## generate yaml contents for docs
 	source .venv/bin/activate && \
 	python3 docs/generate_yaml.py
+
+.PHONY: pre-test-notebook
+pre-test:
+	rm -rf src/tests/test_notebooks
+	cd src && python3 convert_nb_to_script.py
