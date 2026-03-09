@@ -20,11 +20,12 @@ generate: ## generate artifacts using OpenApiArt
 	cp -f artifacts/*.* src/docs
 
 .PHONY: test
-test: pre-test-notebook## run unit tests on the src/infragraph files
+test: ## run unit tests on the src/infragraph files
 	source .venv/bin/activate && \
 	pip uninstall -y infragraph && \
+	make pre-test-notebook && \
 	pytest -s
-
+	
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts
 	rm -rf dist || true
