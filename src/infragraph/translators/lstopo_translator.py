@@ -1,7 +1,15 @@
 import os
+import subprocess
+import tempfile
 import xml.etree.ElementTree as ET
-from infragraph import *
+
+from pathlib import Path
 from typing import Dict, List, Set, Tuple
+from infragraph import *
+
+def generate_lstopo_xml() -> str:
+
+    return 
 
 # Constants
 CPU_FABRICS = {
@@ -535,22 +543,30 @@ class LstopoParser:
 
 
 def run_lstopo_parser(
-    input_file: str,
+    input_file: str | None = None,
     output_file: str = "devices.yaml",
     dump_format: str = "yaml",
 ) -> str:
     """
     Parse an lstopo file and export it in the requested format.
     """
-
+    if input_file is None:
+        tmp_xml = Path(tempfile.gettempdir()) / "lstopo_output.xml"
+        subprocess.run(
+            ["lstopo", "-f" ,"--of", "xml", str(tmp_xml)],
+            check=True
+        )
+        input_file = str(tmp_xml)
+    
+    else:
+        _, ext = os.path.splitext(output_file)
+        ext = ext.lstrip(".").lower()
+        if ext != dump_format.lower():
+            raise ValueError(
+                f"Output extension '.{ext}' does not match format '{dump_format}'."
+            )
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
-    _, ext = os.path.splitext(output_file)
-    ext = ext.lstrip(".").lower()
-    if ext != dump_format.lower():
-        raise ValueError(
-            f"Output extension '.{ext}' does not match format '{dump_format}'."
-        )
 
     parser = LstopoParser(input_file)
     device_model = parser.parse()
