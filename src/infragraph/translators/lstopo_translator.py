@@ -7,10 +7,6 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 from infragraph import *
 
-def generate_lstopo_xml() -> str:
-
-    return 
-
 # Constants
 CPU_FABRICS = {
     "GenuineIntel": "Intel Ultra Path Interconnect(UPI)",
