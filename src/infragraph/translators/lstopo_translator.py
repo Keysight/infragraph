@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+import shutil
 import xml.etree.ElementTree as ET
 
 from pathlib import Path
@@ -49,6 +50,7 @@ class LstopoParser:
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
         self.device = Device()
+        self.infrastructure = Infrastructure()
         
         # Data structures for tracking components
         self.gpu_models = []
@@ -60,7 +62,7 @@ class LstopoParser:
         self.pcidevice_is_nvslw: Dict[str, List[str]] = {}
         self.package_to_root_map: Dict[str, int] = {}
         
-    def parse(self) -> Device:
+    def parse(self, infra_type: str = "infragraph") -> Device:
         """Main parsing method that orchestrates the entire parsing process."""
         self._extract_device_name()
         self._parse_cpu_info()
@@ -72,7 +74,14 @@ class LstopoParser:
         bridge_map, bridge_count, root_count = self._build_pci_bridge_dict()
         self._create_bridge_components(root_count, bridge_count)
         self._create_topology_edges(bridge_map)
-        return self.device
+        if infra_type == "device":
+            return self.device
+        
+        elif infra_type == "infragraph":
+            infra = Infrastructure()
+            infra.devices.append(self.device)
+            infra.instances.add(name=self.device.name, device=self.device.name, count=1)
+            return infra
     
     def _extract_device_name(self):
         """Extract device name from DMI or Platform info."""
@@ -546,21 +555,33 @@ def run_lstopo_parser(
     """
     Parse an lstopo file and export it in the requested format.
     """
+    # Check if lstopo is installed
+    if shutil.which("lstopo") is None:
+        raise RuntimeError(
+            "lstopo is not installed or not in PATH. Install hwloc package."
+        )
+
+    tmp_xml = None
+
     if input_file is None:
         tmp_xml = Path(tempfile.gettempdir()) / "lstopo_output.xml"
+
         subprocess.run(
-            ["lstopo", "-f" ,"--of", "xml", str(tmp_xml)],
+            ["lstopo", "-f","--of", "xml", str(tmp_xml)],
             check=True
         )
+
         input_file = str(tmp_xml)
-    
+
     else:
         _, ext = os.path.splitext(output_file)
         ext = ext.lstrip(".").lower()
+
         if ext != dump_format.lower():
             raise ValueError(
                 f"Output extension '.{ext}' does not match format '{dump_format}'."
             )
+
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
 
@@ -572,4 +593,8 @@ def run_lstopo_parser(
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
 
+    # delete temp file if created
+    if tmp_xml and tmp_xml.exists():
+        tmp_xml.unlink()
+        print("removed /tmp/lstopo_output.xml")
     return serialized_data

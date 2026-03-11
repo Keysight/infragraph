@@ -10,7 +10,7 @@ def cli():
 @click.argument("tool", type=click.Choice(["lstopo", "lspci"]))
 @click.option("-i", "--input", "input_file", help="Input file path")
 @click.option("-o", "--output", "output_file", default="dev.yaml", help="Output file path")
-@click.option("--dump", type=click.Choice(["dict", "json", "yaml"]), default="yaml")
+@click.option("--dump", type=click.Choice(["json", "yaml"]), default="yaml")
 def translator(tool, input_file, output_file, dump):
     """Run selected translator"""
     run_translator(tool, input_file, output_file, dump)

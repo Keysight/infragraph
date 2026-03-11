@@ -13,7 +13,7 @@ async def test_supermicro_hyper_221H():
     )
     lstopo_parser = LstopoParser(mock_file_path)
 
-    infra_device = lstopo_parser.parse()
+    infra_device = lstopo_parser.parse(infra_type="device")
     infra_device_serialized = infra_device.serialize("yaml")
     infra_device_dict = yaml.safe_load(infra_device_serialized)
 
@@ -47,7 +47,7 @@ async def test_nvidia_dgx_2h():
     )
     lstopo_parser = LstopoParser(mock_file_path)
 
-    infra_device = lstopo_parser.parse()
+    infra_device = lstopo_parser.parse(infra_type="device")
     infra_device_serialized = infra_device.serialize("yaml")
     infra_device_dict = yaml.safe_load(infra_device_serialized)
 

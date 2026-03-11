@@ -59,4 +59,6 @@ yaml: ## generate yaml contents for docs
 .PHONY: pre-test-notebook
 pre-test-notebook:
 	rm -rf src/tests/test_notebooks
+	jupytext --to notebook src/infragraph/notebooks/*.py
 	cd src && python3 convert_nb_to_script.py
+	rm -rf src/infragraph/notebooks/*.ipynb
