@@ -23,8 +23,9 @@ generate: ## generate artifacts using OpenApiArt
 test: ## run unit tests on the src/infragraph files
 	source .venv/bin/activate && \
 	pip uninstall -y infragraph && \
+	make pre-test-notebook && \
 	pytest -s
-
+	
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts
 	rm -rf dist || true
@@ -54,3 +55,10 @@ docs: ## generate local documentation to docs/site
 yaml: ## generate yaml contents for docs
 	source .venv/bin/activate && \
 	python3 docs/generate_yaml.py
+
+.PHONY: pre-test-notebook
+pre-test-notebook:
+	rm -rf src/tests/test_notebooks
+	jupytext --to notebook src/infragraph/notebooks/*.py
+	cd src && python3 notebook_to_test_script.py
+	rm -rf src/infragraph/notebooks/*.ipynb
