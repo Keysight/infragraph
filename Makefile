@@ -9,7 +9,7 @@ clean: ## recreate clean virtual environment
 	rm -rf .venv || true
 	python3 -m venv .venv
 	source .venv/bin/activate && pip install -r requirements.txt
-	rm src/infragraph/visualizer/frontend/js/vis-network.min.js
+	rm -f src/infragraph/visualizer/frontend/js/vis-network.min.js
 	curl -L https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js -o src/infragraph/visualizer/frontend/js/vis-network.min.js
 
 .PHONY: generate
