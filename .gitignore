@@ -664,7 +664,7 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# artifacts/*
+artifacts/*
 docs/gh-pages
 docs/site
 dist
@@ -676,7 +676,7 @@ src/infragraph/__init__.py
 src/infragraph/infragraph.py
 src/infragraph/infragraph_pb2*
 src/docs
-# docs/src/yaml
+docs/src/yaml
 src/hwloc/devices_xml
 src/hwloc/devices_svg
 dev.json
