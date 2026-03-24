@@ -592,9 +592,11 @@ def run_lstopo_parser(
 
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
+        print("translated output file", output_file)
 
     # delete temp file if created
     if tmp_xml and tmp_xml.exists():
         tmp_xml.unlink()
         print("removed /tmp/lstopo_output.xml")
     return serialized_data
+

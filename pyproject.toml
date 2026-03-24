@@ -61,3 +61,5 @@ artifacts = [
 [tool.hatch.build.targets.wheel.sources]
 "src/**" = "infragraph"
 
+[project.scripts]
+infragraph = "infragraph.__main__:app"
