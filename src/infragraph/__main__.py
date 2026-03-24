@@ -1,9 +1,9 @@
 import typer
 from infragraph.translators.translator_handler import run_translator
 from infragraph.visualizer.visualize import run_visualizer
-
+ 
 app = typer.Typer()
-
+ 
 @app.command()
 def translate(
     tool = typer.Argument(..., help="Translator to use"),
@@ -11,15 +11,15 @@ def translate(
     output_file = typer.Option("dev.yaml","--output", "-o", help="Output file path"),
     dump = typer.Option("yaml", "--dump", help="Dump format (json or yaml)")
 ):
-
+ 
     run_translator(tool, input_file, output_file, dump)
-
+ 
 @app.command()
 def visualize(
     input_path: str = typer.Option(
         ...,
         "--input", "-i",
-        help="Path to the InfraGraph infrastructure file.",
+        help="Path to the InfraGraph infrastructure yaml/json file.",
         exists=True,
         file_okay=True,
         dir_okay=False,
@@ -28,12 +28,12 @@ def visualize(
     hosts: str = typer.Option(
         "",
         "--hosts",
-        help="Comma-separated instance names that are hosts (e.g., 'dgx1,dgx2'). Only used in visualizer mode.",
+        help="Comma-separated instance names that are hosts (used in visualizer).",
     ),
     switches: str = typer.Option(
         "",
         "--switches",
-        help="Comma-separated switch names (e.g., 'sw1,sw2'). Only used in visualizer mode.",
+        help="Comma-separated switch names (used in visualizer).",
     ),
     output_dir: str = typer.Option(
         ...,
@@ -50,7 +50,7 @@ def visualize(
         switches=switches,
         output=output_dir,
     )
-
-
+ 
+ 
 if __name__ == "__main__":
     app()
