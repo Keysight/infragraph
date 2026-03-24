@@ -11,3 +11,4 @@ mkdocs-include-markdown-plugin
 mkdocs-print-site-plugin
 jupytext
 nbconvert
+typer
