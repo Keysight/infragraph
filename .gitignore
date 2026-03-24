@@ -681,5 +681,5 @@ src/hwloc/devices_xml
 src/hwloc/devices_svg
 dev.json
 src/tests/test_notebooks/
-visualizer/visualizer3copy.py
 !index.html
+src/infragraph/visualizer/frontend/js/vis-network.min.js
