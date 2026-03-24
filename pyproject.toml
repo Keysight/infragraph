@@ -50,6 +50,12 @@ exclude = [
     "!README.md",
     "!src/**/*.py",
     "!src/docs/*.*",
+    "!src/infragraph/visualizer/*.*",
+]
+
+[tool.hatch.build]
+artifacts = [
+    "src/infragraph/visualizer/frontend/**/*",
 ]
 
 [tool.hatch.build.targets.wheel.sources]

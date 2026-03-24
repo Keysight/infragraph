@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfraGraph Visualizer</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+</head>
+<body>
+    <!-- Header bar -->
+    <header id="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="5" r="3"/>
+                    <circle cx="5" cy="19" r="3"/>
+                    <circle cx="19" cy="19" r="3"/>
+                    <line x1="12" y1="8" x2="5" y2="16"/>
+                    <line x1="12" y1="8" x2="19" y2="16"/>
+                    <line x1="5" y1="19" x2="19" y2="19"/>
+                </svg>
+                <span>InfraGraph Visualizer</span>
+            </div>
+            <nav id="breadcrumb">
+                <span class="crumb active" data-file="infrastructure.json">Infrastructure</span>
+            </nav>
+        </div>
+        <div class="header-right">
+            <button id="btn-fit" title="Fit to view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+            </button>
+            <button id="btn-back" title="Go back" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Back
+            </button>
+            <button id="btn-theme" title="Toggle theme">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+
+
+    <!-- Graph box which will be filled by vis.js -->
+    <main id="graph-container"></main>
+
+    <!-- Legend -->
+    <button id="btn-hint" title="Show legend">?</button>
+    <div id="legend" style="display:none;">
+        <h4>Node Types</h4>
+        <div class="legend-items">
+            <div class="legend-item"><img src="svg_images/cpu.svg" width="25" height="25">CPU</div>
+            <div class="legend-item"><img src="svg_images/xpu.svg" width="20" height="20"></span>XPU</div>
+            <div class="legend-item"><img src="svg_images/nic.svg" width="20" height="20">NIC</div>
+            <div class="legend-item"><img src="svg_images/switch.svg" width="20" height="20">Switch</div>
+            <div class="legend-item"><img src="svg_images/port.svg" width="20" height="20">Port</div>
+            <div class="legend-item"><img src="svg_images/device.svg" width="20" height="20">Custom Device</div>
+            <div class="legend-item"><img src="svg_images/server.svg" width="20" height="20">Server</div>
+        </div>
+        <h4>Interactions</h4>
+        <div class="legend-hint">Click drillable node → explore internals</div>
+        <div class="legend-hint">Hover node/edge → view attributes</div>
+        <div class="legend-hint">Scroll → zoom in/out</div>
+        <div class="legend-hint">Hold a node → see connected nodes</div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading" class="hidden">
+        <div class="spinner"></div>
+        <span>Loading graph data…</span>
+    </div>
+
+    <!-- Filter panel -->
+     <button id="filterToggle" onclick="toggleFilterPanel()">&#9881; Filter</button>
+
+    <div id="filterPanel" style="display:none;">
+    <div class="filter-header">
+        <span>Filter Graph</span>
+        <button onclick="toggleFilterPanel()" title="Close">&#10005;</button>
+    </div>
+    <div class="filter-body">
+        <div class="filter-section">
+        <h5>Search Nodes</h5>
+        <input type="text" class="filter-search" id="nodeSearch" placeholder="Type to find nodes..." oninput="onNodeSearch()" />
+        <div id="nodeSearchResults" style="margin-top:6px; font-size:12px; color:#7f8c8d;"></div>
+        </div>
+        <div class="filter-section">
+        <h5>Select Nodes <span id="pickedCount" class="node-count-badge"></span></h5>
+        <div class="node-dropdown">
+            <input type="text" class="filter-search" id="nodePicker" placeholder="Search &amp; pick nodes..."
+                oninput="onPickerSearch()" onfocus="onPickerSearch()" />
+            <div class="node-dropdown-list" id="pickerDropdown"></div>
+        </div>
+        <div class="picked-nodes" id="pickedNodes"></div>
+        <div class="conn-info" id="connInfo"></div>
+        <div class="filter-actions" style="margin-top:6px;">
+            <button class="primary" onclick="showSelectedConnections()">Show Connections</button>
+            <button onclick="clearPickedNodes()">Clear</button>
+        </div>
+        </div>
+        <div class="filter-section">
+        <h5>Node Types <span id="nodeTypeCount" class="node-count-badge"></span></h5>
+        <div id="nodeTypeFilters" class="filter-cb-list"></div>
+        <div class="filter-actions">
+            <button onclick="toggleAllNodeTypes(true)">All</button>
+            <button onclick="toggleAllNodeTypes(false)">None</button>
+        </div>
+        </div>
+        <div class="filter-section">
+        <h5>Link Types <span id="edgeTypeCount" class="node-count-badge"></span></h5>
+        <div id="edgeTypeFilters" class="filter-cb-list"></div>
+        <div class="filter-actions">
+            <button onclick="toggleAllEdgeTypes(true)">All</button>
+            <button onclick="toggleAllEdgeTypes(false)">None</button>
+        </div>
+        </div>
+        <div class="filter-section" style="border-bottom:none;">
+        <div class="filter-actions">
+            <button class="primary" onclick="applyFilters()">Apply Filters</button>
+            <button onclick="resetFilters()">Reset</button>
+        </div>
+        </div>
+    </div>
+    </div>
+    
+
+    
+    
+    <script src="js/vis-network.min.js"></script>
+    <script src="js/colors.js"></script>
+    <script src="js/network.js"></script>
+
+    
+    <script src="js/data.js"></script>
+    <script src="js/graph_data.js"></script>
+
+    
+    <script src="js/navigation.js"></script>
+
+    
+    <script src="js/filters.js"></script>
+    <script src="js/search.js"></script>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
