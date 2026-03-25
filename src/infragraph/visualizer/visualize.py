@@ -9,7 +9,7 @@ from infragraph.infragraph_service import InfraGraphService
 
 # metadata
 NODE_STYLES = {
-    "switch_dev":  {"shape": "image", "image": "svg_images/switch_dev.svg", "size": 10},
+    "switch_dev":  {"shape": "image", "image": "svg_images/switch_dev.svg", "size": 20},
     "switch":      {"shape": "image", "image": "svg_images/switch.svg",     "size": 12},
     "server":      {"shape": "image", "image": "svg_images/server.svg",     "size": 22},
     "host":        {"shape": "image", "image": "svg_images/device.svg",     "size": 22},
@@ -19,11 +19,11 @@ NODE_STYLES = {
     "nic":         {"shape": "image", "image": "svg_images/nic.svg",        "size": 18},
     "memory":      {"shape": "image", "image": "svg_images/memory.svg",     "size": 18},
     "port":        {"shape": "image", "image": "svg_images/port.svg",       "size": 12},
-    "pcie_slot":   {"shape": "image", "image": "svg_images/pcie_slot.svg",  "size":  5},
-    "device":      {"shape": "image", "image": "svg_images/device.svg",     "size": 18},
+    "pcie_slot":   {"shape": "image", "image": "svg_images/pcie_slot.svg",  "size":  12},
+    "device":      {"shape": "image", "image": "svg_images/device.svg",     "size": 25},
     "custom":      {"shape": "dot",   "color": "#7f8c8d",                   "size": 22},
-    "pci_bridge":  {"shape": "image", "image": "svg_images/pci_bridge.svg", "size": 12},
-    "root_bridge": {"shape": "image", "image": "svg_images/pci_bridge.svg", "size": 12},
+    "pci_bridge":  {"shape": "image", "image": "svg_images/pcie_bridge.svg", "size": 12},
+    "root_bridge": {"shape": "image", "image": "svg_images/pcie_bridge.svg", "size": 12},
     "pci_device":  {"shape": "image", "image": "svg_images/pcie_slot.svg",  "size":  5},
 }
 
