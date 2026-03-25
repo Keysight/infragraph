@@ -39,6 +39,8 @@ Graphical views make it easier to spot design issues:
     
 Visualizers assist developers in understanding structure, bottlenecks, and correctness.
 
+These helper tools are accessible through the InfraGraph [CLI](cli.md).
+
 >**Note:** Some of these tools are _work-in-progress_ and we invite contributions from the community.
 
 ## Privacy & Obfuscation

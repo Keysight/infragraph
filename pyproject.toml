@@ -9,6 +9,7 @@ dependencies = [
     "requests",
     "grpcio",
     "protobuf",
+    "typer",
 ]
 authors = [
     {name = "TBD", email = "tbd@infragraph.org"}
