@@ -4,7 +4,11 @@ InfraGraph provides a command-line interface (CLI) built with [Typer](https://ty
 
 ## Installation
 
-**Option 1** — Clone the repo and build:
+```bash
+pip install infragraph
+```
+
+Alternatively, clone the repo and build:
 
 ```bash
 git clone https://github.com/Keysight/infragraph.git
@@ -13,7 +17,7 @@ make clean
 make install
 ```
 
-**Option 2** — Download the `.whl` from [releases](https://github.com/Keysight/infragraph/releases) and install directly:
+Or download the `.whl` from [releases](https://github.com/Keysight/infragraph/releases) and install directly:
 
 ```bash
 pip install infragraph-<version>.whl

@@ -25,7 +25,13 @@ Additional information such as background, schema and examples can be found in t
 
 InfraGraph ships with a CLI that lets you convert existing system descriptions into InfraGraph format and visualize infrastructure topologies.
 
-Install by cloning the repo and running `make clean && make install`, or download the `.whl` from [releases](https://github.com/Keysight/infragraph/releases) and install it with `pip install infragraph-<version>.whl`.
+Install using pip:
+
+```bash
+pip install infragraph
+```
+
+Or clone the repo and run `make clean && make install`, or download the `.whl` from [releases](https://github.com/Keysight/infragraph/releases) and install it with `pip install infragraph-<version>.whl`.
 
 **Convert system formats to InfraGraph** — translate output from tools like `lstopo` directly into an InfraGraph YAML/JSON definition:
 
