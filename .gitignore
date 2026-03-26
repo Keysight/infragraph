@@ -684,3 +684,4 @@ src/tests/test_notebooks/
 !index.html
 src/infragraph/visualizer/frontend/js/vis-network.min.js
 viz/
+demo/
