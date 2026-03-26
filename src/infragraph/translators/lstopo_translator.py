@@ -71,8 +71,8 @@ class LstopoParser:
         self._create_cpu_fabric_links()
         
         # Build bridge topology and create edges
-        bridge_map, bridge_count, root_count = self._build_pci_bridge_dict()
-        self._create_bridge_components(root_count, bridge_count)
+        bridge_map, bridge_count, root_count, pci_devices_count = self._build_pci_bridge_dict()
+        self._create_bridge_components(root_count, bridge_count, pci_devices_count)
         self._create_topology_edges(bridge_map)
         if infra_type == "device":
             return self.device
@@ -310,8 +310,8 @@ class LstopoParser:
                         # connect the pci device directly to the root bridge
                         self._process_root_pci_device(child, root_key, pci_device_index)
                         pci_device_index += 1
-                        
-        return bridge_map, bridge_index, root_index
+        
+        return bridge_map, bridge_index, root_index, pci_device_index
     
     def _process_pci_device(self, obj: ET.Element, bridge_key: str, 
                            pci_device_index: int, nv_switch_index: int):
@@ -372,14 +372,9 @@ class LstopoParser:
         
         return None
     
-    def _create_bridge_components(self, root_count: int, bridge_count: int):
+    def _create_bridge_components(self, root_count: int, bridge_count: int, pci_devices_count: int):
         """Create bridge and PCI device components."""
-        pci_device_count = sum(
-            1 for obj in self.root.findall(".//object[@type='PCIDev']")
-            if obj.get("pci_type", "")[:4] in XPU_PCI_CLASS or 
-               obj.get("pci_type", "")[:4] in NIC_PCI_CLASS
-        )
-        
+        pci_device_count = pci_devices_count
         self.pci = self.device.links.add(name="pci")
         
         self.root_bridge = self.device.components.add(
@@ -556,13 +551,13 @@ def run_lstopo_parser(
     Parse an lstopo file and export it in the requested format.
     """
     # Check if lstopo is installed
-    if shutil.which("lstopo") is None:
-        raise RuntimeError(
-            "lstopo is not installed or not in PATH. Install hwloc package."
-        )
-
+    if input_file is None or input_file == "":
+        if shutil.which("lstopo") is None:
+            raise RuntimeError(
+                "lstopo is not installed or not in PATH. Install hwloc package."
+            )
     tmp_xml = None
-
+    
     if input_file is None:
         tmp_xml = Path(tempfile.gettempdir()) / "lstopo_output.xml"
 
