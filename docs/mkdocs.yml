@@ -54,6 +54,7 @@ nav:
   - Schema: schema.md
   - Getting Started: create.md
   - Blueprints: blueprints.md
+  - CLI: cli.md
   - Extending The Graph: annotate.md
   - Examples: examples.md
   - Browse API Spec: openapi.html

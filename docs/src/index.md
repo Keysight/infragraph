@@ -15,7 +15,13 @@ An overview of the [schema](schema.md) and it's repository.
 A simple generic case study demonstrating how to [get started](create.md).
 
 ### Blueprints
-This section defines blueprints for devices and fabrics, enabling users to model various vendor-specific devices and standard fabric architectures.
+The [blueprints](blueprints.md) section provides ready-made templates for commonly used AI data center components:
+
+- **Devices** — vendor-specific models from NVIDIA, Meta, Dell, HPE, and others, including hosts, NICs, and xPUs/accelerators.
+- **Fabrics** — standard topologies such as Clos and Dragonfly for defining scale-out interconnects.
+
+### CLI
+The [CLI](cli.md) provides commands for converting system descriptions into InfraGraph format and visualizing infrastructure topologies directly from the terminal.
 
 ### Extending the case study with additional data
 This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on.
