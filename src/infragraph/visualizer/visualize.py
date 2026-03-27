@@ -78,7 +78,7 @@ def _map_to_parent(node_id):
 
  
 
-def _generate_component_json(device_name, device_data, all_device_names):
+def _generate_component_json(device_name, device_data, all_device_names,infrastructure):
     """Generate a device component view JSON from a DeviceData object.
     Params:     
         device_name (str): Name of the device (e.g., "dgx_a100").
@@ -87,6 +87,12 @@ def _generate_component_json(device_name, device_data, all_device_names):
             used to determine which components are drillable.
     Returns:
         dict: vis.js-ready JSON with "nodes" and "edges" keys."""
+    comp_descriptions = {}
+    for device in infrastructure.devices:
+        if device.name == device_name:
+            for comp in device.components:
+                comp_descriptions[comp.name] = comp.description
+            break
     nodes = []
     for node_id, node_type in device_data.nodes.items():
         parts = node_id.split(".")
@@ -97,12 +103,13 @@ def _generate_component_json(device_name, device_data, all_device_names):
         comp_name = parts[0]
         drillable = node_type == "device" and comp_name in all_device_names
         style = _get_style(node_type)
+        desc = comp_descriptions.get(comp_name, "")
 
 
         nodes.append({
             "id": node_id,
             "label": f"{comp_name}[{parts[1]}]",
-            "title": f"Component: {node_id}\nType: {node_type}",
+            "title": f"Component: {node_id}\nType: {node_type}\nDescription: {desc}",
             "type": node_type,
             "shape": style.get("shape", "dot"),
             "image": style.get("image"),
@@ -251,7 +258,7 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz", hosts=(
 
     #device view
     for device_name, device_data in service._device_data.items():
-        dev_json = _generate_component_json(device_name, device_data, all_device_names)
+        dev_json = _generate_component_json(device_name, device_data, all_device_names,infra)
         all_views[f"{device_name}.json"] = dev_json
         print(f"  Generated: {device_name}.json ({len(dev_json['nodes'])} nodes, {len(dev_json['edges'])} edges)")
 
