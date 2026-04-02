@@ -1,0 +1,193 @@
+devices:
+-   components:
+    -   choice: cpu
+        count: 2
+        description: AMD EPYC 7742 (Rome)
+        name: cpu
+    -   choice: xpu
+        count: 8
+        description: NVIDIA A100 SXM4
+        name: xpu
+    -   choice: switch
+        count: 6
+        description: NVIDIA NVSwitch
+        name: nvlsw
+    -   choice: switch
+        count: 6
+        description: Broadcom / PLX PCIe Gen4 Switch
+        name: pciesw
+    -   choice: custom
+        count: 8
+        custom:
+            type: pcie_slot
+        description: PCIe Gen4 x16 slots (NIC / storage)
+        name: pciesl
+    -   choice: device
+        count: 8
+        description: Mellanox ConnectX-5 100GbE NIC
+        name: cx5_100gbe
+    description: NVIDIA DGX System
+    edges:
+    -   ep1:
+            component: cpu
+        ep2:
+            component: cpu
+        link: cpu_fabric
+        scheme: many2many
+    -   ep1:
+            component: cpu[0]
+        ep2:
+            component: pciesw[0]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: cpu[0]
+        ep2:
+            component: pciesw[1]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: cpu[1]
+        ep2:
+            component: pciesw[2]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: cpu[1]
+        ep2:
+            component: pciesw[3]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[0]
+        ep2:
+            component: pciesl[0:2]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[0]
+        ep2:
+            component: xpu[0:2]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[1]
+        ep2:
+            component: pciesl[2:4]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[1]
+        ep2:
+            component: xpu[2:4]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[2]
+        ep2:
+            component: pciesl[4:6]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[2]
+        ep2:
+            component: xpu[4:6]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[3]
+        ep2:
+            component: pciesl[6:8]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[3]
+        ep2:
+            component: xpu[6:8]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[4]
+        ep2:
+            component: nvlsw[0:6]
+        link: pcie
+        scheme: many2many
+    -   ep1:
+            component: pciesw[4]
+        ep2:
+            component: pciesw[3]
+        link: pcie
+        scheme: one2one
+    -   ep1:
+            component: pcie_endpoint[0]
+            device: cx5_100gbe[0:8]
+        ep2:
+            component: pciesl[0:8]
+        link: pcie
+        scheme: one2one
+    links:
+    -   description: infinity_fabric
+        name: cpu_fabric
+    -   description: nvlink_3
+        name: xpu_fabric
+    -   description: PCI Express PCIE_GEN4 x16
+        name: pcie
+    name: dgx_a100
+-   components:
+    -   choice: custom
+        count: 1
+        custom:
+            type: pcie_endpoint
+        description: PCI Express GEN3 x16 endpoint
+        name: pcie_endpoint
+    -   choice: cpu
+        count: 1
+        description: ConnectX-5 network processing ASIC
+        name: asic
+    -   choice: port
+        count: 1
+        description: Ethernet port (100GbE)
+        name: port
+    -   choice: port
+        count: 1
+        description: QSFP transceiver (abstract)
+        name: qsfp_dd_800g
+    description: Mellanox ConnectX-5 100GbE NIC
+    edges:
+    -   ep1:
+            component: pcie_endpoint
+        ep2:
+            component: asic
+        link: pcie_internal
+        scheme: one2one
+    -   ep1:
+            component: asic
+        ep2:
+            component: port
+        link: serdes
+        scheme: many2many
+    -   ep1:
+            component: port[0]
+        ep2:
+            component: qsfp_dd_800g[0]
+        link: electrical
+        scheme: one2one
+    -   ep1:
+            component: port[0]
+        ep2:
+            component: qsfp_dd_800g[0]
+        link: electrical
+        scheme: one2one
+    links:
+    -   description: Internal PCIe GEN3 fabric
+        name: pcie_internal
+    -   description: High-speed SerDes lanes
+        name: serdes
+    -   description: Electrical interface to transceiver
+        name: electrical
+    name: cx5_100gbe
+edges: []
+instances:
+-   count: 1
+    device: dgx_a100
+    name: dgx_a100

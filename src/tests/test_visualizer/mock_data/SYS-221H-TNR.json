@@ -1,0 +1,305 @@
+{
+  "devices": [
+    {
+      "components": [
+        {
+          "choice": "cpu",
+          "count": 2,
+          "description": "Intel(R) Xeon(R) Gold 6448Y",
+          "name": "cpu"
+        },
+        {
+          "choice": "xpu",
+          "count": 1,
+          "description": "ASPEED Graphics Family",
+          "name": "ASPEED Graphics Family"
+        },
+        {
+          "choice": "xpu",
+          "count": 1,
+          "description": "NVIDIA RTX 4000 Ada Generation",
+          "name": "NVIDIA RTX 4000 Ada Generation"
+        },
+        {
+          "choice": "nic",
+          "count": 2,
+          "description": "MT2892 Family ConnectX-6 Dx",
+          "name": "MT2892 Family ConnectX-6 Dx"
+        },
+        {
+          "choice": "nic",
+          "count": 2,
+          "description": "I350 Gigabit Network Connection",
+          "name": "I350 Gigabit Network Connection"
+        },
+        {
+          "choice": "custom",
+          "count": 4,
+          "custom": {
+            "type": "root_bridge"
+          },
+          "description": "root_bridge (depth = 0) closest to the cpu",
+          "name": "root_bridge"
+        },
+        {
+          "choice": "custom",
+          "count": 5,
+          "custom": {
+            "type": "pci_bridge"
+          },
+          "description": "pci_bridge (depth > 1) connects pci devices or pci_bridges",
+          "name": "pci_bridge"
+        },
+        {
+          "choice": "custom",
+          "count": 6,
+          "custom": {
+            "type": "pci_device"
+          },
+          "description": "pci_device",
+          "name": "pci_device"
+        }
+      ],
+      "edges": [
+        {
+          "ep1": {
+            "component": "cpu"
+          },
+          "ep2": {
+            "component": "cpu"
+          },
+          "link": "Intel Ultra Path Interconnect(UPI)",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "cpu[0]"
+          },
+          "ep2": {
+            "component": "root_bridge[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "cpu[0]"
+          },
+          "ep2": {
+            "component": "root_bridge[1]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "cpu[1]"
+          },
+          "ep2": {
+            "component": "root_bridge[2]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "cpu[1]"
+          },
+          "ep2": {
+            "component": "root_bridge[3]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "root_bridge[0]"
+          },
+          "ep2": {
+            "component": "pci_bridge[0]"
+          },
+          "link": "pci",
+          "scheme": "one2one"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[0]"
+          },
+          "ep2": {
+            "component": "pci_bridge[1]"
+          },
+          "link": "pci",
+          "scheme": "one2one"
+        },
+        {
+          "ep1": {
+            "component": "root_bridge[1]"
+          },
+          "ep2": {
+            "component": "pci_bridge[2]"
+          },
+          "link": "pci",
+          "scheme": "one2one"
+        },
+        {
+          "ep1": {
+            "component": "root_bridge[2]"
+          },
+          "ep2": {
+            "component": "pci_bridge[3]"
+          },
+          "link": "pci",
+          "scheme": "one2one"
+        },
+        {
+          "ep1": {
+            "component": "root_bridge[3]"
+          },
+          "ep2": {
+            "component": "pci_bridge[4]"
+          },
+          "link": "pci",
+          "scheme": "one2one"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[1]"
+          },
+          "ep2": {
+            "component": "pci_device[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[2]"
+          },
+          "ep2": {
+            "component": "pci_device[1]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[2]"
+          },
+          "ep2": {
+            "component": "pci_device[2]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[3]"
+          },
+          "ep2": {
+            "component": "pci_device[3]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[4]"
+          },
+          "ep2": {
+            "component": "pci_device[4]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_bridge[4]"
+          },
+          "ep2": {
+            "component": "pci_device[5]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[1]"
+          },
+          "ep2": {
+            "component": "I350 Gigabit Network Connection[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[2]"
+          },
+          "ep2": {
+            "component": "I350 Gigabit Network Connection[1]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[4]"
+          },
+          "ep2": {
+            "component": "MT2892 Family ConnectX-6 Dx[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[5]"
+          },
+          "ep2": {
+            "component": "MT2892 Family ConnectX-6 Dx[1]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[0]"
+          },
+          "ep2": {
+            "component": "ASPEED Graphics Family[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        },
+        {
+          "ep1": {
+            "component": "pci_device[3]"
+          },
+          "ep2": {
+            "component": "NVIDIA RTX 4000 Ada Generation[0]"
+          },
+          "link": "pci",
+          "scheme": "many2many"
+        }
+      ],
+      "links": [
+        {
+          "description": "Intel Ultra Path Interconnect(UPI)",
+          "name": "Intel Ultra Path Interconnect(UPI)"
+        },
+        {
+          "name": "pci"
+        }
+      ],
+      "name": "SYS-221H-TNR"
+    }
+  ],
+  "instances": [
+    {
+      "count": 1,
+      "device": "SYS-221H-TNR",
+      "name": "SYS-221H-TNR"
+    }
+  ]
+}
+ 
