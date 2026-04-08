@@ -186,11 +186,12 @@ class LstopoParser:
         # Create NVSwitch component
         if self.nv_switch_count > 0:
             self.nvlsw = self.device.components.add(
-                name="nvlsw",
+                name="nvsw",
                 description="NV Switch",
                 count=self.nv_switch_count,
             )
-            self.nvlsw.choice = Component.SWITCH
+            self.nvlsw.choice = Component.CUSTOM
+            self.nvlsw.custom.type = "switch"
         
         # Create GPU components
         self.gpu_name_to_component = self._create_gpu_components()
@@ -541,7 +542,6 @@ class LstopoParser:
                 edge.ep1.component = f"{self.pci_device.name}[{pci_device_index}]"
                 edge.ep2.component = f"{self.nvlsw.name}[{nvswitch_key[5:]}]"
 
-
 def run_lstopo_parser(
     input_file: str | None = None,
     output_file: str = "devices.yaml",
@@ -593,5 +593,8 @@ def run_lstopo_parser(
     if tmp_xml and tmp_xml.exists():
         tmp_xml.unlink()
         print("removed /tmp/lstopo_output.xml")
-    return serialized_data
+    
+    # return serialized_data
+
+
 
