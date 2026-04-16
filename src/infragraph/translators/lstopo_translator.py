@@ -568,14 +568,13 @@ def run_lstopo_parser(
 
         input_file = str(tmp_xml)
 
-    else:
-        _, ext = os.path.splitext(output_file)
-        ext = ext.lstrip(".").lower()
+    _, ext = os.path.splitext(output_file)
+    ext = ext.lstrip(".").lower()
 
-        if ext != dump_format.lower():
-            raise ValueError(
-                f"Output extension '.{ext}' does not match format '{dump_format}'."
-            )
+    if ext != dump_format.lower():
+        raise ValueError(
+            f"Output extension '.{ext}' does not match format '{dump_format}'."
+        )
 
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")

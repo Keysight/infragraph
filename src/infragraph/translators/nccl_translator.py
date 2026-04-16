@@ -1,6 +1,9 @@
 import os
+import tempfile
 import xml.etree.ElementTree as ET
+import ctypes
 
+from pathlib import Path
 from typing import Dict, List, Tuple
 from infragraph import *
 
@@ -18,6 +21,42 @@ NVLINK_TCLASS = {
 XPU_PCI_CLASS_PREFIX = "0x03"
 NIC_PCI_CLASS_PREFIX = "0x02"
 PCI_BRIDGE_CLASS_PREFIX = "0x0604"
+
+class NcclHelper:
+    def generate_nccl_topology():
+        # Load NCCL shared library
+        nccl = ctypes.CDLL("libnccl.so")
+        cuda = ctypes.CDLL("libcudart.so")
+
+        # Get GPU count
+        n_devices = ctypes.c_int(0)
+        cuda.cudaGetDeviceCount(ctypes.byref(n_devices))
+        n_devices = n_devices.value
+        print(f"Found {n_devices} GPUs")
+
+        # Setup communicator and device arrays
+        CommType = ctypes.c_void_p * n_devices # void* comms[n_devices] in c;
+        comms = CommType()
+        devs = (ctypes.c_int * n_devices)(*range(n_devices)) # giving gpu ids in order
+
+        # initializes NCCL across all specified GPUs in one call
+        # Internally it:
+        # Probes PCI topology
+        # Detects NVLink connections
+        # Detects NUMA topology
+        # Builds the internal topology graph
+        # Dumps XML to NCCL_TOPO_DUMP_FILE if the env var is set
+        # ncclCommInitAll(comms, nDevices, devs); 
+        ret = nccl.ncclCommInitAll(comms, ctypes.c_int(n_devices), devs)
+        if ret != 0:
+            print(f"NCCL init failed with error code: {ret}")
+            return
+
+        print(f"Topology dumped to: {os.environ.get('NCCL_TOPO_DUMP_FILE', 'not set')}")
+
+        # Cleanup, frees the communicator resources for each GPU
+        for i in range(n_devices):
+            nccl.ncclCommDestroy(comms[i])
 
 
 class NcclParser:
@@ -42,6 +81,8 @@ class NcclParser:
         self.cpu_to_direct_device_map: Dict[int,int] = {}
         self.gpu_pairs: Dict[int, int] = {}
 
+    
+
     def parse(self, infra_type: str = "infragraph"):
         """Main parsing method that orchestrates the entire parsing process."""
         self._parse_cpu_info()
@@ -61,7 +102,6 @@ class NcclParser:
         return infra
 
     def _parse_cpu_info(self):
-        """Parse CPU elements and create CPU component."""
         cpu_elements = self.root.findall(".//cpu")
         cpu_element = self.root.find(".//cpu")
 
@@ -82,6 +122,15 @@ class NcclParser:
             count=self.cpu_count,
         )
         self.cpu.choice = Component.CPU
+        
+        # Track (cpu_index, nic_count) for bare NICs under each CPU
+        self._non_pci_nic_count = 0
+        self._cpu_non_pci_nic_map: List[Tuple[int, int]] = []  # (cpu_idx, count)
+        for idx, cpu in enumerate(self.root.iter("cpu")):
+            count = sum(1 for child in cpu if child.tag == "nic")
+            if count:
+                self._cpu_non_pci_nic_map.append((idx, count))
+                self._non_pci_nic_count += count
 
     def _detect_nvlink_type(self) -> str:
         """Detect NVLink interconnect type from the first nvlink element."""
@@ -121,6 +170,30 @@ class NcclParser:
 
         find_pairs(self.root)
         return pairs
+    def _connect_non_pci_nics_to_cpu(self):
+        """Connect bare <nic> elements (not under any PCI bridge) directly to their CPU."""
+        if not self._non_pci_nic_count:
+            return
+
+        # PCI-discovered NICs are indexed first; bare NICs follow
+        pci_nic_count = sum(
+            1 for components in self.pci_device_to_component.values()
+            if components == ["nic"]
+        )
+        nic_index = pci_nic_count  # bare NICs start after PCI NICs
+
+        # Use a direct link (or reuse self.pci — pick whatever fits your model)
+        cpu_nic_link = self.device.links.add(name="cpu_nic", description="CPU to NIC direct")
+
+        for cpu_idx, count in self._cpu_non_pci_nic_map:
+            for _ in range(count):
+                edge = self.device.edges.add(
+                    scheme=DeviceEdge.MANY2MANY,
+                    link=cpu_nic_link.name,
+                )
+                edge.ep1.component = f"{self.cpu.name}[{cpu_idx}]"
+                edge.ep2.component = f"{self.nic.name}[{nic_index}]"
+                nic_index += 1
 
     def _build_pci_bridge_dict(self) -> Tuple[Dict, int, int]:
         bridge_map: Dict[str, List[str]] = {}
@@ -128,7 +201,7 @@ class NcclParser:
         pci_device_index = 0
         cpu_direct_current_idx = 0
 
-        # NEW: track the starting bridge index for each cpu
+        # track the starting bridge index for each cpu
         self.cpu_bridge_start: Dict[int, int] = {}
         self.cpu_real_bridge_count: Dict[int, int] = {}
 
@@ -210,18 +283,21 @@ class NcclParser:
         self.pci_device.choice = Component.CUSTOM
         self.pci_device.custom.type = "pci_device"
 
-        gpu_count = len(self.root.findall(".//gpu"))
-        self.gpu = self.device.components.add(
-            name="gpu",
-            description="GPU",
-            count=gpu_count,
+        xpu_count = len(self.root.findall(".//gpu"))
+        self.xpu = self.device.components.add(
+            name="xpu",
+            description="XPU",
+            count=xpu_count,
         )
-        self.gpu.choice = Component.XPU
+        self.xpu.choice = Component.XPU
 
-        nic_count = sum(
+        # Combine PCI-discovered NICs + bare <nic> tags under <cpu>
+        pci_nic_count = sum(
             1 for components in self.pci_device_to_component.values()
             if components == ["nic"]
         )
+        nic_count = pci_nic_count + self._non_pci_nic_count
+
         if nic_count > 0:
             self.nic = self.device.components.add(
                 name="nic",
@@ -253,6 +329,7 @@ class NcclParser:
         self._connect_pci_devices_to_bridges()
         self._connect_pci_devices_to_components()
         self._connect_gpu_peers()
+        self._connect_non_pci_nics_to_cpu() 
 
     def _connect_bridges(self, bridge_map: Dict):
         """Connect PCI bridges according to the hierarchy."""
@@ -316,7 +393,7 @@ class NcclParser:
                 edge.ep1.component = f"{self.pci_device.name}[{pci_device_index}]"
 
                 if component_type == "gpu":
-                    edge.ep2.component = f"{self.gpu.name}[{gpu_index}]"
+                    edge.ep2.component = f"{self.xpu.name}[{gpu_index}]"
                     gpu_index += 1
                 else:
                     edge.ep2.component = f"{self.nic.name}[{nic_index}]"
@@ -346,8 +423,8 @@ class NcclParser:
                     scheme=DeviceEdge.MANY2MANY,
                     link=nvlink.name,
                 )
-                edge.ep1.component = f"{self.gpu.name}[{src_rank}]"
-                edge.ep2.component = f"{self.gpu.name}[{dst_rank}]"
+                edge.ep1.component = f"{self.xpu.name}[{src_rank}]"
+                edge.ep2.component = f"{self.xpu.name}[{dst_rank}]"
 
         else:
             # NVSwitch topology — each GPU connects to every NVSwitch
@@ -378,7 +455,7 @@ class NcclParser:
                             scheme=DeviceEdge.MANY2MANY,
                             link=nvlink.name,
                         )
-                        edge.ep1.component = f"{self.gpu.name}[{current_rank}]"
+                        edge.ep1.component = f"{self.xpu.name}[{current_rank}]"
                         edge.ep2.component = f"{self.nvswitch.name}[{sw_index}]"
                 for child in elem:
                     get_gpu_nvswitch_connections(child, current_rank)
@@ -392,6 +469,14 @@ def run_nccl_parser(
     dump_format: str = "yaml",
 ) -> str:
     """Parse a NCCL topology XML file and export it in the requested format."""
+
+    tmp_xml = None
+    if input_file is None:
+        tmp_xml = Path(tempfile.gettempdir()) / "nccl_topo.xml"
+        os.environ["NCCL_TOPO_DUMP_FILE"] = str(tmp_xml)
+        NcclHelper.generate_nccl_topology()
+        input_file = str(tmp_xml)
+
     _, ext = os.path.splitext(output_file)
     ext = ext.lstrip(".").lower()
 

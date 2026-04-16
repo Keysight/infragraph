@@ -8,7 +8,7 @@ app = typer.Typer()
 def translate(
     tool = typer.Argument(..., help="Translator to use available lstopo, nccl"),
     input_file = typer.Option(None, "--input", "-i", help="Input file Path"),
-    output_file = typer.Option("dev.yaml","--output", "-o", help="Output file path"),
+    output_file = typer.Option("device.yaml","--output", "-o", help="Output file path"),
     dump = typer.Option("yaml", "--dump", help="Dump format (json or yaml)")
 ):
     """Translate the tools"""
