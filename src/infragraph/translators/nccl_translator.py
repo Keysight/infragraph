@@ -18,6 +18,17 @@ NVLINK_TCLASS = {
     "0x03": "P2P",
 }
 
+NVIDIA_MODEL_CLASS = {
+    "0x2321": "NVIDIA H100 NVL 94GB",
+    "0x2330": "NVIDIA H100 80GB",
+    "0x20b0": "NVIDIA A100"
+}
+
+MELLANOX_MODEL_CLASS = {
+    "0x1021": "Mellanox ConnectX-7 VF",
+    "0x101b": "Mellanox ConnectX-6 VPI"
+}
+
 XPU_PCI_CLASS_PREFIX = "0x03"
 NIC_PCI_CLASS_PREFIX = "0x02"
 PCI_BRIDGE_CLASS_PREFIX = "0x0604"
@@ -80,6 +91,7 @@ class NcclParser:
         self.cpu_to_bridge_map: Dict[str, int] = {}
         self.cpu_to_direct_device_map: Dict[int,int] = {}
         self.gpu_pairs: Dict[int, int] = {}
+        self.device_model_map: Dict[int, int] = {}
 
     
 
@@ -208,6 +220,7 @@ class NcclParser:
         def parse_node(xml_node, parent_bridge_key):
             nonlocal bridge_index, pci_device_index
             pci_class = xml_node.get("class", "")
+            device_model = xml_node.get("device", "")
 
             if pci_class.startswith(PCI_BRIDGE_CLASS_PREFIX):
                 current_key = f"pci_bridge{bridge_index}"
@@ -222,13 +235,23 @@ class NcclParser:
                 pci_device_key = f"pci_device{pci_device_index}"
                 pci_device_index += 1
                 self.pci_bridge_to_pcidevice.setdefault(parent_bridge_key, []).append(pci_device_key)
+
                 self.pci_device_to_component[pci_device_key] = ["gpu"]
+                if device_model != "":
+                    if device_model in NVIDIA_MODEL_CLASS:
+                        if "xpu" not in self.device_model_map:
+                            self.device_model_map["xpu"] = NVIDIA_MODEL_CLASS[device_model]
+
 
             elif pci_class.startswith(NIC_PCI_CLASS_PREFIX):
                 pci_device_key = f"pci_device{pci_device_index}"
                 pci_device_index += 1
                 self.pci_bridge_to_pcidevice.setdefault(parent_bridge_key, []).append(pci_device_key)
                 self.pci_device_to_component[pci_device_key] = ["nic"]
+                if device_model != "":
+                    if device_model in MELLANOX_MODEL_CLASS:
+                        if "nic" not in self.device_model_map:
+                            self.device_model_map["nic"] = MELLANOX_MODEL_CLASS[device_model]
 
         for cpu in self.root.iter("cpu"):
             root_key = None
@@ -282,11 +305,17 @@ class NcclParser:
         )
         self.pci_device.choice = Component.CUSTOM
         self.pci_device.custom.type = "pci_device"
+        
+        # check if the device model is present in the xml
+        if "xpu" not in self.device_model_map:
+            self.device_model_map["xpu"] = "xpu"
+        if "nic" not in self.device_model_map:
+            self.device_model_map["nic"] = "nic"
 
         xpu_count = len(self.root.findall(".//gpu"))
         self.xpu = self.device.components.add(
             name="xpu",
-            description="XPU",
+            description=self.device_model_map["xpu"],
             count=xpu_count,
         )
         self.xpu.choice = Component.XPU
@@ -301,7 +330,7 @@ class NcclParser:
         if nic_count > 0:
             self.nic = self.device.components.add(
                 name="nic",
-                description="NIC",
+                description=self.device_model_map["nic"],
                 count=nic_count,
             )
             self.nic.choice = Component.NIC
