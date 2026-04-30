@@ -1,0 +1,37 @@
+from infragraph.infragraph_service import InfraGraphService
+from infragraph.blueprints.devices.generic.server import Server
+from infragraph.blueprints.devices.generic.generic_switch import Switch
+from infragraph.blueprints.fabrics.hybrid_debruijn_fabric import DeBruijnFabricWithAccessLayer
+import networkx
+import yaml
+
+def dump_yaml(debruijn_fabric, filename):
+    with open(filename + ".yaml", "w") as file:
+         data = debruijn_fabric.serialize("dict")
+         yaml.dump(data, file, default_flow_style=False, indent=4)
+
+def test_debruijn_fabric_access():
+
+    # Devices
+    switch = Switch(port_count=16)
+    server = Server()
+
+    # fabric
+    fabric = DeBruijnFabricWithAccessLayer(
+        switch=switch,
+        server=server,
+        order=3,
+        
+    )
+    dump_yaml(fabric,"hybrid_debruijn")
+    service = InfraGraphService()
+    service.set_graph(fabric)
+
+    g = service.get_networkx_graph()
+    
+    print(networkx.write_network_text(g, vertical_chains=True))
+    
+
+
+if __name__ == "__main__":
+    test_debruijn_fabric_access()
