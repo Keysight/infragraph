@@ -669,10 +669,11 @@ message AnnotationAttribute {
 // Defines an annotation to be applied to a graph node.
 message AnnotationNode {
 
-  // A fully qualified node name that MUST exist in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Node name that MUST exist or match nodes present in the graph. This supports slicing
+  // operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string name = 1;
 
   // An inventory of attributes and values.
@@ -693,18 +694,18 @@ message AnnotationLink {
 // Defines an annotation to be applied to a graph edge.
 message AnnotationEdge {
 
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string ep1 = 1;
 
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string ep2 = 2;
 
   // An inventory of attributes and values.
