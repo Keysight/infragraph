@@ -20,10 +20,10 @@ components:
       properties:
         name:
           description: |-
-            A fully qualified node name that MUST exist in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
+            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
           x-field-uid: 1
         attributes:
@@ -56,18 +56,18 @@ components:
       properties:
         ep1:
           description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
           x-field-uid: 1
         ep2:
           description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
           x-field-uid: 2
         attributes:

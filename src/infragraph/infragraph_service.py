@@ -739,7 +739,6 @@ class InfraGraphService(Api):
                     for link_annotation in annotation_link.attributes:
                         data.update(link_annotation.attribute[link_annotation.value])
 
-
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""
         if isinstance(payload, str):

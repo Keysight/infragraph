@@ -47,8 +47,12 @@ deploy: ## deploy packages to pypi.org
 	source .venv/bin/activate && \
 	python3 -m twine upload -u __token__ -p $(PYPI_TOKEN) dist/*
 
+.PHONY: openapi-html
+openapi-html: ## generate OpenAPI HTML from artifacts/openapi.yaml using redocly
+	npx @redocly/cli build-docs artifacts/openapi.yaml -o docs/src/openapi.html
+
 .PHONY: docs
-docs: ## generate local documentation to docs/site
+docs: openapi-html ## generate local documentation to docs/site
 	source .venv/bin/activate && \
 	python3 docs/generate_yaml.py && \
 	python3 -m mkdocs build --config-file docs/mkdocs.yml --site-dir site
