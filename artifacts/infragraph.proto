@@ -481,67 +481,6 @@ message GraphContent {
   optional string networkx = 2;
 }
 
-// Defines an annotation to be applied to a graph node.
-message AnnotationNode {
-
-  // A fully qualified node name that MUST exist in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string name = 1;
-
-  // The attribute name that will be added to the endpoint.
-  optional string attribute = 2;
-
-  // The attribute value that will be added to the endpoint.
-  optional string value = 3;
-}
-
-// Defines an annotation to be applied to a graph edge.
-message AnnotationEdge {
-
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string ep1 = 1;
-
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
-  optional string ep2 = 2;
-
-  // The attribute name that will be added to the edge.
-  optional string attribute = 3;
-
-  // The attribute value that will be added to the edge.
-  optional string value = 4;
-}
-
-// Request object specifying which graph elements (nodes or edges) to annotate and the
-// annotations to apply.
-message AnnotateRequest {
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      nodes = 1;
-      edges = 2;
-    }
-  }
-  // Select whether to annotate nodes or edges..
-  optional Choice.Enum choice = 1;
-
-  // List of node annotations to apply when the choice is set to nodes.
-  repeated AnnotationNode nodes = 2;
-
-  // List of edge annotations to apply when the choice is set to edges.
-  repeated AnnotationEdge edges = 3;
-}
-
 // Represents a generic name and value pair attribute.
 message NameValue {
 
@@ -717,6 +656,75 @@ message QueryRequest {
   repeated QueryShortestPathFilter shortest_path_filters = 3;
 }
 
+// Defines an annotation to be applied to a graph node.
+message AnnotationAttribute {
+
+  // The attribute name that will be added to the endpoint.
+  optional string attribute = 1;
+
+  // The attribute value that will be added to the endpoint.
+  optional string value = 2;
+}
+
+// Defines an annotation to be applied to a graph node.
+message AnnotationNode {
+
+  // A fully qualified node name that MUST exist in the graph.
+  // - server.0.xpu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string name = 1;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
+}
+
+// Defines an annotation to be applied to a graph link.
+message AnnotationLink {
+
+  // A fully qualified link name that MUST exist in the graph.
+  // - pcie
+  optional string name = 1;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
+}
+
+// Defines an annotation to be applied to a graph edge.
+message AnnotationEdge {
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
+  // in the graph.
+  // - server.0.xpu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep1 = 1;
+
+  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
+  // in the graph.
+  // - server.0.xpu.0
+  // - server.6.nic.3
+  // - switch.2.asic.0
+  optional string ep2 = 2;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 3;
+}
+
+// Request object specifying which graph elements (nodes or edges) to annotate and the
+// annotations to apply.
+message Annotation {
+
+  // List of annotations to apply to nodes.
+  repeated AnnotationNode nodes = 1;
+
+  // List of annotations to apply to edges.
+  repeated AnnotationEdge edges = 2;
+
+  // List of annotations to apply to links.
+  repeated AnnotationLink links = 3;
+}
+
 // Version details
 message Version {
 
@@ -785,7 +793,7 @@ message QueryGraphResponse {
 
 
 message AnnotateGraphRequest {
-  AnnotateRequest annotate_request = 1;
+  Annotation annotation = 1;
 }
 message AnnotateGraphResponse {
   Warning warning = 1;

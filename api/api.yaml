@@ -80,7 +80,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/graph.yaml#/components/schemas/AnnotateRequest'
+              $ref: '../models/annotation.yaml#/components/schemas/Annotation'
       responses:
         '200':
           $ref: '../models/request.yaml#/components/responses/Success'

@@ -13,6 +13,7 @@ from networkx import Graph
 from networkx.readwrite import json_graph
 import re
 import yaml
+from itertools import product as iterproduct
 from infragraph import *
 
 
@@ -46,6 +47,7 @@ class InfraGraphService(Api):
         super().__init__()
         self._graph: Graph = Graph()
         self._device_data = {}
+        self._graph_node_prefix_map = {}
         self._infrastructure: Infrastructure = Infrastructure()
 
     @property
@@ -63,6 +65,63 @@ class InfraGraphService(Api):
         if self._graph is None:
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
+
+    def _expand_node_string(self, s: str) -> List[str]:
+        """Expand a device/component string with slice notation into dot-notation paths.
+
+        Format: name[start:stop]name[start:stop]...
+        Each [start:stop] expands like range(start, stop). Segments without a slice
+        are kept as-is. Results are the cartesian product of all segment expansions,
+        joined with '.'.
+
+        Examples:
+            "dgx"              -> ["dgx"]
+            "dgx[0:3]"         -> ["dgx.0", "dgx.1", "dgx.2"]
+            "dgx[0:2]cpu[0:2]" -> ["dgx.0.cpu.0", "dgx.0.cpu.1",
+                                    "dgx.1.cpu.0", "dgx.1.cpu.1"]
+        """
+        if not s:
+            return []
+
+        # Parse the input string into (name, start, stop) tuples.
+        # The regex matches a name (alphanumeric/underscore/hyphen) optionally
+        # followed by a slice in the form [start:stop].
+        # If no slice is present, start and stop are empty strings.
+        pattern = r'([A-Za-z0-9_-]+)(?:\[(\d+):(\d+)\])?'
+        matches = re.findall(pattern, s)
+
+        if not matches:
+            return [s]
+
+        # For each matched segment, build a list of expanded strings.
+        # A segment with a slice expands to: ["name.0", "name.1", ..., "name.(stop-1)"]
+        # A segment without a slice expands to just: ["name"]
+        segments: List[List[str]] = []
+
+        for match in matches:
+            name = match[0]
+            start = match[1]
+            stop = match[2]
+
+            if start and stop:
+                # Expand the slice range into individual indexed entries
+                expanded = []
+                for i in range(int(start), int(stop)):
+                    expanded.append(name + "." + str(i))
+                segments.append(expanded)
+            else:
+                # No slice — segment is a single plain name
+                segments.append([name])
+
+        # Compute the cartesian product across all segments and join with '.'
+        # e.g. ["dgx.0", "dgx.1"] x ["cpu.0", "cpu.1"]
+        #   -> ["dgx.0.cpu.0", "dgx.0.cpu.1", "dgx.1.cpu.0", "dgx.1.cpu.1"]
+        result: List[str] = []
+
+        for combo in iterproduct(*segments):
+            result.append(".".join(combo))
+
+        return result
 
     def _expand_device_endpoint(
         self,
@@ -309,7 +368,7 @@ class InfraGraphService(Api):
         """
 
         self._parse_device_components()
-        self._parse_device_edges()    
+        self._parse_device_edges()
     
     def _generate_device_nodes(self, instance_name: str, device_name: str):
         """
@@ -527,6 +586,7 @@ class InfraGraphService(Api):
         self._validate_device_edges()
         self._parse_infrastructure_edges()
         self._validate_graph()
+        self._build_prefix_map()
 
     def _validate_device_edges(self):
         """Ensure that there are no edges between device instances
@@ -609,15 +669,76 @@ class InfraGraphService(Api):
                 endpoints.append(node)
         return endpoints
 
-    def annotate_graph(self, payload: Union[str, AnnotateRequest]):
+    def _build_prefix_map(self):
+        """Build a prefix-to-nodes lookup map from all nodes in the graph.
+
+        Each graph node is a dot-separated path (e.g. "dgx.0.cpu.1.port.2").
+        This method indexes every prefix of that path so that a caller can
+        look up all nodes that live under a given prefix without scanning the
+        full node list each time.
+
+        Example:
+            Node "dgx.0.cpu.1" produces three entries:
+                "dgx"         -> [..., "dgx.0.cpu.1"]
+                "dgx.0"       -> [..., "dgx.0.cpu.1"]
+                "dgx.0.cpu.1" -> [..., "dgx.0.cpu.1"]
+
+        The result is stored in `self._graph_node_prefix_map` as a
+        dict[str, List[str]], where each key is a prefix and the value is
+        the list of fully qualified node names that share that prefix.
+
+        This map is consumed by lookups that resolve a partial node name
+        (e.g. "dgx.0") to all of its descendants in the graph.
+        """
+
+        for node in self._graph.nodes:
+            parts = node.split(".")
+            for i in range(1, len(parts) + 1):
+                prefix = ".".join(parts[:i])
+                self._graph_node_prefix_map.setdefault(prefix, []).append(node)
+
+    def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
         if isinstance(payload, str):
-            annotate_request = AnnotateRequest().deserialize(payload)
+            annotate_request = Annotation().deserialize(payload)
         else:
-            annotate_request: AnnotateRequest = payload
+            annotate_request: Annotation = payload
+        
         for annotation_node in annotate_request.nodes:
-            endpoint = self._graph.nodes[annotation_node.name]
-            endpoint[annotation_node.attribute] = annotation_node.value
+            # expand the nodes
+            nodes = self._expand_node_string(annotation_node.name)
+            matched = set()
+            for node in nodes:
+                matched.update(self._graph_node_prefix_map.get(node, []))
+
+            for attribute_kvp in annotation_node.attributes:
+                networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
+        
+        # edges
+        for annotation_node in annotate_request.edges:
+            # expand the nodes
+            source_edges = self._expand_node_string(annotation_node.ep1)
+            destination_edges = self._expand_node_string(annotation_node.ep2)
+
+            matched_edges = []
+            adj = {n: set(self._graph.neighbors(n)) for n in self._graph.nodes}
+            for s in source_edges:
+                # only check neighbors of s (not all edges)
+                for d in adj[s]:
+                    if d in destination_edges:
+                        matched_edges.append((s, d))
+
+            for attribute_kvp in annotation_node.attributes:
+                networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
+
+        # links
+        for annotation_link in annotate_request.links:
+            for _, _, data in self._graph.edges(data=True):
+                link_name = data.get("link")
+                if link_name in annotation_link.name:
+                    for link_annotation in annotation_link.attributes:
+                        data.update(link_annotation.attribute[link_annotation.value])
+
 
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""

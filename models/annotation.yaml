@@ -1,83 +1,101 @@
 components:
   schemas:
-    Annotation.NodeNameValue:
+    Annotation.Attribute:
+      description: Defines an annotation to be applied to a graph node.
       type: object
       properties:
-        id:
+        attribute:
+          description: |-
+            The attribute name that will be added to the endpoint.
           type: string
           x-field-uid: 1
-        name:
-          type: string
-          x-field-uid: 2
         value:
-          type: string
-          x-field-uid: 3
-    Annotation.Freeform:
-      type: object
-      properties:
-        choice:
-          type: string
-          x-field-uid: 1
-          x-enum:
-            json:
-              x-field-uid: 1
-            yaml:
-              x-field-uid: 2
-            protobuf:
-              x-field-uid: 3
-        json:
           description: |-
-            Annotation data serialized as a json string
+            The attribute value that will be added to the endpoint.
           type: string
           x-field-uid: 2
-        yaml:
-          description: |-
-            Annotation data serialized as a yaml string
-          type: string
-          x-field-uid: 3
-        protobuf:
-          description: |-
-            Annotation data serialized as a protobuf string and encoded as base64.
-          type: string
-          x-field-uid: 4
-    Annotation:
+    Annotation.Node:
+      description: Defines an annotation to be applied to a graph node.
       type: object
-      required:
-        - name
       properties:
         name:
           description: |-
-            An alias for this annotation.
+            A fully qualified node name that MUST exist in the graph.
+            - server.0.xpu.0
+            - server.6.nic.3
+            - switch.2.asic.0
           type: string
           x-field-uid: 1
-        description:
+        attributes:
           description: |-
-            A detailed description of the structure of the
-            information contained in the freeform property.
-          type: string
-          x-field-uid: 2
-        choice:
-          type: string
-          x-field-uid: 3
-          x-enum:
-            freeform:
-              x-field-uid: 1
-            nodes:
-              x-field-uid: 2
-        freeform:
-          description: |-
-            Annotation data.
-          $ref: "#/components/schemas/Annotation.Freeform"
-          x-field-uid: 4
-        nodes:
-          description: |-
-            Add information to specific fully qualified node names in the infrastructure graph.
-            - a fully qualified node name is of the form:
-              - device_name.device_index.component_name.component_index
-            - examples:
-              - nodes.add(id="dgx.0.xpu.0", name="rank", value="0")
-              - nodes.add(id="dgx.0.xpu.1", name="rank", value="1"))
+            An inventory of attributes and values.
           type: array
           items:
-            $ref: "#/components/schemas/Annotation.NodeNameValue"
-          x-field-uid: 5
+            $ref: "#/components/schemas/Annotation.Attribute"
+          x-field-uid: 2
+    Annotation.Link:
+      description: Defines an annotation to be applied to a graph link.
+      type: object
+      properties:
+        name:
+          description: |-
+            A fully qualified link name that MUST exist in the graph.
+            - pcie
+          type: string
+          x-field-uid: 1
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: "#/components/schemas/Annotation.Attribute"
+          x-field-uid: 2
+    Annotation.Edge:
+      description: Defines an annotation to be applied to a graph edge.
+      type: object
+      properties:
+        ep1:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
+            - server.0.xpu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
+            - server.0.xpu.0
+            - server.6.nic.3
+            - switch.2.asic.0
+          type: string
+          x-field-uid: 2
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: "#/components/schemas/Annotation.Attribute"
+          x-field-uid: 3
+    Annotation:
+      description: Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
+      type: object
+      properties:
+        nodes:
+          description: List of annotations to apply to nodes.
+          type: array
+          items:
+            $ref: "#/components/schemas/Annotation.Node"
+          x-field-uid: 1
+        edges:
+          type: array
+          description:  List of annotations to apply to edges.
+          items:
+            $ref: "#/components/schemas/Annotation.Edge"
+          x-field-uid: 2
+        links:
+          type: array
+          description: List of annotations to apply to links.
+          items:
+            $ref: "#/components/schemas/Annotation.Link"
+          x-field-uid: 3
