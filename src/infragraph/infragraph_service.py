@@ -12,7 +12,7 @@ import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
 import re
-import yaml
+import json
 from itertools import product as iterproduct
 from infragraph import *
 
@@ -49,6 +49,9 @@ class InfraGraphService(Api):
         self._device_data = {}
         self._graph_node_prefix_map = {}
         self._infrastructure: Infrastructure = Infrastructure()
+        self._infragraph_data = {}
+        self._annotated_data = {}
+        self._annotation_payload = None
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -82,6 +85,9 @@ class InfraGraphService(Api):
         """
         if not s:
             return []
+        
+        if "." in s:
+            return [s]
 
         # Parse the input string into (name, start, stop) tuples.
         # The regex matches a name (alphanumeric/underscore/hyphen) optionally
@@ -609,12 +615,20 @@ class InfraGraphService(Api):
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
-
+    
     def get_graph(self) -> str:
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        return yaml.dump(json_graph.node_link_data(self._graph, edges="edges"))
+        if "infrastructure" not in self._infragraph_data:
+            self._infragraph_data["infrastructure"] = {}
+        serialized = self._infrastructure.serialize("json")
+        self._infragraph_data["infrastructure"] = json.loads(serialized) 
+        annotated_dict = self._populate_annotations(self._annotation_payload)
+        if "annotations" not in self._infragraph_data:
+            self._infragraph_data["annotations"] = annotated_dict
+        return self._infragraph_data
+
 
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
@@ -697,20 +711,74 @@ class InfraGraphService(Api):
                 prefix = ".".join(parts[:i])
                 self._graph_node_prefix_map.setdefault(prefix, []).append(node)
 
+    def _convert_dot_to_braces(self, node: str):
+        parts = node.split(".")
+        result = parts[0]
+
+        i = 1
+        while i < len(parts):
+            if parts[i].isdigit():
+                result += f"[{parts[i]}]"
+            else:
+                result += parts[i]
+            i += 1
+        return result
+    
+    def _populate_annotations(self, annotate_request):
+        if len(annotate_request.nodes)!=0:
+            if "nodes" not in self._annotated_data:
+                self._annotated_data["nodes"] = []
+        
+        for node in annotate_request.nodes:
+            node_dict = {"name": "", "attributes":[]}
+            braces_result = self._convert_dot_to_braces(node.name)
+            node_dict["name"] = braces_result
+            for atrb in node.attributes:
+                atrb_name = atrb.attribute
+                atrb_value = atrb.value
+                node_dict["attributes"].append({"attribute": atrb_name, "value": atrb_value})
+            self._annotated_data["nodes"].append(node_dict)
+
+        if len(annotate_request.edges)!=0:
+            if "edges" not in self._annotated_data:
+                self._annotated_data["edges"] = []
+        
+        for edge in annotate_request.edges:
+            edge_dict = {"ep1": "", "ep2": "", "attributes":[]}
+            edge_dict["ep1"] = edge.ep1
+            edge_dict["ep2"] = edge.ep2
+            for atrb in edge.attributes:
+                atrb_name = atrb.attribute
+                atrb_value = atrb.value
+                edge_dict["attributes"].append({"attribute":atrb_name, "value": atrb_value})
+            self._annotated_data["edges"].append(edge_dict)
+        if len(annotate_request.links)!=0:
+            if "links" not in self._annotated_data:
+                self._annotated_data["links"] = []
+        for link in annotate_request.links:
+            link_dict = {"name": "", "attributes":[]}
+            link_dict["name"] = link.name
+            for atrb in link.attributes:
+                atrb_name = atrb.attribute
+                atrb_value = atrb.value
+                link_dict["attributes"].append({"attribute": atrb_name, "value": atrb_value})
+            self._annotated_data["links"].append(link_dict)
+        
+        return self._annotated_data        
+
     def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
+        self._annotation_payload = payload
         if isinstance(payload, str):
             annotate_request = Annotation().deserialize(payload)
         else:
             annotate_request: Annotation = payload
-        
         for annotation_node in annotate_request.nodes:
             # expand the nodes
             nodes = self._expand_node_string(annotation_node.name)
             matched = set()
             for node in nodes:
                 matched.update(self._graph_node_prefix_map.get(node, []))
-
             for attribute_kvp in annotation_node.attributes:
                 networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
         
@@ -737,7 +805,7 @@ class InfraGraphService(Api):
                 link_name = data.get("link")
                 if link_name in annotation_link.name:
                     for link_annotation in annotation_link.attributes:
-                        data.update(link_annotation.attribute[link_annotation.value])
+                        data.update({link_annotation.attribute: link_annotation.value})
 
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""
