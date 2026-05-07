@@ -1146,3 +1146,4 @@ components:
           type: string
           default: ''
           x-field-uid: 3
+  securitySchemes: {}
