@@ -20,7 +20,7 @@ components:
       properties:
         name:
           description: |-
-            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and converts to expanded format:
             - server[0]xpu[0]
             - server[0:2]
             - switch

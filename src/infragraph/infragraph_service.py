@@ -12,7 +12,8 @@ import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
 import re
-import yaml
+import json
+import copy
 from itertools import product as iterproduct
 from infragraph import *
 
@@ -49,6 +50,7 @@ class InfraGraphService(Api):
         self._device_data = {}
         self._graph_node_prefix_map = {}
         self._infrastructure: Infrastructure = Infrastructure()
+        self._pre_annotation_graph = None
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -613,11 +615,77 @@ class InfraGraphService(Api):
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
 
-    def get_graph(self) -> str:
+    def get_graph(self, request: GraphRequest) -> str:
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        return yaml.dump(json_graph.node_link_data(self._graph, edges="edges"))
+        # partial = pre-annotation graph (no annotated attributes like ipaddress)
+        # full = post-annotation graph (all attributes including annotated ones)
+        source_graph = (
+            self._pre_annotation_graph
+            if request.attributes == "partial"
+            else self._graph
+        )
+
+        graph_data = json_graph.node_link_data(source_graph, edges="edges")
+        result = {
+            "nodes": graph_data.get("nodes", []),
+            "edges": graph_data.get("edges", [])
+        }
+        if request.format == "expanded":
+            return json.dumps(result, indent=2)
+        elif request.format == "compressed":
+            return self.populate_infragraph_dict(source_graph)
+  
+    def populate_infragraph_dict(self, attribute_param):
+        infragraph_dict = {"infrastructure": {}, "annotations": {}}
+        infragraph_dict["infrastructure"] = self._infrastructure.serialize('dict')
+        
+        # Nodes
+        annotation_nodes = []
+        for node_name, node_attrs in attribute_param.nodes(data=True):
+            if not node_attrs:
+                continue
+            annotation_nodes.append({
+                "name": node_name,
+                "attributes": [
+                    {"attribute": k, "value": v}
+                    for k, v in node_attrs.items()
+                ]
+            })
+        
+        annotation_edges = []
+        seen_links = {}
+        for ep1, ep2, edge_attrs in attribute_param.edges(data=True):
+            if not edge_attrs:
+                continue
+            annotation_edges.append({
+                "ep1": ep1,
+                "ep2": ep2,
+                "attributes": [
+                    {"attribute": k, "value": v}
+                    for k, v in edge_attrs.items()
+                ]
+            })
+            # Links: group by link name, merge all attributes
+            link_name = edge_attrs.get("link")
+            if link_name and link_name not in seen_links:
+                seen_links[link_name] = {
+                    "name": link_name,
+                    "attributes": [
+                        {"attribute": k, "value": v}
+                        for k, v in edge_attrs.items()
+                    ]
+                }
+
+        infragraph_dict["annotations"] = {
+            "nodes": annotation_nodes,
+            "edges": annotation_edges,
+            "links": list(seen_links.values())
+        }
+        
+        return json.dumps(infragraph_dict, indent=2)
+
 
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
@@ -702,6 +770,7 @@ class InfraGraphService(Api):
 
     def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
+        self._pre_annotation_graph = copy.deepcopy(self.get_networkx_graph())  # save a true copy
         nx_graph = self.get_networkx_graph()
         immutable_node_attributes = set()
         immutable_link_attributes = set()
@@ -723,15 +792,13 @@ class InfraGraphService(Api):
             # expand the nodes
             nodes = self._expand_node_string(annotation_node.name)
             matched = set()
-            if all(nd in self._graph for nd in nodes): # validating whether the nodes are invalid(not present in networkx graph)
-                for node in nodes:
-                    matched.update(self._graph_node_prefix_map.get(node, []))
-
-                for attribute_kvp in annotation_node.attributes:
-                    if attribute_kvp.attribute not in immutable_node_attributes:
-                        networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
-                    else:
-                        raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
+            for node in nodes:
+                matched.update(self._graph_node_prefix_map.get(node, []))
+            for attribute_kvp in annotation_node.attributes:
+                if attribute_kvp.attribute not in immutable_node_attributes:
+                    networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
+                else:
+                    raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
 
         
         # edges
@@ -761,7 +828,7 @@ class InfraGraphService(Api):
                             data.update({link_annotation.attribute: link_annotation.value})
                         else:
                             raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {link_name}")
-
+                        
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""
         if isinstance(payload, str):
