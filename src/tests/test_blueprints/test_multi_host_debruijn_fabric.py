@@ -25,8 +25,6 @@ def test_debruijn():
     service = InfraGraphService()
     service.set_graph(fabric)
 
-    dump_yaml(fabric, "multi_host_debruijn")
-
     g = service.get_networkx_graph()
     #print(g)
     
