@@ -23,7 +23,7 @@ def test_debruijn_fabric_access():
         order=3,
         
     )
-    dump_yaml(fabric,"hybrid_debruijn")
+    
     service = InfraGraphService()
     service.set_graph(fabric)
 
