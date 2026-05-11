@@ -4,47 +4,38 @@ components:
       description: Request specifying the desired format for the returned graph.
       type: object
       properties:
-        format:
+        choice:
           description: |-
-            The format that the graph will be returned in.
+            The type of graph to be returned.
           type: string
           x-field-uid: 1
-          x-enum:
-            compressed:
-              x-field-uid: 1
-            expanded:
-              x-field-uid: 2
-        attributes:
-          description: |-
-            The attributes to be included in the returned graph.
-          type: string
-          x-field-uid: 2
           x-enum:
             full:
               x-field-uid: 1
             partial:
               x-field-uid: 2
+
     GraphContent:
-      description: The content of the graph response, specifying the format and the serialized graph data.
+      description: The content of the graph response.  
       type: object
       properties:
         choice:
-          description: Specifies the format of the returned graph content.
+          description: Specifies whether the returned graph is full or partial. 
           type: string
           x-field-uid: 1
           x-enum:
-            compressed:
+            full:              
               x-field-uid: 1
-            expanded: 
+            partial:
               x-field-uid: 2
-        compressed:
+        full:
           description: |-
-            This graph content returns a compressed graph
+            The graph content returned as a full graph with annotations. 
           type: string
-          x-field-uid: 2
-        expanded:
-          description: |- 
-            The graph content returned a expanded graph
+          x-field-uid: 2      
+        partial:
+          description: |-
+            The graph content returned as a partial graph with no annotations. 
           type: string
           x-field-uid: 3
   responses:
