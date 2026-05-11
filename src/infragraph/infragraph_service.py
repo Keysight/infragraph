@@ -810,8 +810,11 @@ class InfraGraphService(Api):
                         matched_edges.append((s, d))
 
             for attribute_kvp in annotation_node.attributes:
-                networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
-
+                if attribute_kvp.attribute not in immutable_link_attributes:
+                    networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
+                
+                else:
+                    raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for edge")
         # links
         for annotation_link in annotate_request.links:
             for _, _, data in self._graph.edges(data=True):
