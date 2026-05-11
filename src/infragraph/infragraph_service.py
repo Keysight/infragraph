@@ -619,31 +619,21 @@ class InfraGraphService(Api):
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        # partial = pre-annotation graph (no annotated attributes like ipaddress)
-        # full = post-annotation graph (all attributes including annotated ones)
+        
         source_graph = (
             self._pre_annotation_graph
-            if request.attributes == "partial"
+            if request.choice == "partial"
             else self._graph
         )
-
-        graph_data = json_graph.node_link_data(source_graph, edges="edges")
-        result = {
-            "nodes": graph_data.get("nodes", []),
-            "edges": graph_data.get("edges", [])
-        }
-        if request.format == "expanded":
-            return json.dumps(result, indent=2)
-        elif request.format == "compressed":
-            return self.populate_infragraph_dict(source_graph)
+        return self.populate_infragraph_dict(source_graph)
   
-    def populate_infragraph_dict(self, attribute_param):
+    def populate_infragraph_dict(self, source_graph):
         infragraph_dict = {"infrastructure": {}, "annotations": {}}
         infragraph_dict["infrastructure"] = self._infrastructure.serialize('dict')
         
         # Nodes
         annotation_nodes = []
-        for node_name, node_attrs in attribute_param.nodes(data=True):
+        for node_name, node_attrs in source_graph.nodes(data=True):
             if not node_attrs:
                 continue
             annotation_nodes.append({
@@ -656,7 +646,7 @@ class InfraGraphService(Api):
         
         annotation_edges = []
         seen_links = {}
-        for ep1, ep2, edge_attrs in attribute_param.edges(data=True):
+        for ep1, ep2, edge_attrs in source_graph.edges(data=True):
             if not edge_attrs:
                 continue
             annotation_edges.append({
@@ -787,13 +777,17 @@ class InfraGraphService(Api):
             annotate_request = Annotation().deserialize(payload)
         else:
             annotate_request: Annotation = payload
-
+        
         for annotation_node in annotate_request.nodes:
             # expand the nodes
             nodes = self._expand_node_string(annotation_node.name)
             matched = set()
             for node in nodes:
-                matched.update(self._graph_node_prefix_map.get(node, []))
+                list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
+                if list_from_prefix_map: 
+                    matched.update(list_from_prefix_map)
+                else:
+                    raise ValueError(f"{node} not present in networx graph")
             for attribute_kvp in annotation_node.attributes:
                 if attribute_kvp.attribute not in immutable_node_attributes:
                     networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
