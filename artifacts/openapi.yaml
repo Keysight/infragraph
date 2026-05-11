@@ -35,12 +35,15 @@ paths:
       - Configuration
       operationId: set_graph
       x-stream: client
-      description: |-
-        Given an infrastructure object this API method will create a fully qualified infrastructure graph and validate it.
-
-        Creating a fully qualified infrastructure graph requires the following steps:
-          - process each of the infrastructure instance objects by locating the device and creating a subgraph using the device's edges and substituting the instance name for the device name.
-          - process each of the infrastructure edges, looking up the instance to determine the max count and the name to be substituted for the device and link the subgraphs to create a complete infrastructure graph
+      description: "Given an infrastructure object this API method will create a fully\
+        \ qualified infrastructure graph and validate it.\n\nCreating a fully qualified\
+        \ infrastructure graph requires the following steps:\n  - process each of\
+        \ the infrastructure instance objects by locating the device and creating\
+        \ a subgraph using the device's edges and substituting the instance name for\
+        \ the device name.\n  - process each of the infrastructure edges, looking\
+        \ up the instance to determine the max count and the name to be substituted\
+        \ for the device and link the subgraphs to create a complete infrastructure\
+        \ graph \n  - resets all the annotations"
       requestBody:
         required: true
         content:
@@ -752,10 +755,26 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            networkx:
+            compressed:
               x-field-uid: 1
+            expanded:
+              x-field-uid: 2
           enum:
-          - networkx
+          - compressed
+          - expanded
+        attributes:
+          description: |-
+            The attributes to be included in the returned graph.
+          type: string
+          x-field-uid: 2
+          x-enum:
+            full:
+              x-field-uid: 1
+            partial:
+              x-field-uid: 2
+          enum:
+          - full
+          - partial
     GraphContent:
       description: |-
         The content of the graph response, specifying the format and the serialized graph data.
@@ -767,15 +786,23 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            networkx:
+            compressed:
               x-field-uid: 1
+            expanded:
+              x-field-uid: 2
           enum:
-          - networkx
-        networkx:
+          - compressed
+          - expanded
+        compressed:
           description: |-
-            This contains the returned graph content formatted as a networkx yaml string.
+            This graph content returns a compressed graph
           type: string
           x-field-uid: 2
+        expanded:
+          description: |-
+            The graph content returned a expanded graph
+          type: string
+          x-field-uid: 3
     NameValue:
       description: |-
         Represents a generic name and value pair attribute.
@@ -1059,7 +1086,7 @@ components:
       properties:
         name:
           description: |-
-            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and converts to expanded format:
             - server[0]xpu[0]
             - server[0:2]
             - switch
@@ -1167,4 +1194,3 @@ components:
           type: string
           default: ''
           x-field-uid: 3
-  securitySchemes: {}
