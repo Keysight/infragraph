@@ -454,46 +454,35 @@ message Warning {
 // Request specifying the desired format for the returned graph.
 message GraphRequest {
 
-  message Format {
-    enum Enum {
-      unspecified = 0;
-      compressed = 1;
-      expanded = 2;
-    }
-  }
-  // The format that the graph will be returned in.
-  optional Format.Enum format = 1;
-
-  message Attributes {
+  message Choice {
     enum Enum {
       unspecified = 0;
       full = 1;
       partial = 2;
     }
   }
-  // The attributes to be included in the returned graph.
-  optional Attributes.Enum attributes = 2;
+  // The type of graph to be returned.
+  optional Choice.Enum choice = 1;
 }
 
-// The content of the graph response, specifying the format and the serialized graph
-// data.
+// The content of the graph response.
 message GraphContent {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      compressed = 1;
-      expanded = 2;
+      full = 1;
+      partial = 2;
     }
   }
-  // Specifies the format of the returned graph content.
+  // Specifies whether the returned graph is full or partial.
   optional Choice.Enum choice = 1;
 
-  // This graph content returns a compressed graph
-  optional string compressed = 2;
+  // The graph content returned as a full graph with annotations.
+  optional string full = 2;
 
-  // The graph content returned a expanded graph
-  optional string expanded = 3;
+  // The graph content returned as a partial graph with no annotations.
+  optional string partial = 3;
 }
 
 // Represents a generic name and value pair attribute.

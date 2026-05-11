@@ -749,24 +749,11 @@ components:
         Request specifying the desired format for the returned graph.
       type: object
       properties:
-        format:
+        choice:
           description: |-
-            The format that the graph will be returned in.
+            The type of graph to be returned.
           type: string
           x-field-uid: 1
-          x-enum:
-            compressed:
-              x-field-uid: 1
-            expanded:
-              x-field-uid: 2
-          enum:
-          - compressed
-          - expanded
-        attributes:
-          description: |-
-            The attributes to be included in the returned graph.
-          type: string
-          x-field-uid: 2
           x-enum:
             full:
               x-field-uid: 1
@@ -777,30 +764,28 @@ components:
           - partial
     GraphContent:
       description: |-
-        The content of the graph response, specifying the format and the serialized graph data.
+        The content of the graph response.
       type: object
       properties:
         choice:
           description: |-
-            Specifies the format of the returned graph content.
+            Specifies whether the returned graph is full or partial.
           type: string
           x-field-uid: 1
           x-enum:
-            compressed:
+            full:
               x-field-uid: 1
-            expanded:
+            partial:
               x-field-uid: 2
           enum:
-          - compressed
-          - expanded
-        compressed:
-          description: |-
-            This graph content returns a compressed graph
+          - full
+          - partial
+        full:
+          description: "The graph content returned as a full graph with annotations. "
           type: string
           x-field-uid: 2
-        expanded:
-          description: |-
-            The graph content returned a expanded graph
+        partial:
+          description: "The graph content returned as a partial graph with no annotations. "
           type: string
           x-field-uid: 3
     NameValue:
