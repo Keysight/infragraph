@@ -147,5 +147,5 @@ class MI300X(Device):
 
 
 if __name__ == "__main__":
-    device = BMC957608()
+    device = MI300X()
     print(device.serialize(encoding=Device.YAML))
