@@ -63,6 +63,13 @@ function updateBreadcrumb() {
         crumb.dataset.file = item.file;
         if (idx === navigationStack.length - 1) {
             crumb.classList.add('active');
+            (function (f, l) {
+                crumb.style.cursor = 'pointer'; 
+                crumb.addEventListener('click', function () {
+                    navigationStack.pop();
+                    navigateTo(f, l);
+                });
+            })(item.file, item.label);
         } else {
             (function (i, f, l) {
                 crumb.addEventListener('click', function () {

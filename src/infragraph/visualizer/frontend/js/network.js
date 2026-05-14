@@ -16,16 +16,6 @@ const fabricOptions = {
     stabilization: { iterations: 150, fit: true }
   },
   interaction: { hover: true, tooltipDelay: 100, dragNodes: true, dragView: true, zoomView: true },
-  nodes: {
-    borderWidth: 0, borderWidthSelected: 0,
-    font: { size: 12, face: 'arial' },
-    shapeProperties: { useBorderWithImage: false },
-    fixed: { x: false, y: false }
-  },
-  edges: {
-    smooth: { type: 'cubicBezier', forceDirection: 'vertical' },
-    font: { size: 11, align: 'middle' }
-  }
 };
 
 // Internal device view: horizontal hierarchy , components inside a device
@@ -45,16 +35,6 @@ const internalOptions = {
     stabilization: { iterations: 150, fit: true }
   },
   interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true },
-  nodes: {
-    borderWidth: 0, borderWidthSelected: 0,
-    font: { size: 13, face: 'arial' },
-    shapeProperties: { useBorderWithImage: false },
-    fixed: { x: false, y: false }
-  },
-  edges: {
-    smooth: { type: 'cubicBezier', forceDirection: 'horizontal' },
-    font: { size: 11, align: 'middle' }
-  }
 };
 
 // Renders a vis.js network into #mynetwork.

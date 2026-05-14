@@ -39,6 +39,8 @@ function initApp() {
 });
 }
 
+
+
 // Render: creates vis.js network, binds click/hover events
 function render(data, options) {
     if (net) { net.destroy(); net = null; }
@@ -92,6 +94,7 @@ function render(data, options) {
     net.on('blurNode', function () {
         container.style.cursor = 'default';
     });
+    
 }
 
 function showLoading() { loadingEl.classList.remove('hidden'); }
