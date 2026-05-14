@@ -1,43 +1,77 @@
 components:
   schemas:
+    GraphResponse.Infragraph:
+      type: object
+      description: returns an infragraph(infrastructure and annotations)
+      properties:
+        infrastructure:
+          $ref: "./infrastructure.yaml#/components/schemas/Infrastructure"
+          x-field-uid: 1
+        annotations:
+          $ref: "./annotation.yaml#/components/schemas/Annotation"
+          x-field-uid: 2
+
+    Graph.Type:
+      type: object
+      description: returns the type of graph could be infragraph, networkx
+      properties:
+        choice:
+          description: 
+          type: string
+          x-field-uid: 1
+          x-enum:
+            infragraph:
+              x-field-uid: 1
+
     GraphRequest:
       description: Request specifying the desired format for the returned graph.
       type: object
       properties:
-        choice:
-          description: |-
-            The type of graph to be returned.
-          type: string
+        attribute_type:
           x-field-uid: 1
+          description: full or partial attributes information
+          type: string
+          default: full
           x-enum:
             full:
               x-field-uid: 1
             partial:
               x-field-uid: 2
-
+        graph_type:
+                  $ref: "#/components/schemas/Graph.Type"
+                  x-field-uid: 2
     GraphContent:
-      description: The content of the graph response.  
       type: object
-      properties:
+      description: graph content type infragraph or networkx
+      properties: 
         choice:
-          description: Specifies whether the returned graph is full or partial. 
+          description: choose infragraph or networkx
           type: string
           x-field-uid: 1
           x-enum:
-            full:              
+            infragraph:
               x-field-uid: 1
-            partial:
+            networkx:
               x-field-uid: 2
-        full:
-          description: |-
-            The graph content returned as a full graph with annotations. 
+        infragraph:
+          $ref: '#/components/schemas/GraphResponse.Infragraph'
+          x-field-uid: 2
+            
+    GraphResponseContent:
+      type: object
+      description: content for graph response
+      properties:
+        choice:
+          description: choose graph response content
           type: string
-          x-field-uid: 2      
-        partial:
-          description: |-
-            The graph content returned as a partial graph with no annotations. 
-          type: string
+          x-field-uid: 1
+          x-enum:
+            graph_type:
+              x-field-uid: 1
+        graph_type:
+          $ref: '#/components/schemas/GraphContent'
           x-field-uid: 3
+
   responses:
     GraphResponse:
       description: |-
@@ -45,5 +79,4 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GraphContent'
-
+            $ref: '#/components/schemas/GraphResponseContent'
