@@ -451,38 +451,148 @@ message Warning {
   repeated string warnings = 1;
 }
 
+// returns an infragraph(infrastructure and annotations)
+message GraphResponseInfragraph {
+
+  // Description missing in models
+  Infrastructure infrastructure = 1;
+
+  // Description missing in models
+  Annotation annotations = 2;
+}
+
+// returns the type of graph could be infragraph, networkx
+message GraphType {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      infragraph = 1;
+    }
+  }
+  // None
+  optional Choice.Enum choice = 1;
+}
+
 // Request specifying the desired format for the returned graph.
 message GraphRequest {
 
-  message Choice {
+  message AttributeType {
     enum Enum {
       unspecified = 0;
       full = 1;
       partial = 2;
     }
   }
-  // The type of graph to be returned.
-  optional Choice.Enum choice = 1;
+  // full or partial attributes information
+  // default = AttributeType.Enum.full
+  optional AttributeType.Enum attribute_type = 1;
+
+  // Description missing in models
+  GraphType graph_type = 2;
 }
 
-// The content of the graph response.
+// graph content type infragraph or networkx
 message GraphContent {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      full = 1;
-      partial = 2;
+      infragraph = 1;
+      networkx = 2;
     }
   }
-  // Specifies whether the returned graph is full or partial.
+  // choose infragraph or networkx
   optional Choice.Enum choice = 1;
 
-  // The graph content returned as a full graph with annotations.
-  optional string full = 2;
+  // Description missing in models
+  GraphResponseInfragraph infragraph = 2;
+}
 
-  // The graph content returned as a partial graph with no annotations.
-  optional string partial = 3;
+// content for graph response
+message GraphResponseContent {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      graph_type = 1;
+    }
+  }
+  // choose graph response content
+  optional Choice.Enum choice = 1;
+
+  // Description missing in models
+  GraphContent graph_type = 3;
+}
+
+// Defines an annotation to be applied to a graph node.
+message AnnotationAttribute {
+
+  // The attribute name that will be added to the endpoint.
+  optional string attribute = 1;
+
+  // The attribute value that will be added to the endpoint.
+  optional string value = 2;
+}
+
+// Defines an annotation to be applied to a graph node.
+message AnnotationNode {
+
+  // Node name that MUST exist or match nodes present in the graph. This supports slicing
+  // operator and converts to expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string name = 1;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
+}
+
+// Defines an annotation to be applied to a graph link.
+message AnnotationLink {
+
+  // A fully qualified link name that MUST exist in the graph.
+  // - pcie
+  optional string name = 1;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
+}
+
+// Defines an annotation to be applied to a graph edge.
+message AnnotationEdge {
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep1 = 1;
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep2 = 2;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 3;
+}
+
+// Request object specifying which graph elements (nodes or edges) to annotate and the
+// annotations to apply.
+message Annotation {
+
+  // List of annotations to apply to nodes.
+  repeated AnnotationNode nodes = 1;
+
+  // List of annotations to apply to edges.
+  repeated AnnotationEdge edges = 2;
+
+  // List of annotations to apply to links.
+  repeated AnnotationLink links = 3;
 }
 
 // Represents a generic name and value pair attribute.
@@ -660,76 +770,6 @@ message QueryRequest {
   repeated QueryShortestPathFilter shortest_path_filters = 3;
 }
 
-// Defines an annotation to be applied to a graph node.
-message AnnotationAttribute {
-
-  // The attribute name that will be added to the endpoint.
-  optional string attribute = 1;
-
-  // The attribute value that will be added to the endpoint.
-  optional string value = 2;
-}
-
-// Defines an annotation to be applied to a graph node.
-message AnnotationNode {
-
-  // Node name that MUST exist or match nodes present in the graph. This supports slicing
-  // operator and converts to expanded format:
-  // - server[0]xpu[0]
-  // - server[0:2]
-  // - switch
-  optional string name = 1;
-
-  // An inventory of attributes and values.
-  repeated AnnotationAttribute attributes = 2;
-}
-
-// Defines an annotation to be applied to a graph link.
-message AnnotationLink {
-
-  // A fully qualified link name that MUST exist in the graph.
-  // - pcie
-  optional string name = 1;
-
-  // An inventory of attributes and values.
-  repeated AnnotationAttribute attributes = 2;
-}
-
-// Defines an annotation to be applied to a graph edge.
-message AnnotationEdge {
-
-  // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
-  // - server[0]xpu[0]
-  // - server[0:2]
-  // - switch
-  optional string ep1 = 1;
-
-  // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
-  // - server[0]xpu[0]
-  // - server[0:2]
-  // - switch
-  optional string ep2 = 2;
-
-  // An inventory of attributes and values.
-  repeated AnnotationAttribute attributes = 3;
-}
-
-// Request object specifying which graph elements (nodes or edges) to annotate and the
-// annotations to apply.
-message Annotation {
-
-  // List of annotations to apply to nodes.
-  repeated AnnotationNode nodes = 1;
-
-  // List of annotations to apply to edges.
-  repeated AnnotationEdge edges = 2;
-
-  // List of annotations to apply to links.
-  repeated AnnotationLink links = 3;
-}
-
 // Version details
 message Version {
 
@@ -759,7 +799,7 @@ message Failure {
 
 // The entire fully validated graph content.
 message GraphResponse {
-  GraphContent graph_content = 1;
+  GraphResponseContent graph_response_content = 1;
 }
 
 // Answer to the query request.
@@ -785,7 +825,7 @@ message GetGraphRequest {
   GraphRequest graph_request = 1;
 }
 message GetGraphResponse {
-  GraphContent graph_content = 1;
+  GraphResponseContent graph_response_content = 1;
 }
 
 

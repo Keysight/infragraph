@@ -164,7 +164,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GraphContent'
+            $ref: '#/components/schemas/GraphResponseContent'
     QueryResponse:
       description: |-
         Answer to the query request.
@@ -744,16 +744,43 @@ components:
           items:
             type: string
           x-field-uid: 1
+    GraphResponse.Infragraph:
+      type: object
+      description: |-
+        returns an infragraph(infrastructure and annotations)
+      properties:
+        infrastructure:
+          $ref: '#/components/schemas/Infrastructure'
+          x-field-uid: 1
+        annotations:
+          $ref: '#/components/schemas/Annotation'
+          x-field-uid: 2
+    Graph.Type:
+      type: object
+      description: |-
+        returns the type of graph could be infragraph, networkx
+      properties:
+        choice:
+          description: |-
+            None
+          type: string
+          x-field-uid: 1
+          x-enum:
+            infragraph:
+              x-field-uid: 1
+          enum:
+          - infragraph
     GraphRequest:
       description: |-
         Request specifying the desired format for the returned graph.
       type: object
       properties:
-        choice:
-          description: |-
-            The type of graph to be returned.
-          type: string
+        attribute_type:
           x-field-uid: 1
+          description: |-
+            full or partial attributes information
+          type: string
+          default: full
           x-enum:
             full:
               x-field-uid: 1
@@ -762,31 +789,154 @@ components:
           enum:
           - full
           - partial
+        graph_type:
+          $ref: '#/components/schemas/Graph.Type'
+          x-field-uid: 2
     GraphContent:
-      description: |-
-        The content of the graph response.
       type: object
+      description: |-
+        graph content type infragraph or networkx
       properties:
         choice:
           description: |-
-            Specifies whether the returned graph is full or partial.
+            choose infragraph or networkx
           type: string
           x-field-uid: 1
           x-enum:
-            full:
+            infragraph:
               x-field-uid: 1
-            partial:
+            networkx:
               x-field-uid: 2
           enum:
-          - full
-          - partial
-        full:
-          description: "The graph content returned as a full graph with annotations. "
+          - infragraph
+          - networkx
+        infragraph:
+          $ref: '#/components/schemas/GraphResponse.Infragraph'
+          x-field-uid: 2
+    GraphResponseContent:
+      type: object
+      description: |-
+        content for graph response
+      properties:
+        choice:
+          description: |-
+            choose graph response content
+          type: string
+          x-field-uid: 1
+          x-enum:
+            graph_type:
+              x-field-uid: 1
+          enum:
+          - graph_type
+        graph_type:
+          $ref: '#/components/schemas/GraphContent'
+          x-field-uid: 3
+    Annotation.Attribute:
+      description: |-
+        Defines an annotation to be applied to a graph node.
+      type: object
+      properties:
+        attribute:
+          description: |-
+            The attribute name that will be added to the endpoint.
+          type: string
+          x-field-uid: 1
+        value:
+          description: |-
+            The attribute value that will be added to the endpoint.
           type: string
           x-field-uid: 2
-        partial:
-          description: "The graph content returned as a partial graph with no annotations. "
+    Annotation.Node:
+      description: |-
+        Defines an annotation to be applied to a graph node.
+      type: object
+      properties:
+        name:
+          description: |-
+            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and converts to expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
+          x-field-uid: 1
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Attribute'
+          x-field-uid: 2
+    Annotation.Link:
+      description: |-
+        Defines an annotation to be applied to a graph link.
+      type: object
+      properties:
+        name:
+          description: |-
+            A fully qualified link name that MUST exist in the graph.
+            - pcie
+          type: string
+          x-field-uid: 1
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Attribute'
+          x-field-uid: 2
+    Annotation.Edge:
+      description: |-
+        Defines an annotation to be applied to a graph edge.
+      type: object
+      properties:
+        ep1:
+          description: |-
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
+          type: string
+          x-field-uid: 1
+        ep2:
+          description: |-
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
+          type: string
+          x-field-uid: 2
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Attribute'
+          x-field-uid: 3
+    Annotation:
+      description: |-
+        Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
+      type: object
+      properties:
+        nodes:
+          description: |-
+            List of annotations to apply to nodes.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Node'
+          x-field-uid: 1
+        edges:
+          type: array
+          description: |-
+            List of annotations to apply to edges.
+          items:
+            $ref: '#/components/schemas/Annotation.Edge'
+          x-field-uid: 2
+        links:
+          type: array
+          description: |-
+            List of annotations to apply to links.
+          items:
+            $ref: '#/components/schemas/Annotation.Link'
           x-field-uid: 3
     NameValue:
       description: |-
@@ -1049,113 +1199,6 @@ components:
           x-status:
             status: under_review
             information: Proposal to abstract the shortest path interface to the graph.
-    Annotation.Attribute:
-      description: |-
-        Defines an annotation to be applied to a graph node.
-      type: object
-      properties:
-        attribute:
-          description: |-
-            The attribute name that will be added to the endpoint.
-          type: string
-          x-field-uid: 1
-        value:
-          description: |-
-            The attribute value that will be added to the endpoint.
-          type: string
-          x-field-uid: 2
-    Annotation.Node:
-      description: |-
-        Defines an annotation to be applied to a graph node.
-      type: object
-      properties:
-        name:
-          description: |-
-            Node name that MUST exist or match nodes present in the graph. This supports slicing operator and converts to expanded format:
-            - server[0]xpu[0]
-            - server[0:2]
-            - switch
-          type: string
-          x-field-uid: 1
-        attributes:
-          description: |-
-            An inventory of attributes and values.
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.Attribute'
-          x-field-uid: 2
-    Annotation.Link:
-      description: |-
-        Defines an annotation to be applied to a graph link.
-      type: object
-      properties:
-        name:
-          description: |-
-            A fully qualified link name that MUST exist in the graph.
-            - pcie
-          type: string
-          x-field-uid: 1
-        attributes:
-          description: |-
-            An inventory of attributes and values.
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.Attribute'
-          x-field-uid: 2
-    Annotation.Edge:
-      description: |-
-        Defines an annotation to be applied to a graph edge.
-      type: object
-      properties:
-        ep1:
-          description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
-            - server[0]xpu[0]
-            - server[0:2]
-            - switch
-          type: string
-          x-field-uid: 1
-        ep2:
-          description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
-            - server[0]xpu[0]
-            - server[0:2]
-            - switch
-          type: string
-          x-field-uid: 2
-        attributes:
-          description: |-
-            An inventory of attributes and values.
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.Attribute'
-          x-field-uid: 3
-    Annotation:
-      description: |-
-        Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
-      type: object
-      properties:
-        nodes:
-          description: |-
-            List of annotations to apply to nodes.
-          type: array
-          items:
-            $ref: '#/components/schemas/Annotation.Node'
-          x-field-uid: 1
-        edges:
-          type: array
-          description: |-
-            List of annotations to apply to edges.
-          items:
-            $ref: '#/components/schemas/Annotation.Edge'
-          x-field-uid: 2
-        links:
-          type: array
-          description: |-
-            List of annotations to apply to links.
-          items:
-            $ref: '#/components/schemas/Annotation.Link'
-          x-field-uid: 3
     Version:
       description: |-
         Version details
