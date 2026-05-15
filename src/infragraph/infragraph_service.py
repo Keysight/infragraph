@@ -51,6 +51,8 @@ class InfraGraphService(Api):
         self._graph_node_prefix_map = {}
         self._infrastructure: Infrastructure = Infrastructure()
         self._pre_annotation_graph = None
+        self._immutable_node_attributes = set()
+        self._immutable_link_attributes = set()
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -67,6 +69,16 @@ class InfraGraphService(Api):
         if self._graph is None:
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
+
+    def _fill_immutable_attributes(self):
+        for node, attributes in self._pre_annotation_graph.nodes(data=True):
+            for attribute in attributes.keys():
+                self._immutable_node_attributes.add(attribute) 
+
+        for _,_, attributes in self._pre_annotation_graph.edges(data=True):
+            for attribute in attributes.keys():
+                self._immutable_link_attributes.add(attribute)
+
 
     def _expand_node_string(self, s: str) -> List[str]:
         """Expand a device/component string with slice notation into dot-notation paths.
@@ -592,6 +604,8 @@ class InfraGraphService(Api):
         self._parse_infrastructure_edges()
         self._validate_graph()
         self._build_prefix_map()
+        self._pre_annotation_graph = copy.deepcopy(self._graph)
+        self._fill_immutable_attributes()
 
     def _validate_device_edges(self):
         """Ensure that there are no edges between device instances
@@ -619,13 +633,13 @@ class InfraGraphService(Api):
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        
         source_graph = (
             self._pre_annotation_graph
-            if request.choice == "partial"
+            if request.attribute_type == "partial"
             else self._graph
         )
-        return self.populate_infragraph_dict(source_graph)
+        if request.graph_type.choice == request.graph_type.INFRAGRAPH:
+            return self.populate_infragraph_dict(source_graph)
   
     def populate_infragraph_dict(self, source_graph):
         infragraph_dict = {"infrastructure": {}, "annotations": {}}
@@ -760,19 +774,6 @@ class InfraGraphService(Api):
 
     def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
-        self._pre_annotation_graph = copy.deepcopy(self.get_networkx_graph())  # save a true copy
-        nx_graph = self.get_networkx_graph()
-        immutable_node_attributes = set()
-        immutable_link_attributes = set()
-        for node, attributes in nx_graph.nodes(data=True):
-            for attribute in attributes.keys():
-                immutable_node_attributes.add(attribute) 
-
-        for _,_, attributes in nx_graph.edges(data=True):
-            for attribute in attributes.keys():
-                immutable_link_attributes.add(attribute)
-
-
         if isinstance(payload, str):
             annotate_request = Annotation().deserialize(payload)
         else:
@@ -789,7 +790,7 @@ class InfraGraphService(Api):
                 else:
                     raise ValueError(f"{node} not present in networx graph")
             for attribute_kvp in annotation_node.attributes:
-                if attribute_kvp.attribute not in immutable_node_attributes:
+                if attribute_kvp.attribute not in self._immutable_node_attributes:
                     networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
                 else:
                     raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
@@ -810,7 +811,7 @@ class InfraGraphService(Api):
                         matched_edges.append((s, d))
 
             for attribute_kvp in annotation_node.attributes:
-                if attribute_kvp.attribute not in immutable_link_attributes:
+                if attribute_kvp.attribute not in self._immutable_link_attributes:
                     networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
                 
                 else:
@@ -821,7 +822,7 @@ class InfraGraphService(Api):
                 link_name = data.get("link")
                 if link_name in annotation_link.name:
                     for link_annotation in annotation_link.attributes:
-                        if link_annotation.attribute not in immutable_link_attributes:
+                        if link_annotation.attribute not in self._immutable_link_attributes:
                             data.update({link_annotation.attribute: link_annotation.value})
                         else:
                             raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {link_name}")
