@@ -13,6 +13,7 @@ from networkx import Graph
 from networkx.readwrite import json_graph
 import re
 import json
+import yaml
 import copy
 from itertools import product as iterproduct
 from infragraph import *
@@ -52,7 +53,7 @@ class InfraGraphService(Api):
         self._infrastructure: Infrastructure = Infrastructure()
         self._pre_annotation_graph = None
         self._immutable_node_attributes = set()
-        self._immutable_link_attributes = set()
+        self._immutable_edge_attributes = set()
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -77,7 +78,7 @@ class InfraGraphService(Api):
 
         for _,_, attributes in self._pre_annotation_graph.edges(data=True):
             for attribute in attributes.keys():
-                self._immutable_link_attributes.add(attribute)
+                self._immutable_edge_attributes.add(attribute)
 
 
     def _expand_node_string(self, s: str) -> List[str]:
@@ -628,58 +629,78 @@ class InfraGraphService(Api):
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
+        
+    def _build_partial_graph(self) -> Graph:
+        partial_graph = Graph()
+        for node, data in self._graph.nodes(data=True):
+            filtered = {k: v for k, v in data.items() if k not in self._immutable_node_attributes}
+            partial_graph.add_node(node, **filtered)
+        for ep1, ep2, data in self._graph.edges(data=True):
+            filtered = {k: v for k, v in data.items() if k not in self._immutable_edge_attributes}
+            partial_graph.add_edge(ep1, ep2, **filtered)
+        return partial_graph
+
 
     def get_graph(self, request: GraphRequest) -> str:
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        source_graph = (
-            self._pre_annotation_graph
-            if request.attribute_type == "partial"
-            else self._graph
-        )
-        if request.graph_type.choice == request.graph_type.INFRAGRAPH:
-            return self.populate_infragraph_dict(source_graph)
-  
-    def populate_infragraph_dict(self, source_graph):
-        infragraph_dict = {"infrastructure": {}, "annotations": {}}
-        infragraph_dict["infrastructure"] = self._infrastructure.serialize('dict')
-        
-        # Nodes
-        annotation_nodes = []
-        for node_name, node_attrs in source_graph.nodes(data=True):
-            if not node_attrs:
-                continue
-            annotation_nodes.append({
+
+        if request.choice == request.INFRAGRAPH:
+            return self.populate_infragraph_dict(self._graph, request.infragraph.annotations.choice)
+
+        is_full = request.networkx.annotations.choice == "full"
+        graph = self._graph if is_full else self._build_partial_graph()
+        return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
+
+    def populate_infragraph_dict(self, source_graph, attr_type):
+        infragraph_dict = {
+            "infrastructure": self._infrastructure.serialize('dict'),
+            "annotations": {}
+        }
+
+        is_full = attr_type == "full"
+
+        def node_attrs_filter(attrs):
+            return attrs.items() if is_full else (
+                (k, v) for k, v in attrs.items()
+                if k not in self._immutable_node_attributes
+            )
+
+        def edge_attrs_filter(attrs):
+            return attrs.items() if is_full else (
+                (k, v) for k, v in attrs.items()
+                if k not in self._immutable_edge_attributes
+            )
+
+        annotation_nodes = [
+            {
                 "name": node_name,
                 "attributes": [
                     {"attribute": k, "value": v}
-                    for k, v in node_attrs.items()
+                    for k, v in node_attrs_filter(node_attrs)
                 ]
-            })
-        
+            }
+            for node_name, node_attrs in source_graph.nodes(data=True)
+            if node_attrs
+        ]
+
         annotation_edges = []
         seen_links = {}
         for ep1, ep2, edge_attrs in source_graph.edges(data=True):
             if not edge_attrs:
                 continue
+            filtered = list(edge_attrs_filter(edge_attrs))
             annotation_edges.append({
                 "ep1": ep1,
                 "ep2": ep2,
-                "attributes": [
-                    {"attribute": k, "value": v}
-                    for k, v in edge_attrs.items()
-                ]
+                "attributes": [{"attribute": k, "value": v} for k, v in filtered]
             })
-            # Links: group by link name, merge all attributes
             link_name = edge_attrs.get("link")
             if link_name and link_name not in seen_links:
                 seen_links[link_name] = {
                     "name": link_name,
-                    "attributes": [
-                        {"attribute": k, "value": v}
-                        for k, v in edge_attrs.items()
-                    ]
+                    "attributes": [{"attribute": k, "value": v} for k, v in filtered]
                 }
 
         infragraph_dict["annotations"] = {
@@ -687,9 +708,8 @@ class InfraGraphService(Api):
             "edges": annotation_edges,
             "links": list(seen_links.values())
         }
-        
-        return json.dumps(infragraph_dict, indent=2)
 
+        return json.dumps(infragraph_dict, indent=2)
 
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
@@ -811,18 +831,19 @@ class InfraGraphService(Api):
                         matched_edges.append((s, d))
 
             for attribute_kvp in annotation_node.attributes:
-                if attribute_kvp.attribute not in self._immutable_link_attributes:
+                if attribute_kvp.attribute not in self._immutable_edge_attributes:
                     networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
                 
                 else:
                     raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for edge")
+
         # links
         for annotation_link in annotate_request.links:
             for _, _, data in self._graph.edges(data=True):
                 link_name = data.get("link")
                 if link_name in annotation_link.name:
                     for link_annotation in annotation_link.attributes:
-                        if link_annotation.attribute not in self._immutable_link_attributes:
+                        if link_annotation.attribute not in self._immutable_edge_attributes:
                             data.update({link_annotation.attribute: link_annotation.value})
                         else:
                             raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {link_name}")
