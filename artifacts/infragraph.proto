@@ -451,6 +451,33 @@ message Warning {
   repeated string warnings = 1;
 }
 
+// full or partial annotations
+message AnnotationConfig {
+
+  // Description missing in models
+  AnnotationType annotations = 1;
+}
+
+// choose whether full or partial annotations
+message AnnotationType {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      full = 1;
+      partial = 2;
+    }
+  }
+  // 
+  optional Choice.Enum choice = 1;
+
+  // full annotations
+  optional string full = 2;
+
+  // partial annotations
+  optional string partial = 3;
+}
+
 // returns an infragraph(infrastructure and annotations)
 message GraphResponseInfragraph {
 
@@ -474,26 +501,28 @@ message GraphType {
   optional Choice.Enum choice = 1;
 }
 
-// Request specifying the desired format for the returned graph.
+// Request specifying the type of graph you want
 message GraphRequest {
 
-  message AttributeType {
+  message Choice {
     enum Enum {
       unspecified = 0;
-      full = 1;
-      partial = 2;
+      infragraph = 1;
+      networkx = 2;
     }
   }
-  // full or partial attributes information
-  // default = AttributeType.Enum.full
-  optional AttributeType.Enum attribute_type = 1;
+  // choose betweeen infragraph and networkx
+  optional Choice.Enum choice = 1;
 
-  // Description missing in models
-  GraphType graph_type = 2;
+  // returns infrastructure and annotations as a json
+  AnnotationConfig infragraph = 2;
+
+  // returns networkx graph as a string with nodes and edges
+  AnnotationConfig networkx = 3;
 }
 
 // graph content type infragraph or networkx
-message GraphContent {
+message GraphResponseContent {
 
   message Choice {
     enum Enum {
@@ -507,22 +536,9 @@ message GraphContent {
 
   // Description missing in models
   GraphResponseInfragraph infragraph = 2;
-}
 
-// content for graph response
-message GraphResponseContent {
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      graph_type = 1;
-    }
-  }
-  // choose graph response content
-  optional Choice.Enum choice = 1;
-
-  // Description missing in models
-  GraphContent graph_type = 3;
+  // This contains the returned graph content formatted as a networkx yaml string.
+  optional string networkx = 3;
 }
 
 // Defines an annotation to be applied to a graph node.
