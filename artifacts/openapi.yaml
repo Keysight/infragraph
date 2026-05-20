@@ -744,6 +744,41 @@ components:
           items:
             type: string
           x-field-uid: 1
+    Annotation.Config:
+      type: object
+      description: |-
+        full or partial annotations
+      properties:
+        annotations:
+          $ref: '#/components/schemas/Annotation.Type'
+          x-field-uid: 1
+    Annotation.Type:
+      type: object
+      description: |-
+        choose whether full or partial annotations
+      properties:
+        choice:
+          description: ""
+          type: string
+          x-field-uid: 1
+          x-enum:
+            full:
+              x-field-uid: 1
+            partial:
+              x-field-uid: 2
+          enum:
+          - full
+          - partial
+        full:
+          type: string
+          description: |-
+            full annotations
+          x-field-uid: 2
+        partial:
+          type: string
+          description: |-
+            partial annotations
+          x-field-uid: 3
     GraphResponse.Infragraph:
       type: object
       description: |-
@@ -772,27 +807,33 @@ components:
           - infragraph
     GraphRequest:
       description: |-
-        Request specifying the desired format for the returned graph.
+        Request specifying the type of graph you want
       type: object
       properties:
-        attribute_type:
-          x-field-uid: 1
+        choice:
           description: |-
-            full or partial attributes information
+            choose betweeen infragraph and networkx
           type: string
-          default: full
+          x-field-uid: 1
           x-enum:
-            full:
+            infragraph:
               x-field-uid: 1
-            partial:
+            networkx:
               x-field-uid: 2
           enum:
-          - full
-          - partial
-        graph_type:
-          $ref: '#/components/schemas/Graph.Type'
+          - infragraph
+          - networkx
+        infragraph:
+          description: |-
+            returns infrastructure and annotations as a json
+          $ref: '#/components/schemas/Annotation.Config'
           x-field-uid: 2
-    GraphContent:
+        networkx:
+          description: |-
+            returns networkx graph as a string with nodes and edges
+          $ref: '#/components/schemas/Annotation.Config'
+          x-field-uid: 3
+    GraphResponseContent:
       type: object
       description: |-
         graph content type infragraph or networkx
@@ -813,23 +854,10 @@ components:
         infragraph:
           $ref: '#/components/schemas/GraphResponse.Infragraph'
           x-field-uid: 2
-    GraphResponseContent:
-      type: object
-      description: |-
-        content for graph response
-      properties:
-        choice:
+        networkx:
           description: |-
-            choose graph response content
+            This contains the returned graph content formatted as a networkx yaml string.
           type: string
-          x-field-uid: 1
-          x-enum:
-            graph_type:
-              x-field-uid: 1
-          enum:
-          - graph_type
-        graph_type:
-          $ref: '#/components/schemas/GraphContent'
           x-field-uid: 3
     Annotation.Attribute:
       description: |-
