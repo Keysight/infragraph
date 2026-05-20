@@ -160,7 +160,7 @@ components:
             $ref: '#/components/schemas/Error'
     GraphResponse:
       description: |-
-        The entire fully validated graph content.
+        The current graph content, returned in the representation selected by the request.
       content:
         application/json:
           schema:
@@ -747,18 +747,24 @@ components:
     Annotation.Config:
       type: object
       description: |-
-        full or partial annotations
+        Configuration controlling which annotations are returned with the graph.
       properties:
         annotations:
+          description: |-
+            Selects whether the response includes the full set of annotations or only the user-applied (partial) annotations.
           $ref: '#/components/schemas/Annotation.Type'
           x-field-uid: 1
     Annotation.Type:
       type: object
       description: |-
-        choose whether full or partial annotations
+        Selects the scope of annotations to return on graph elements.
       properties:
         choice:
-          description: ""
+          description: |-
+            Chooses between returning the complete annotation set or only the
+            partial (user-applied) annotations.
+              - full: include every attribute present on nodes, edges and links.
+              - partial: include only attributes added on top of the underlying infrastructure.
           type: string
           x-field-uid: 1
           x-enum:
@@ -772,32 +778,37 @@ components:
         full:
           type: string
           description: |-
-            full annotations
+            Returns every attribute set on graph elements, including those derived from the underlying infrastructure.
           x-field-uid: 2
         partial:
           type: string
           description: |-
-            partial annotations
+            Returns only the annotations that have been explicitly applied on top of the infrastructure, excluding immutable infrastructure-derived attributes.
           x-field-uid: 3
     GraphResponse.Infragraph:
       type: object
       description: |-
-        returns an infragraph(infrastructure and annotations)
+        The infragraph representation of the current graph, consisting of the infrastructure definition and the annotations applied to its nodes, edges and links.
       properties:
         infrastructure:
+          description: |-
+            The infrastructure definition that the graph was built from.
           $ref: '#/components/schemas/Infrastructure'
           x-field-uid: 1
         annotations:
+          description: |-
+            The set of annotations applied to nodes, edges and links of the graph.
           $ref: '#/components/schemas/Annotation'
           x-field-uid: 2
     Graph.Type:
       type: object
       description: |-
-        returns the type of graph could be infragraph, networkx
+        Selects the representation used when returning the graph.
       properties:
         choice:
           description: |-
-            None
+            The graph representation to return.
+              - infragraph: native infrastructure + annotations representation.
           type: string
           x-field-uid: 1
           x-enum:
@@ -807,12 +818,15 @@ components:
           - infragraph
     GraphRequest:
       description: |-
-        Request specifying the type of graph you want
+        Request specifying which graph representation to return and how
+        annotations should be included in the response.
       type: object
       properties:
         choice:
           description: |-
-            choose betweeen infragraph and networkx
+            The graph representation to return.
+              - infragraph: infrastructure and annotations as a structured object.
+              - networkx: a networkx node-link graph serialized as a YAML string.
           type: string
           x-field-uid: 1
           x-enum:
@@ -825,22 +839,24 @@ components:
           - networkx
         infragraph:
           description: |-
-            returns infrastructure and annotations as a json
+            Annotation configuration applied when returning the graph as an infragraph (infrastructure and annotations).
           $ref: '#/components/schemas/Annotation.Config'
           x-field-uid: 2
         networkx:
           description: |-
-            returns networkx graph as a string with nodes and edges
+            Annotation configuration applied when returning the graph as a networkx node-link YAML string.
           $ref: '#/components/schemas/Annotation.Config'
           x-field-uid: 3
     GraphResponseContent:
       type: object
       description: |-
-        graph content type infragraph or networkx
+        The content of a graph response, returned either as a structured infragraph object or as a networkx YAML string depending on the request.
       properties:
         choice:
           description: |-
-            choose infragraph or networkx
+            The representation contained in this response.
+              - infragraph: structured infrastructure and annotations object.
+              - networkx: networkx node-link graph serialized as a YAML string.
           type: string
           x-field-uid: 1
           x-enum:
@@ -852,11 +868,13 @@ components:
           - infragraph
           - networkx
         infragraph:
+          description: |-
+            The graph returned as a structured infragraph (infrastructure plus annotations).
           $ref: '#/components/schemas/GraphResponse.Infragraph'
           x-field-uid: 2
         networkx:
           description: |-
-            This contains the returned graph content formatted as a networkx yaml string.
+            The graph returned as a networkx node-link graph serialized as a YAML string.
           type: string
           x-field-uid: 3
     Annotation.Attribute:

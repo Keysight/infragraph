@@ -451,14 +451,15 @@ message Warning {
   repeated string warnings = 1;
 }
 
-// full or partial annotations
+// Configuration controlling which annotations are returned with the graph.
 message AnnotationConfig {
 
-  // Description missing in models
+  // Selects whether the response includes the full set of annotations or only the user-applied
+  // (partial) annotations.
   AnnotationType annotations = 1;
 }
 
-// choose whether full or partial annotations
+// Selects the scope of annotations to return on graph elements.
 message AnnotationType {
 
   message Choice {
@@ -468,27 +469,33 @@ message AnnotationType {
       partial = 2;
     }
   }
-  // 
+  // Chooses between returning the complete annotation set or only the
+  // partial (user-applied) annotations.
+  // - full: include every attribute present on nodes, edges and links.
+  // - partial: include only attributes added on top of the underlying infrastructure.
   optional Choice.Enum choice = 1;
 
-  // full annotations
+  // Returns every attribute set on graph elements, including those derived from the underlying
+  // infrastructure.
   optional string full = 2;
 
-  // partial annotations
+  // Returns only the annotations that have been explicitly applied on top of the infrastructure,
+  // excluding immutable infrastructure-derived attributes.
   optional string partial = 3;
 }
 
-// returns an infragraph(infrastructure and annotations)
+// The infragraph representation of the current graph, consisting of the infrastructure
+// definition and the annotations applied to its nodes, edges and links.
 message GraphResponseInfragraph {
 
-  // Description missing in models
+  // The infrastructure definition that the graph was built from.
   Infrastructure infrastructure = 1;
 
-  // Description missing in models
+  // The set of annotations applied to nodes, edges and links of the graph.
   Annotation annotations = 2;
 }
 
-// returns the type of graph could be infragraph, networkx
+// Selects the representation used when returning the graph.
 message GraphType {
 
   message Choice {
@@ -497,11 +504,13 @@ message GraphType {
       infragraph = 1;
     }
   }
-  // None
+  // The graph representation to return.
+  // - infragraph: native infrastructure + annotations representation.
   optional Choice.Enum choice = 1;
 }
 
-// Request specifying the type of graph you want
+// Request specifying which graph representation to return and how
+// annotations should be included in the response.
 message GraphRequest {
 
   message Choice {
@@ -511,17 +520,22 @@ message GraphRequest {
       networkx = 2;
     }
   }
-  // choose betweeen infragraph and networkx
+  // The graph representation to return.
+  // - infragraph: infrastructure and annotations as a structured object.
+  // - networkx: a networkx node-link graph serialized as a YAML string.
   optional Choice.Enum choice = 1;
 
-  // returns infrastructure and annotations as a json
+  // Annotation configuration applied when returning the graph as an infragraph (infrastructure
+  // and annotations).
   AnnotationConfig infragraph = 2;
 
-  // returns networkx graph as a string with nodes and edges
+  // Annotation configuration applied when returning the graph as a networkx node-link
+  // YAML string.
   AnnotationConfig networkx = 3;
 }
 
-// graph content type infragraph or networkx
+// The content of a graph response, returned either as a structured infragraph object
+// or as a networkx YAML string depending on the request.
 message GraphResponseContent {
 
   message Choice {
@@ -531,13 +545,15 @@ message GraphResponseContent {
       networkx = 2;
     }
   }
-  // choose infragraph or networkx
+  // The representation contained in this response.
+  // - infragraph: structured infrastructure and annotations object.
+  // - networkx: networkx node-link graph serialized as a YAML string.
   optional Choice.Enum choice = 1;
 
-  // Description missing in models
+  // The graph returned as a structured infragraph (infrastructure plus annotations).
   GraphResponseInfragraph infragraph = 2;
 
-  // This contains the returned graph content formatted as a networkx yaml string.
+  // The graph returned as a networkx node-link graph serialized as a YAML string.
   optional string networkx = 3;
 }
 
@@ -813,7 +829,7 @@ message Failure {
   Error error = 1;
 }
 
-// The entire fully validated graph content.
+// The current graph content, returned in the representation selected by the request.
 message GraphResponse {
   GraphResponseContent graph_response_content = 1;
 }
