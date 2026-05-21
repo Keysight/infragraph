@@ -7,14 +7,13 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 
 """
 
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
-import networkx
-from networkx import Graph
-from networkx.readwrite import json_graph
 import re
 import json
 import yaml
-import copy
+import networkx
+from networkx import Graph
+from networkx.readwrite import json_graph
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from itertools import product as iterproduct
 from infragraph import *
 
@@ -592,6 +591,7 @@ class InfraGraphService(Api):
             self._infrastructure = Infrastructure().deserialize(payload)
         else:
             self._infrastructure = payload
+        # Initialize an empty graph, populate it with device and instance nodes, validate the resulting device edges and infrastructure edges, run final graph-wide validation, and then build the prefix and link lookup maps used for fast endpoint resolution.
         self._graph = Graph()
         self._generate_device_data()
         self._generate_instance_data()
