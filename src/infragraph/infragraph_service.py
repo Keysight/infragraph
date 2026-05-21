@@ -53,7 +53,7 @@ class InfraGraphService(Api):
         self._graph: Graph = Graph()
         self._device_data = {}
         self._graph_node_prefix_map: Dict[str, List[str]] = {}
-        self._link_to_edges: Dict[str, List[Tuple[str, str]]] = {}
+        self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
 
 
@@ -793,11 +793,11 @@ class InfraGraphService(Api):
         across annotate_graph calls because annotations never add edges or
         mutate the "link" attribute (it's in _IMMUTABLE_ATTRIBUTES).
         """
-        self._link_to_edges = {}
+        self._link_to_edges_map = {}
         for ep1, ep2, data in self._graph.edges(data=True):
             link_name = data.get("link")
             if link_name is not None:
-                self._link_to_edges.setdefault(link_name, []).append((ep1, ep2))
+                self._link_to_edges_map.setdefault(link_name, []).append((ep1, ep2))
 
     def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
@@ -846,7 +846,7 @@ class InfraGraphService(Api):
 
         # links
         for annotation_link in annotate_request.links:
-            edges_for_link = self._link_to_edges.get(annotation_link.name, [])
+            edges_for_link = self._link_to_edges_map.get(annotation_link.name, [])
             for link_annotation in annotation_link.attributes:
                 if link_annotation.attribute in self._IMMUTABLE_ATTRIBUTES:
                     raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {annotation_link.name}")
