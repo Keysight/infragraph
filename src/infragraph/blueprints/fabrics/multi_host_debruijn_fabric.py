@@ -26,9 +26,6 @@ class MultiHostDeBruijnFabric(Infrastructure):
             description=f"DeBruijn Fabric (k={order})",
         )
         
-        self.devices.append(switch)
-        self.devices.append(server)
-
         switch_port = InfraGraphService.get_component(switch, Component.PORT)
         host_nic = InfraGraphService.get_component(server, Component.NIC)
 
@@ -46,6 +43,9 @@ class MultiHostDeBruijnFabric(Infrastructure):
         # Each access switch dedicates half of its ports to hosts
         # host count is based on NICs per host
         hosts_per_switch = host_ports // host_nic.count
+
+        self.devices.append(switch)
+        self.devices.append(server)
 
         # Build de bruijn node labels.
         # For degree d and order n, the fabric has d^n switches, each having unique label

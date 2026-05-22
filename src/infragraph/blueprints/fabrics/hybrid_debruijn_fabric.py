@@ -34,12 +34,14 @@ class HybridDeBruijnFabric(Infrastructure):
             description=f"DeBruijn Fabric With Rack Switches(order={order})",
         )
 
-        self.devices.append(switch)
-        self.devices.append(server)
-
         switch_port = InfraGraphService.get_component(switch, Component.PORT)
         host_nic = InfraGraphService.get_component(server, Component.NIC)
 
+        # The switch radix must divide evenly across the full port plan:
+        # half the ports are for fabric links and half are for host/access links;
+        # within the fabric half, ports are split into incoming and outgoing;
+        # within both incoming and outgoing groups, ports are split again into
+        # primary and redundant links. Therefore switch port must be divisible by 8 (2*2*2)
         if switch_port.count % 8 != 0:
             raise ValueError("Switch radix must be divisible by 8")
 
@@ -56,6 +58,9 @@ class HybridDeBruijnFabric(Infrastructure):
         # Each access switch dedicates half of its ports to hosts
         # host count is based on NICs per host
         hosts_per_access_switch = host_ports // host_nic.count
+
+        self.devices.append(switch)
+        self.devices.append(server)
 
         # Build de bruijn node labels.
         # For degree d and order n, the fabric has d^n switches, each having unique label
