@@ -14,10 +14,13 @@ async def test_shortest_path(ranks: Tuple[int, int]):
 
     # add ranks
     npu_endpoints = service.get_endpoints("type", Component.XPU)
-    annotate_request = AnnotateRequest()
+    annotation = Annotation()
     for idx, npu_endpoint in enumerate(npu_endpoints):
-        annotate_request.nodes.add(name=npu_endpoint, attribute="rank", value=str(idx))
-    service.annotate_graph(annotate_request.serialize())
+        annotation_node = annotation.nodes.add(
+            name=npu_endpoint
+        )
+        annotation_node.attributes.add(attribute="rank", value=str(idx))
+    service.annotate_graph(annotation.serialize())
 
     # find shortest path from one rank to another
     src_endpoint = service.get_endpoints("rank", str(ranks[0]))[0]
