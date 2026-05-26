@@ -24,7 +24,7 @@ The [blueprints](blueprints.md) section provides ready-made templates for common
 The [CLI](cli.md) provides commands for converting system descriptions into InfraGraph format and visualizing infrastructure topologies directly from the terminal.
 
 ### Extending the case study with additional data
-This section provides a comprehensive guide on how a user can annotate various parts of infrastructre and add more details like DeviceType, Rank Identifier and so on.
+This section provides a comprehensive guide on how a user can annotate various parts of infrastructure and add more details like DeviceType, Rank Identifier and so on.
 
 It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
 
