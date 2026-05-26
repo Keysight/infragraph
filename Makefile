@@ -12,6 +12,10 @@ clean: ## recreate clean virtual environment
 	rm -f src/infragraph/visualizer/frontend/js/vis-network.min.js
 	curl -kL https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js -o src/infragraph/visualizer/frontend/js/vis-network.min.js
 
+fetch-js:
+	curl -L -o src/infragraph/visualizer/frontend/js/cytoscape.min.js \
+	  https://unpkg.com/cytoscape@3.31.0/dist/cytoscape.min.js
+
 .PHONY: generate
 generate: ## generate artifacts using OpenApiArt
 	source .venv/bin/activate && \

@@ -6,25 +6,36 @@ from json import JSONDecodeError
 from yaml import YAMLError
 from infragraph import Infrastructure
 from infragraph.infragraph_service import InfraGraphService
+import base64
+from pathlib import Path
+
+# Directory holding the SVG icons that NODE_STYLES references.
+_SVG_DIR = Path(__file__).parent / "frontend" / "svg_images"
+
+def _svg_data_url(filename: str) -> str:
+    path = _SVG_DIR / filename
+    if not path.exists():
+        return ""  # missing icon: silently fall back to no image
+    b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/svg+xml;base64,{b64}"
 
 # metadata
 NODE_STYLES = {
-    "switch_dev":  {"shape": "image", "image": "svg_images/switch_dev.svg", "size": 20},
-    "switch":      {"shape": "image", "image": "svg_images/switch.svg",     "size": 12},
-    "server":      {"shape": "image", "image": "svg_images/server.svg",     "size": 22},
-    "host":        {"shape": "image", "image": "svg_images/device.svg",     "size": 22},
-    "dgx":         {"shape": "box",   "size": 30, "color": "#9b59b6"},
-    "cpu":         {"shape": "image", "image": "svg_images/cpu.svg",        "size": 32},
-    "xpu":         {"shape": "image", "image": "svg_images/xpu.svg",        "size": 18},
-    "nic":         {"shape": "image", "image": "svg_images/nic.svg",        "size": 18},
-    "memory":      {"shape": "image", "image": "svg_images/memory.svg",     "size": 18},
-    "port":        {"shape": "image", "image": "svg_images/port.svg",       "size": 12},
-    "pcie_slot":   {"shape": "image", "image": "svg_images/pcie_slot.svg",  "size":  12},
-    "device":      {"shape": "image", "image": "svg_images/device.svg",     "size": 25},
-    "custom":      {"shape": "dot",   "color": "#7f8c8d",                   "size": 22},
-    "pci_bridge":  {"shape": "image", "image": "svg_images/pcie_bridge.svg", "size": 12},
-    "root_bridge": {"shape": "image", "image": "svg_images/pcie_bridge.svg", "size": 12},
-    "pci_device":  {"shape": "image", "image": "svg_images/pcie_slot.svg",  "size":  5},
+    "switch_dev":  {"image": _svg_data_url("switch_dev.svg"), "size": 20},
+    "switch":      {"image": _svg_data_url("switch.svg"),     "size": 12},
+    "server":      {"image": _svg_data_url("server.svg"),     "size": 22},
+    "host":        {"image": _svg_data_url("device.svg"),     "size": 22},
+    "cpu":         {"image": _svg_data_url("cpu.svg"),        "size": 32},
+    "xpu":         {"image": _svg_data_url("xpu.svg"),        "size": 18},
+    "nic":         {"image": _svg_data_url("nic.svg"),        "size": 18},
+    "memory":      {"image": _svg_data_url("memory.svg"),     "size": 18},
+    "port":        {"image": _svg_data_url("port.svg"),       "size": 12},
+    "pcie_slot":   {"image": _svg_data_url("pcie_slot.svg"),  "size":  12},
+    "device":      {"image": _svg_data_url("device.svg"),     "size": 25},
+    "custom":      {"color": "#7f8c8d",                   "size": 22},
+    "pci_bridge":  {"image": _svg_data_url("pcie_bridge.svg"), "size": 12},
+    "root_bridge": {"image": _svg_data_url("pcie_bridge.svg"), "size": 12},
+    "pci_device":  {"image": _svg_data_url("pcie_slot.svg"),  "size":  5},
 }
 
 LINK_COLORS = {
@@ -111,7 +122,6 @@ def _generate_component_json(device_name, device_data, all_device_names,infrastr
             "label": f"{comp_name}[{parts[1]}]",
             "title": f"Component: {node_id}\nType: {node_type}\nDescription: {desc}",
             "type": node_type,
-            "shape": style.get("shape", "dot"),
             "image": style.get("image"),
             "size": style.get("size", 16),
             "drillable": drillable,
@@ -182,7 +192,7 @@ def _generate_instance_json(infrastructure, service, host_names, switch_names):
                 "label": f"{instance.name}[{idx}]",
                 "title": f"Device: {device_name}\nInstance: {instance.name}[{idx}]\nType: {node_type}",
                 "type": node_type, "device": device_name,
-                "shape": style.get("shape", "dot"), "image": style.get("image"),
+                "image": style.get("image"),
                 "color": style.get("color"), "size": style.get("size", 16),
                 "drillable": drillable,
                 "drillTarget": f"{device_name}.json" if drillable else None,
@@ -266,12 +276,14 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz", hosts=(
     os.makedirs(output_dir, exist_ok=True)
     _copy_frontend(output_dir)
 
-    # Write graph_data.js
     js_path = os.path.join(output_dir, "js", "graph_data.js")
     with open(js_path, "w") as f:
-        f.write("// Auto-generated\nconst GRAPH_DATA = ")
+        f.write("// Auto-generated\n")
+        f.write("const GRAPH_DATA = ")
         json.dump(all_views, f, indent=2)
         f.write(";\n")
+
+    
     print(f"  Generated: js/graph_data.js ({len(all_views)} views embedded)")
     print(f"\nVisualization ready at: {output_dir}/index.html")
 

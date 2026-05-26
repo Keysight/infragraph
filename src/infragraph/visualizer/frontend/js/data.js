@@ -1,4 +1,4 @@
-// Data fetching and preparation for vis.js
+// Data fetching + preparation.
 
 function fetchGraphData(file) {
     if (typeof GRAPH_DATA !== 'undefined' && GRAPH_DATA[file]) {
@@ -6,35 +6,35 @@ function fetchGraphData(file) {
     }
     return Promise.reject(new Error('Graph data not found: ' + file));
 }
+function getNodeSize(n) {
+    var sizes = { host: 30, switch: 25, cpu: 18, xpu: 20, nic: 16, port: 10, device: 22, custom: 14 };
+    return sizes[n.type] || 16;
+}
 
-// Transforms raw JSON into vis.js-ready objects
-// Adds deviceType/linkType fields that filters.js expects
-
+//nodes in light and dark theme
 function prepareData(rawData) {
-    var isDark = document.documentElement.classList.contains('dark');
-    var fontColor = isDark ? '#e6edf3' : '#1f2328';
-    var strokeColor = isDark ? '#0e1621' : '#ffffff';
+    var rs = getComputedStyle(document.documentElement);
+    var fontColor = rs.getPropertyValue('--text-primary').trim();
+    var edgeFontColor = rs.getPropertyValue('--text-secondary').trim();
+    var strokeColor = rs.getPropertyValue('--canvas-stroke').trim();
+    var highlightColor = rs.getPropertyValue('--text-primary').trim();
 
     var nodes = rawData.nodes.map(function (n) {
+        var hasImage = !!n.image;
         return {
+            // Functional fields (used by filters / search / navigation)
             id: n.id,
             label: n.label,
             title: n.title,
-            shape: n.shape || 'box',
-            image: n.image || undefined,
-            size: n.size || getNodeSize(n),
-            color: buildNodeColor(n),
-            font: {
-                color: fontColor, size: 12,
-                face: "'JetBrains Mono', 'Fira Code', monospace",
-                strokeWidth: 3, strokeColor: strokeColor
-            },
-            borderWidth: n.drillable ? 2.5 : 1.5,
-            shadow: n.drillable ? { enabled: true, color: 'rgba(74,144,217,0.5)', size: 12, x: 0, y: 0 } : undefined,
             deviceType: n.type || 'unknown',
-            drillable: n.drillable,
+            drillable: !!n.drillable,
             drillTarget: n.drillTarget,
-            device: n.device
+            device: n.device,
+            shape: hasImage ? 'rectangle' : 'ellipse',
+            size: n.size || getNodeSize(n),
+            image: hasImage ? n.image : undefined,
+            fontColor: fontColor,
+            strokeColor: strokeColor,
         };
     });
 
@@ -43,26 +43,44 @@ function prepareData(rawData) {
             id: 'e_' + idx,
             from: e.from,
             to: e.to,
-            label: e.label || undefined,
+            label: e.label || '',
             title: e.title,
-            color: {
-                color: e.color || '#555',
-                highlight: isDark ? '#e6edf3' : '#1f2328',
-                hover: lightenColor(e.color || '#555'),
-                opacity: 0.7
-            },
+            linkType: e.link || 'unknown',
+            color: e.color || '#555',
+            highlightColor: highlightColor,
             width: e.width || 1,
-            font: {
-                color: isDark ? '#8b949e' : '#656d76', size: 10,
-                face: "'JetBrains Mono', monospace",
-                strokeWidth: 2, strokeColor: strokeColor, align: 'middle'
-            },
-            smooth: { enabled: true, type: 'continuous', roundness: 0.15 },
-            linkType: e.link || 'unknown'
+            edgeFontColor: edgeFontColor,
+            strokeColor: strokeColor,
         };
     });
 
-    
-    // Store raw data for re-rendering on theme change
+    // Raw data kept for theme re-renders
     return { nodes: nodes, edges: edges, _rawData: rawData };
+}
+
+// Convert to Cytoscape elements ({data: {...}}).
+function buildElements(data) {
+    var nodeEls = data.nodes.map(function (n) {
+        var d = {};
+        for (var k in n) d[k] = n[k];
+        return { data: d };
+    });
+    var edgeEls = data.edges.map(function (e) {
+        return {
+            data: {
+                id: e.id,
+                source: e.from,
+                target: e.to,
+                label: e.label,
+                title: e.title,
+                linkType: e.linkType,
+                color: e.color,
+                highlightColor: e.highlightColor,
+                width: e.width,
+                edgeFontColor: e.edgeFontColor,
+                strokeColor: e.strokeColor,
+            }
+        };
+    });
+    return nodeEls.concat(edgeEls);
 }

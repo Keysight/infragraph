@@ -683,5 +683,6 @@ dev.json
 src/tests/test_notebooks/
 !index.html
 src/infragraph/visualizer/frontend/js/vis-network.min.js
+src/infragraph/visualizer/frontend/js/cytoscape.min.js
 viz/
 demo/

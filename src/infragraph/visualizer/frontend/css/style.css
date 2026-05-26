@@ -230,17 +230,14 @@ html, body {
     background: var(--bg-primary);
 }
 
-#graph-container .vis-network {
-    outline: none !important;
-}
-
 #graph-container canvas {
     outline: none !important;
 }
 
-/*  vis.js Tooltip  */
-div.vis-tooltip {
-    position: absolute;
+/*  Custom hover tooltip (was .vis-tooltip)  */
+.cy-tooltip {
+    position: fixed;
+    z-index: 200;
     padding: 8px 12px;
     background: var(--tooltip-bg);
     color: var(--tooltip-text);
@@ -331,6 +328,7 @@ div.vis-tooltip {
 #btn-hint:hover {
     background: var(--accent-hover);
 }
+
 /*  Loading  */
 #loading {
     position: fixed;
@@ -370,19 +368,10 @@ div.vis-tooltip {
 }
 
 /*  Scrollbar  */
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
 /*  Filter Toggle  */
 #filterToggle {
@@ -647,6 +636,7 @@ div.vis-tooltip {
 #controlToggle:hover {
     background: var(--accent-hover);
 }
+
 /* Controller Panel */
 #controlPanel {
     position: fixed;

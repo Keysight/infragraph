@@ -25,10 +25,10 @@ function navigateTo(file, label) {
         updateBackButton();
 
         var isInfra = navigationStack.length === 1;
-        var options = isInfra ? fabricOptions : internalOptions;
+        var layout = isInfra ? fabricLayout : internalLayout;
 
         currentData = prepareData(data);
-        render(currentData, options);
+        render(currentData, layout);
 
         if (typeof populateFilters === 'function') populateFilters(currentData);
 
@@ -64,7 +64,7 @@ function updateBreadcrumb() {
         if (idx === navigationStack.length - 1) {
             crumb.classList.add('active');
             (function (f, l) {
-                crumb.style.cursor = 'pointer'; 
+                crumb.style.cursor = 'pointer';
                 crumb.addEventListener('click', function () {
                     navigationStack.pop();
                     navigateTo(f, l);

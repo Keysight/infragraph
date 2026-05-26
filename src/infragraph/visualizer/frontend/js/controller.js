@@ -1,88 +1,68 @@
-let controlleropen= false;
+// Controller panel: live sliders for font sizes, node size, layout spacing.
+
+let controlleropen = false;
+
+// Current layout knobs that the spacing/level sliders adjust.
+// Initial values match the defaults in network.js.
+let _spacingFactor = 1.2;
+let _levelMultiplier = 1.0;
 
 function toggleControllerPanel() {
   controlleropen = !controlleropen;
-  document.getElementById('controlPanel').style.display = controlleropen ? 'flex' : 'none'; 
-  document.getElementById('controlToggle').classList.toggle('active', controlleropen); 
+  document.getElementById('controlPanel').style.display = controlleropen ? 'flex' : 'none';
+  document.getElementById('controlToggle').classList.toggle('active', controlleropen);
+}
+
+// Re-run the current view's layout with the current spacing knobs applied.
+function rerunLayout() {
+  if (!cy) return;
+  const isInfra = navigationStack.length <= 1;
+  const base = isInfra ? fabricLayout : internalLayout;
+
+  //for level spacing 
+   const wrappedTransform = function (node, pos) {
+    const t = base.transform(node, pos);
+    return isInfra
+      ? { x: t.x, y: t.y * _levelMultiplier }
+      : { x: t.x * _levelMultiplier, y: t.y };
+  };
+
+  cy.layout(Object.assign({}, base, {
+    spacingFactor: _spacingFactor,
+    transform: wrappedTransform,
+    animate: true,
+    animationDuration: 200,
+  })).run();
 }
 
 document.getElementById('fontslider').addEventListener('input', function () {
-    var size = parseInt(this.value);
-    var updates = net.body.data.nodes.get().map(function (n) {
-        return { id: n.id, font: { size: size } };
-    });
-    net.body.data.nodes.update(updates);
+  if (!cy) return;
+  const size = parseInt(this.value);
+  cy.nodes().style('font-size', size);
 });
 
 document.getElementById('edgefont').addEventListener('input', function () {
-    var size = parseInt(this.value);
-    var updates = net.body.data.edges.get().map(function (e) {
-        return { id: e.id, font: { size: size } };
-    });
-    net.body.data.edges.update(updates);
+  if (!cy) return;
+  const size = parseInt(this.value);
+  cy.edges().style('font-size', size);
 });
 
 document.getElementById('nodeslider').addEventListener('input', function () {
-    var size = parseInt(this.value);
-    var updates = net.body.data.nodes.get().map(function (n) {
-        return { id: n.id, size: size };
-    });
-    net.body.data.nodes.update(updates);
+  if (!cy) return;
+  const size = parseInt(this.value);
+  cy.nodes().style({ 'width': size, 'height': size });
 });
 
 document.getElementById('spaceslider').addEventListener('input', function () {
-    var spacing = parseInt(this.value);
-
-    net.setOptions({layout: {
-        hierarchical: {
-        enabled: true,}}})
-        
-        net.setOptions({
-                physics: { enabled: true,
-        hierarchicalRepulsion: {
-        centralGravity: 0.0, springLength: 150, springConstant:0.02,
-        nodeDistance: spacing, damping: 0.5
-        },
-        stabilization: { iterations: 150, fit: true }
-        },
-        interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true }, }
-    );
-
-    net.setOptions({layout: {
-        hierarchical: {
-        enabled: true,}}})
-        
-
-        net.stabilize(1000);
-        net.once('stabilizationIterationsDone', function () {
-            net.setOptions({ physics: { enabled: false } });
-            net.fit({ animation: { duration: 10, easingFunction: 'easeInOutQuart' } });
-        });
-    }),
-
+  // Slider range 100..500 → spacingFactor 0.6..2.5
+  const v = parseInt(this.value);
+  _spacingFactor = 0.6 + ((v - 100) / 400) * 1.9;
+  rerunLayout();
+});
 
 document.getElementById('levelslider').addEventListener('input', function () {
-    var spacing = parseInt(this.value);
-
-    net.off('stabilizationIterationsDone');
-    net.setOptions({layout: {
-    hierarchical: {
-      enabled: true, levelSeparation: spacing}}})
-
-    net.setOptions({
-            physics: { enabled: true,
-    hierarchicalRepulsion: {
-      centralGravity: 0.0, springLength: 150, springConstant:0.02,
-      damping: 0.5
-    },
-        stabilization: { iterations: 150, fit: true }
-        },
-        interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true }, }
-            );
-
-  net.stabilize(1000);
-        net.once('stabilizationIterationsDone', function () {
-            net.setOptions({ physics: { enabled: false } });
-            net.fit({ animation: { duration: 10, easingFunction: 'easeInOutQuart' } });
-        });
+  // Slider range 100..500 → multiplier 0.6..2.5
+  const v = parseInt(this.value);
+  _levelMultiplier = 0.6 + ((v - 100) / 400) * 1.9;
+  rerunLayout();
 });
