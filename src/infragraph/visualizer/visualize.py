@@ -74,72 +74,27 @@ def _map_to_parent(node_id):
         parent = parts[0] + "." + parts[1]
     return parent
 
-def _link_bandwidth(infrastructure, link):
-    """Return a bandwidth"""
-    for infra_link in infrastructure.links:
-        if infra_link.name == link:
-            if getattr(infra_link, "physical", None) is not None:
-                bw_obj = infra_link.physical.bandwidth
-                if getattr(bw_obj, "gigabits_per_second", None):
-                    return f" ({bw_obj.gigabits_per_second}G)"
-            break
-    return ""
-
 def _instance_edges(G, infrastructure):
-    """Lift component-path graph edges to instance-level raw edges.
-    Params:
-        G: networkx graph
-        infrastructure: for bandwidth lookup.
-    Returns:
-        list[dict]: raw edges with 'from'/'to' as instance ids.
-    """
+    bw_map = {}
+    for l in infrastructure.links:
+        phys = getattr(l, "physical", None)
+        bw_obj = getattr(phys, "bandwidth", None) if phys is not None else None
+        gbps = getattr(bw_obj, "gigabits_per_second", None) if bw_obj else None
+        bw_map[l.name] = f" ({gbps}G)" if gbps else ""
+
     edges = []
     for u, v, data in G.edges(data=True):
         up, vp = u.split("."), v.split(".")
         u_inst, v_inst = f"{up[0]}_{up[1]}", f"{vp[0]}_{vp[1]}"
-        if u_inst == v_inst:                       # internal edges to one instance
+        if u_inst == v_inst:
             continue
         link = data.get("link", "unknown")
-        bw = _link_bandwidth(infrastructure, link)
         edges.append({
             "from": u_inst, "to": v_inst, "link": link,
             "color": _get_link_color(link),
-            "title": f"Link: {link}{bw}", "label": link,
+            "title": f"Link: {link}{bw_map.get(link, '')}", "label": link,
         })
     return edges
-
-def _compute_racks(G, infrastructure, host_names):
-    """Group each host with the leaf switches directly attached to it (and
-    any hosts sharing those leaves) into a rack. 
-    """
-    name_device = {inst.name: inst.device for inst in infrastructure.instances} # dict for device type of instances
-
-    def _inst(node):
-        p = node.split(".")
-        return f"{p[0]}_{p[1]}"
-
-    def _is_host(node):
-        return name_device.get(node.split(".")[0]) in host_names
-
-    uplink = nx.Graph()
-    for u, v in G.edges():
-        ui, vi = _inst(u), _inst(v)
-        if ui == vi:                       # internal to one instance -> skip
-            continue
-        if not (_is_host(u) or _is_host(v)):   # spine<->spine edge -> skip (edges are added only if one end is host)
-            continue                           # stops the climb at the leaf tier
-        uplink.add_edge(ui, vi)
-
-    host_insts = {_inst(n) for n in G.nodes if _is_host(n)} 
-
-    racks = []
-    for component in nx.connected_components(uplink):
-        if component & host_insts:
-            racks.append({"members": sorted(component)})
-    racks.sort(key=lambda r: r["members"][0]) # to avoid server_3 in rack_0
-    for i, rack in enumerate(racks):
-        rack["id"] = f"rack_{i}"
-    return racks
 
 def _generate_component_json(device_name, device_data, all_device_names,infrastructure):
     """Generate a device component view JSON from a DeviceData object.
@@ -208,23 +163,89 @@ def _generate_component_json(device_name, device_data, all_device_names,infrastr
         "edges": _collapse_parallel_edges(raw_edges),
     }
 
-def _generate_instance_json(infrastructure, service, host_names, switch_names, racks):
-    """Generate the top-level infrastructure view JSON.
+def _build_instance_nodes_edges(infrastructure, service, host_names,
+                                switch_names):
+    """Build instance-level nodes and edges with no rack collapsing.
+    This is the un-racked infrastructure view; _compute_racks consumes it,
+    and _generate_instance_json wraps it with rack collapsing.
+    Returns:
+        tuple: (nodes, edges) -- lists of dicts. Nodes carry a 'type' field
+            ('host', 'switch', 'other') used by rack grouping.
+    """
+    G = service.get_networkx_graph()
+
+    nodes = []
+    for instance in infrastructure.instances:
+        device_name = instance.device
+        for idx in range(instance.count):
+            is_host = device_name in host_names
+            is_switch = device_name in switch_names
+            node_type = "host" if is_host else ("switch" if is_switch else "other")
+            drillable = device_name in service._device_data
+
+            if is_switch:
+                style = NODE_STYLES["switch_dev"]
+            elif is_host:
+                style = NODE_STYLES.get(device_name,
+                        NODE_STYLES.get(instance.name, NODE_STYLES["host"]))
+            else:
+                style = NODE_STYLES["custom"]
+
+            nodes.append({
+                "id": f"{instance.name}_{idx}",
+                "label": f"{instance.name}[{idx}]",
+                "title": (f"Device: {device_name}\n"
+                          f"Instance: {instance.name}[{idx}]\nType: {node_type}"),
+                "type": node_type, "device": device_name,
+                "shape": style.get("shape", "dot"),
+                "image": style.get("image"),
+                "color": style.get("color"), "size": style.get("size", 16),
+                "drillable": drillable,
+                "drillTarget": f"{device_name}.json" if drillable else None,
+            })
+
+    edges = _instance_edges(G, infrastructure)
+    return nodes, edges
+
+def _compute_racks(instance_nodes, instance_edges):
+    """Group each host with its directly-connected neighbours (and hosts
+    sharing those neighbours) into racks. Uses the already-built instance-level
+    nodes and edges, so no walking of G.
     Params:
-        infrastructure (Infrastructure): the infrastructure object.
-        service (InfraGraphService): service with graph already set.
-        host_names, switch_names (list[str]): device-name classification.
+        instance_nodes (list[dict]): instance-level nodes with a 'type' field
+            ('host', 'switch', 'other') already set by the generator.
+        instance_edges (list[dict]): instance-level edges with 'from'/'to'.
+    Returns:
+        list[dict]: each {"id": "rack_N", "members": sorted[str]}.
+    """
+    host_insts = {n["id"] for n in instance_nodes if n["type"] == "host"}
+
+    # adjacency of host-incident edges only -> traversal stops at the leaf tier
+    uplink = nx.Graph()
+    for e in instance_edges:
+        if e["from"] in host_insts or e["to"] in host_insts:
+            uplink.add_edge(e["from"], e["to"])
+
+    racks = []
+    for component in nx.connected_components(uplink):
+        if component & host_insts:
+            racks.append({"members": sorted(component)})
+    racks.sort(key=lambda r: r["members"][0])
+    for i, rack in enumerate(racks):
+        rack["id"] = f"rack_{i}"
+    return racks
+
+def _generate_instance_json(instance_nodes, instance_edges, racks):
+    """Generate the top-level infrastructure view by collapsing racked
+    instances into single rack nodes.
+    Params:
+        instance_nodes (list[dict]): from _build_instance_nodes_edges.
+        instance_edges (list[dict]): from _build_instance_nodes_edges.
         racks (list[dict]): output of _compute_racks.
     Returns:
         dict: vis.js-ready JSON with "nodes" and "edges" keys.
     """
-    G = service.get_networkx_graph()
-
-    # instance id -> rack id, for collapsing racked instances
-    member_to_rack = {}
-    for rack in racks:
-        for m in rack["members"]:
-            member_to_rack[m] = rack["id"]
+    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
 
     nodes = []
 
@@ -243,68 +264,35 @@ def _generate_instance_json(infrastructure, service, host_names, switch_names, r
             "drillTarget": f"{rack['id']}.json",
         })
 
-    # instances NOT absorbed into any rack
-    for instance in infrastructure.instances:
-        device_name = instance.device
-        for idx in range(instance.count):
-            inst_id = f"{instance.name}_{idx}"
-            if inst_id in member_to_rack:          # collapsed into a rack
-                continue
-            is_host = device_name in host_names
-            is_switch = device_name in switch_names
-            node_type = "host" if is_host else ("switch" if is_switch else "other")
-            drillable = device_name in service._device_data
-
-            if is_switch:
-                style = NODE_STYLES["switch_dev"]
-            elif is_host:
-                style = NODE_STYLES.get(device_name,
-                        NODE_STYLES.get(instance.name, NODE_STYLES["host"]))
-            else:
-                style = NODE_STYLES["custom"]
-
-            nodes.append({
-                "id": inst_id,
-                "label": f"{instance.name}[{idx}]",
-                "title": (f"Device: {device_name}\n"
-                          f"Instance: {instance.name}[{idx}]\nType: {node_type}"),
-                "type": node_type, "device": device_name,
-                "shape": style.get("shape", "dot"),
-                "image": style.get("image"),
-                "color": style.get("color"), "size": style.get("size", 16),
-                "drillable": drillable,
-                "drillTarget": f"{device_name}.json" if drillable else None,
-            })
+    # pass-through: instances not absorbed into any rack
+    for n in instance_nodes:
+        if n["id"] not in member_to_rack:
+            nodes.append(n)
 
     # edges: remap racked endpoints to their rack, drop intra-rack edges
     raw_edges = []
-    for e in _instance_edges(G, infrastructure):
+    for e in instance_edges:
         f = member_to_rack.get(e["from"], e["from"])
         t = member_to_rack.get(e["to"], e["to"])
-        if f == t:                                 # both inside one rack -> hidden
+        if f == t:
             continue
         raw_edges.append({**e, "from": f, "to": t})
 
     return {"nodes": nodes, "edges": _collapse_parallel_edges(raw_edges)}
 
-def _generate_rack_json(rack, service, infrastructure, host_names, switch_names, inst_device):
-    """Generate the drill-down view JSON for one rack: every instance in it and the edges between them.
+def _generate_rack_json(rack, service, host_names, switch_names,
+                        inst_device, rack_edge_list):
+    """Generate the drill-down view JSON for one rack.
     Params:
-        rack (dict): {"id", "members"} from _compute_racks.
-        service (InfraGraphService): service with graph already set.
-        infrastructure (Infrastructure): the infrastructure object.
-        host_names, switch_names (list[str]): device-name classification.
-        inst_device (dict): instance id -> device name.
-    Returns:
-        dict: vis.js-ready JSON with "nodes" and "edges" keys.
+        rack_edge_list (list[dict]): pre-filtered edges with both endpoints
+            inside this rack (built once in run_visualizer, not re-walked).
     """
-    G = service.get_networkx_graph()
     members = set(rack["members"])
 
     nodes = []
     for inst_id in sorted(members):
         device_name = inst_device.get(inst_id, "")
-        name, idx = inst_id.rsplit("_", 1)         
+        name, idx = inst_id.rsplit("_", 1)
         is_host = device_name in host_names
         is_switch = device_name in switch_names
         node_type = "host" if is_host else ("switch" if is_switch else "other")
@@ -331,10 +319,8 @@ def _generate_rack_json(rack, service, infrastructure, host_names, switch_names,
             "drillTarget": f"{device_name}.json" if drillable else None,
         })
 
-    # Keep only edges with both endpoints inside this rack.
-    raw_edges = [e for e in _instance_edges(G, infrastructure)
-                 if e["from"] in members and e["to"] in members]
-    return {"nodes": nodes, "edges": _collapse_parallel_edges(raw_edges)}
+    return {"nodes": nodes,
+            "edges": _collapse_parallel_edges(rack_edge_list)}
 
 def run_visualizer(input_file=None, infrastructure=None, output="./viz",
                    hosts=(), switches=()):
@@ -354,7 +340,7 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
     service.set_graph(infra)
 
     print(f"Infrastructure: {infra.name}")
-    
+
     # instance id -> device name, used when building rack drill-down nodes
     inst_device = {}
     for instance in infra.instances:
@@ -365,20 +351,33 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
     all_views = {}
     all_device_names = set(service._device_data.keys())
 
-    # compute racks once, reuse for the top view and per-rack drill views
-    racks = _compute_racks(service.get_networkx_graph(), infra, host_names)
+    # build instance-level data ONCE; reused for racks and the top view
+    instance_nodes, instance_edges = _build_instance_nodes_edges(
+        infra, service, host_names, switch_names)
 
-    # infrastructure view (racks collapsed to single nodes)
-    infra_json = _generate_instance_json(infra, service, host_names,
-                                         switch_names, racks)
+    # compute racks from the instance-level data (no walking of G)
+    racks = _compute_racks(instance_nodes, instance_edges)
+
+    # bucket instance edges by rack ONCE -- no per-rack re-walking of G
+    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
+    rack_edges = {r["id"]: [] for r in racks}
+    for e in instance_edges:
+        f_rack = member_to_rack.get(e["from"])
+        t_rack = member_to_rack.get(e["to"])
+        if f_rack and f_rack == t_rack:
+            rack_edges[f_rack].append(e)
+
+    # infrastructure view (racks collapsed)
+    infra_json = _generate_instance_json(instance_nodes, instance_edges, racks)
     all_views["infrastructure.json"] = infra_json
     print(f"  Generated: infrastructure.json "
           f"({len(infra_json['nodes'])} nodes, {len(infra_json['edges'])} edges)")
 
-    # rack drill-down views
+    # rack drill-down views -- each rack gets its pre-filtered edges
     for rack in racks:
-        rack_json = _generate_rack_json(rack, service, infra, host_names,
-                                        switch_names, inst_device)
+        rack_json = _generate_rack_json(
+            rack, service, host_names, switch_names,
+            inst_device, rack_edges[rack["id"]])
         all_views[f"{rack['id']}.json"] = rack_json
 
     # device views (unchanged)
