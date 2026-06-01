@@ -14,7 +14,7 @@ NODE_STYLES = {
     "switch":      {"shape": "image", "image": "svg_images/switch.svg",     "size": 12},
     "server":      {"shape": "image", "image": "svg_images/server.svg",     "size": 22},
     "host":        {"shape": "image", "image": "svg_images/device.svg",     "size": 22},
-    "rack":         {"shape": "box",   "size": 30, "color": "#9b59b6"},
+    "rack":         {"shape": "box",   "size": 30, "color": "#4e1d24"},
     "cpu":         {"shape": "image", "image": "svg_images/cpu.svg",        "size": 32},
     "xpu":         {"shape": "image", "image": "svg_images/xpu.svg",        "size": 18},
     "nic":         {"shape": "image", "image": "svg_images/nic.svg",        "size": 18},
@@ -143,11 +143,9 @@ def _generate_component_json(device_name, device_data, all_device_names,infrastr
 
 def _generate_instance_json(infrastructure, service, host_names, switch_names):
     """Build instance-level nodes and edges with no rack collapsing.
-    This is the un-racked infrastructure view; _compute_racks consumes it,
-    and _generate_instance_json wraps it with rack collapsing.
     Returns:
-        tuple: (nodes, edges) -- lists of dicts. Nodes carry a 'type' field
-            ('host', 'switch', 'other') used by rack grouping.
+        (nodes, edges) -- lists of dicts. Nodes carry a 'type' field
+        ('host', 'switch', 'other') used by rack grouping.
     """
     G = service.get_networkx_graph()
 
