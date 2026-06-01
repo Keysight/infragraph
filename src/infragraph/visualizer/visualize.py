@@ -74,28 +74,6 @@ def _map_to_parent(node_id):
         parent = parts[0] + "." + parts[1]
     return parent
 
-def _instance_edges(G, infrastructure):
-    bw_map = {}
-    for l in infrastructure.links:
-        phys = getattr(l, "physical", None)
-        bw_obj = getattr(phys, "bandwidth", None) if phys is not None else None
-        gbps = getattr(bw_obj, "gigabits_per_second", None) if bw_obj else None
-        bw_map[l.name] = f" ({gbps}G)" if gbps else ""
-
-    edges = []
-    for u, v, data in G.edges(data=True):
-        up, vp = u.split("."), v.split(".")
-        u_inst, v_inst = f"{up[0]}_{up[1]}", f"{vp[0]}_{vp[1]}"
-        if u_inst == v_inst:
-            continue
-        link = data.get("link", "unknown")
-        edges.append({
-            "from": u_inst, "to": v_inst, "link": link,
-            "color": _get_link_color(link),
-            "title": f"Link: {link}{bw_map.get(link, '')}", "label": link,
-        })
-    return edges
-
 def _generate_component_json(device_name, device_data, all_device_names,infrastructure):
     """Generate a device component view JSON from a DeviceData object.
     Params:     
@@ -163,8 +141,7 @@ def _generate_component_json(device_name, device_data, all_device_names,infrastr
         "edges": _collapse_parallel_edges(raw_edges),
     }
 
-def _build_instance_nodes_edges(infrastructure, service, host_names,
-                                switch_names):
+def _generate_instance_json(infrastructure, service, host_names, switch_names):
     """Build instance-level nodes and edges with no rack collapsing.
     This is the un-racked infrastructure view; _compute_racks consumes it,
     and _generate_instance_json wraps it with rack collapsing.
@@ -203,31 +180,48 @@ def _build_instance_nodes_edges(infrastructure, service, host_names,
                 "drillable": drillable,
                 "drillTarget": f"{device_name}.json" if drillable else None,
             })
+    
+    bw_map = {}
+    for l in infrastructure.links:
+        phys = getattr(l, "physical", None)
+        bw_obj = getattr(phys, "bandwidth", None) if phys is not None else None
+        gbps = getattr(bw_obj, "gigabits_per_second", None) if bw_obj else None
+        bw_map[l.name] = f" ({gbps}G)" if gbps else ""
 
-    edges = _instance_edges(G, infrastructure)
+    edges = []
+    for u, v, data in G.edges(data=True):
+        up, vp = u.split("."), v.split(".")
+        u_inst, v_inst = f"{up[0]}_{up[1]}", f"{vp[0]}_{vp[1]}"
+        if u_inst == v_inst:
+            continue
+        link = data.get("link", "unknown")
+        edges.append({
+            "from": u_inst, "to": v_inst, "link": link,
+            "color": _get_link_color(link),
+            "title": f"Link: {link}{bw_map.get(link, '')}", "label": link,
+        })
+
     return nodes, edges
 
 def _compute_racks(instance_nodes, instance_edges):
     """Group each host with its directly-connected neighbours (and hosts
-    sharing those neighbours) into racks. Uses the already-built instance-level
-    nodes and edges, so no walking of G.
+    sharing those neighbours) into racks. 
     Params:
-        instance_nodes (list[dict]): instance-level nodes with a 'type' field
-            ('host', 'switch', 'other') already set by the generator.
-        instance_edges (list[dict]): instance-level edges with 'from'/'to'.
+        instance_nodes (list[dict]): instance-level nodes 
+        instance_edges (list[dict]): instance-level edges 
     Returns:
         list[dict]: each {"id": "rack_N", "members": sorted[str]}.
-    """
+    """    
     host_insts = {n["id"] for n in instance_nodes if n["type"] == "host"}
 
     # adjacency of host-incident edges only -> traversal stops at the leaf tier
     uplink = nx.Graph()
     for e in instance_edges:
-        if e["from"] in host_insts or e["to"] in host_insts:
+        if e["from"] in host_insts or e["to"] in host_insts: # one endpoint must be host
             uplink.add_edge(e["from"], e["to"])
 
     racks = []
-    for component in nx.connected_components(uplink):
+    for component in nx.connected_components(uplink):   # adding connected components to racks
         if component & host_insts:
             racks.append({"members": sorted(component)})
     racks.sort(key=lambda r: r["members"][0])
@@ -235,12 +229,11 @@ def _compute_racks(instance_nodes, instance_edges):
         rack["id"] = f"rack_{i}"
     return racks
 
-def _generate_instance_json(instance_nodes, instance_edges, racks):
-    """Generate the top-level infrastructure view by collapsing racked
-    instances into single rack nodes.
+def _generate_instance_with_rack_json(instance_nodes, instance_edges, racks):
+    """Generate the top-level infrastructure view by collapsing racked instances into single rack nodes.
     Params:
-        instance_nodes (list[dict]): from _build_instance_nodes_edges.
-        instance_edges (list[dict]): from _build_instance_nodes_edges.
+        instance_nodes (list[dict]): instance-level nodes
+        instance_edges (list[dict]): instance-level edges
         racks (list[dict]): output of _compute_racks.
     Returns:
         dict: vis.js-ready JSON with "nodes" and "edges" keys.
@@ -275,7 +268,7 @@ def _generate_instance_json(instance_nodes, instance_edges, racks):
         f = member_to_rack.get(e["from"], e["from"])
         t = member_to_rack.get(e["to"], e["to"])
         if f == t:
-            continue
+            continue    #drop intra rack edges
         raw_edges.append({**e, "from": f, "to": t})
 
     return {"nodes": nodes, "edges": _collapse_parallel_edges(raw_edges)}
@@ -352,13 +345,13 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
     all_device_names = set(service._device_data.keys())
 
     # build instance-level data ONCE; reused for racks and the top view
-    instance_nodes, instance_edges = _build_instance_nodes_edges(
+    instance_nodes, instance_edges = _generate_instance_json(
         infra, service, host_names, switch_names)
-
+    
     # compute racks from the instance-level data (no walking of G)
     racks = _compute_racks(instance_nodes, instance_edges)
 
-    # bucket instance edges by rack ONCE -- no per-rack re-walking of G
+    # bucket instance edges by rack ONCE 
     member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
     rack_edges = {r["id"]: [] for r in racks}
     for e in instance_edges:
@@ -368,7 +361,7 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
             rack_edges[f_rack].append(e)
 
     # infrastructure view (racks collapsed)
-    infra_json = _generate_instance_json(instance_nodes, instance_edges, racks)
+    infra_json = _generate_instance_with_rack_json(instance_nodes, instance_edges, racks)
     all_views["infrastructure.json"] = infra_json
     print(f"  Generated: infrastructure.json "
           f"({len(infra_json['nodes'])} nodes, {len(infra_json['edges'])} edges)")
