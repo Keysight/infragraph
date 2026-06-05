@@ -1,116 +1,139 @@
 components:
   schemas:
-    GraphRequest:
-      description: Request specifying the desired format for the returned graph.
+    Annotation.Config:
       type: object
+      description: |-
+        Configuration controlling which annotations are returned with the graph.
       properties:
-        format:
+        annotations:
           description: |-
-            The format that the graph will be returned in.
+            Selects whether the response includes the full set of annotations or only the user-applied (partial) annotations.
+          $ref: "#/components/schemas/Annotation.Type"
+          x-field-uid: 1
+
+    Annotation.Type:
+      type: object
+      description: |-
+        Selects the scope of annotations to return on graph elements.
+      properties:
+        choice:
+          description: |-
+            Chooses between returning the complete annotation set or only the
+            partial (user-applied) annotations.
+              - full: include every attribute present on nodes, edges and links.
+              - partial: include only attributes added on top of the underlying infrastructure.
           type: string
           x-field-uid: 1
           x-enum:
-            networkx:
+            full:
               x-field-uid: 1
-    GraphContent:
-      description: The content of the graph response, specifying the format and the serialized graph data.
+            partial:
+              x-field-uid: 2
+        full:
+          type: string
+          description: |-
+            Returns every attribute set on graph elements, including those derived from the underlying infrastructure.
+          x-field-uid: 2
+        partial:
+          type: string
+          description: |-
+            Returns only the annotations that have been explicitly applied on top of the infrastructure, excluding immutable infrastructure-derived attributes.
+          x-field-uid: 3
+
+    GraphResponse.Infragraph:
+      type: object
+      description: |-
+        The infragraph representation of the current graph, consisting of the infrastructure definition and the annotations applied to its nodes, edges and links.
+      properties:
+        infrastructure:
+          description: |-
+            The infrastructure definition that the graph was built from.
+          $ref: "./infrastructure.yaml#/components/schemas/Infrastructure"
+          x-field-uid: 1
+        annotations:
+          description: |-
+            The set of annotations applied to nodes, edges and links of the graph.
+          $ref: "./annotation.yaml#/components/schemas/Annotation"
+          x-field-uid: 2
+
+    Graph.Type:
+      type: object
+      description: |-
+        Selects the representation used when returning the graph.
+      properties:
+        choice:
+          description: |-
+            The graph representation to return.
+              - infragraph: native infrastructure + annotations representation.
+          type: string
+          x-field-uid: 1
+          x-enum:
+            infragraph:
+              x-field-uid: 1
+
+    GraphRequest:
+      description: |-
+        Request specifying which graph representation to return and how
+        annotations should be included in the response.
       type: object
       properties:
         choice:
-          description: Specifies the format of the returned graph content.
+          description: |-
+            The graph representation to return.
+              - infragraph: infrastructure and annotations as a structured object.
+              - networkx: a networkx node-link graph serialized as a YAML string.
           type: string
           x-field-uid: 1
           x-enum:
-            networkx:
+            infragraph:
               x-field-uid: 1
+            networkx:
+              x-field-uid: 2
+        infragraph:
+          description: |-
+            Annotation configuration applied when returning the graph as an infragraph (infrastructure and annotations).
+          $ref : "#/components/schemas/Annotation.Config"
+          x-field-uid: 2
         networkx:
           description: |-
-            This contains the returned graph content formatted as a networkx yaml string.
-          type: string
-          x-field-uid: 2
-    Annotation.Node:
-      description: Defines an annotation to be applied to a graph node.
-      type: object
-      properties:
-        name:
-          description: |-
-            A fully qualified node name that MUST exist in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 1
-        attribute:
-          description: |-
-            The attribute name that will be added to the endpoint.
-          type: string
-          x-field-uid: 2
-        value:
-          description: |-
-            The attribute value that will be added to the endpoint.
-          type: string
+            Annotation configuration applied when returning the graph as a networkx node-link YAML string.
+          $ref : "#/components/schemas/Annotation.Config"
           x-field-uid: 3
-    Annotation.Edge:
-      description: Defines an annotation to be applied to a graph edge.
+
+    GraphResponseContent:
       type: object
-      properties:
-        ep1:
-          description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep2 in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 1
-        ep2:
-          description: |-
-            A fully qualified endpoint name that MUST exist as part of an edge along with ep1 in the graph.
-            - server.0.xpu.0
-            - server.6.nic.3
-            - switch.2.asic.0
-          type: string
-          x-field-uid: 2
-        attribute:
-          description: |-
-            The attribute name that will be added to the edge.
-          type: string
-          x-field-uid: 3
-        value:
-          description: |-
-            The attribute value that will be added to the edge.
-          type: string
-          x-field-uid: 4
-    AnnotateRequest:
-      description: Request object specifying which graph elements (nodes or edges) to annotate and the annotations to apply.
-      type: object
+      description: |-
+        The content of a graph response, returned either as a structured infragraph object or as a networkx YAML string depending on the request.
       properties:
         choice:
-          description: Select whether to annotate nodes or edges..
+          description: |-
+            The representation contained in this response.
+              - infragraph: structured infrastructure and annotations object.
+              - networkx: networkx node-link graph serialized as a YAML string.
           type: string
           x-field-uid: 1
           x-enum:
-            nodes:
+            infragraph:
               x-field-uid: 1
-            edges:
+            networkx:
               x-field-uid: 2
-        nodes:
-          description: List of node annotations to apply when the choice is set to nodes.
-          type: array
-          items:
-            $ref: "#/components/schemas/Annotation.Node"
+        infragraph:
+          description: |-
+            The graph returned as a structured infragraph (infrastructure plus annotations).
+          $ref: '#/components/schemas/GraphResponse.Infragraph'
           x-field-uid: 2
-        edges:
-          type: array
-          description: List of edge annotations to apply when the choice is set to edges.
-          items:
-            $ref: "#/components/schemas/Annotation.Edge"
+        networkx:
+          description: |-
+            The graph returned as a networkx node-link graph serialized as a YAML string.
+          type: string
           x-field-uid: 3
+
+
   responses:
     GraphResponse:
       description: |-
-        The entire fully validated graph content.
+        The current graph content, returned in the representation selected by the request.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GraphContent'
-
+            $ref: '#/components/schemas/GraphResponseContent'

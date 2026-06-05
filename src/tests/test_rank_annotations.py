@@ -19,11 +19,13 @@ async def test_rank_annotations():
     filter.id_filter.value = r"host\.\d+\.xpu\.\d+"
     npu_response = service.query_graph(npu_request)
 
-    # annotate the graph
-    annotate_request = AnnotateRequest()
+    annotation = Annotation()
     for idx, match in enumerate(npu_response.node_matches):
-        annotate_request.nodes.add(name=match.id, attribute="rank", value=str(idx))
-    service.annotate_graph(annotate_request)
+        annotation_node = annotation.nodes.add(
+            name=match.id
+        )
+        annotation_node.attributes.add(attribute="rank", value=str(idx))
+    service.annotate_graph(annotation.serialize())
 
     # query the graph for rank attributes
     rank_request = QueryRequest()
@@ -36,8 +38,8 @@ async def test_rank_annotations():
 
     # validation
     assert len(npu_response.node_matches) > 0
-    assert len(npu_response.node_matches) == len(annotate_request.nodes)
-    assert len(annotate_request.nodes) == len(rank_response.node_matches)
+    assert len(npu_response.node_matches) == len(annotation.nodes)
+    assert len(annotation.nodes) == len(rank_response.node_matches)
 
 
 if __name__ == "__main__":
