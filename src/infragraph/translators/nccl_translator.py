@@ -6,6 +6,7 @@ import ctypes
 from pathlib import Path
 from typing import Dict, List, Tuple
 from infragraph import *
+from infragraph.infragraph_service import InfraGraphService
 
 # Constants
 CPU_FABRICS = {
@@ -92,6 +93,8 @@ class NcclParser:
         self.cpu_to_direct_device_map: Dict[int,int] = {}
         self.gpu_pairs: Dict[int, int] = {}
         self.device_model_map: Dict[int, int] = {}
+        self.gpu_metadata: List[dict] = []
+        self.nic_metadata: List[dict] = []
 
     
 
@@ -111,6 +114,7 @@ class NcclParser:
         infra = Infrastructure()
         infra.devices.append(self.device)
         infra.instances.add(name=self.device.name, device=self.device.name, count=1)
+        self._infra = infra
         return infra
 
     def _parse_cpu_info(self):
@@ -242,6 +246,15 @@ class NcclParser:
                         if "xpu" not in self.device_model_map:
                             self.device_model_map["xpu"] = NVIDIA_MODEL_CLASS[device_model]
 
+                gpu_elem = xml_node.find("gpu")
+                if gpu_elem is not None:
+                    self.gpu_metadata.append({
+                        "busid": xml_node.get("busid", ""),
+                        "rank": gpu_elem.get("rank", ""),
+                        "dev": gpu_elem.get("dev", ""),
+                        "sm": gpu_elem.get("sm", ""),
+                        "gdr": gpu_elem.get("gdr", ""),
+                    })
 
             elif pci_class.startswith(NIC_PCI_CLASS_PREFIX):
                 pci_device_key = f"pci_device{pci_device_index}"
@@ -252,6 +265,16 @@ class NcclParser:
                     if device_model in MELLANOX_MODEL_CLASS:
                         if "nic" not in self.device_model_map:
                             self.device_model_map["nic"] = MELLANOX_MODEL_CLASS[device_model]
+
+                net_elem = xml_node.find("nic/net")
+                if net_elem is not None:
+                    self.nic_metadata.append({
+                        "name": net_elem.get("name", ""),
+                        "speed": net_elem.get("speed", ""),
+                        "port": net_elem.get("port", ""),
+                        "guid": net_elem.get("guid", ""),
+                        "gdr": net_elem.get("gdr", ""),
+                    })
 
         for cpu in self.root.iter("cpu"):
             root_key = None
@@ -492,6 +515,33 @@ class NcclParser:
             get_gpu_nvswitch_connections(self.root)
 
 
+    def get_annotations(self) -> InfraGraphService:
+        """Return an InfraGraphService with XPU and NIC metadata from the XML already applied.
+
+        Must be called after parse(infra_type="infrastructure").
+        """
+        annotation = Annotation()
+        instance_prefix = f"{self.device.name}.0"
+
+        for idx, meta in enumerate(self.gpu_metadata):
+            node = annotation.nodes.add(name=f"{instance_prefix}.{self.xpu.name}.{idx}")
+            for attr, val in meta.items():
+                if val:
+                    node.attributes.add(attribute=attr, value=str(val))
+
+        if self.nic_metadata and hasattr(self, "nic"):
+            for idx, meta in enumerate(self.nic_metadata):
+                node = annotation.nodes.add(name=f"{instance_prefix}.{self.nic.name}.{idx}")
+                for attr, val in meta.items():
+                    if val:
+                        node.attributes.add(attribute=attr, value=str(val))
+
+        service = InfraGraphService()
+        service.set_graph(self._infra)
+        service.annotate_graph(annotation.serialize())
+        return service
+
+
 def run_nccl_parser(
     input_file: str,
     output_file: str = "device.yaml",
@@ -525,5 +575,12 @@ def run_nccl_parser(
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
         print(f"Translated output written to: {output_file}")
-
+    req = GraphRequest()
+    req.infragraph.annotations.choice = "full"
+    annotation_output = parser.get_annotations().get_graph(req)
+    annotation_file = "nccl_annotation.json"
+    with open(annotation_file, "w", encoding="utf-8") as f:
+        f.write(annotation_output)
+        print(f"Annotation output written to: {annotation_file}")
     return serialized_data
+
