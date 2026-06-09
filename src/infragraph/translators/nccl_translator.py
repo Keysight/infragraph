@@ -580,13 +580,14 @@ def run_nccl_parser(
 
     serialized_data = device_model.serialize(dump_format)
 
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
         print(f"Translated output written to: {output_file}")
     req = GraphRequest()
     req.infragraph.annotations.choice = "full"
     annotation_output = parser.get_annotations().get_graph(req)
-    annotation_file = "nccl_annotation.json"
+    annotation_file = str(Path(output_file).parent / "nccl_annotation.json")
     with open(annotation_file, "w", encoding="utf-8") as f:
         f.write(annotation_output)
         print(f"Annotation output written to: {annotation_file}")

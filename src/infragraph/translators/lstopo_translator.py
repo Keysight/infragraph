@@ -584,6 +584,7 @@ def run_lstopo_parser(
 
     serialized_data = device_model.serialize(dump_format)
 
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
         print("translated output file", output_file)
