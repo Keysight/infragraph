@@ -94,6 +94,7 @@ class NcclParser:
         self.gpu_pairs: Dict[int, int] = {}
         self.device_model_map: Dict[int, int] = {}
         self.gpu_metadata: List[dict] = []
+        self.gpu_cpu_idx: List[int] = []
         self.nic_metadata: List[dict] = []
 
     
@@ -126,11 +127,13 @@ class NcclParser:
 
         self.cpu_count = len(cpu_elements)
         self.cpu_vendor = cpu_element.get("vendor", "")
-        
+        self.cpu_affinity: List[str] = []
+
         for idx, node in enumerate(cpu_elements):
             cpu_str = f"cpu_{idx}"
             cpu_close_bridges = node.findall("./pci")
             self.cpu_to_bridge_map[cpu_str] = len(cpu_close_bridges)
+            self.cpu_affinity.append(node.get("affinity", ""))
 
         self.cpu = self.device.components.add(
             name="cpu",
@@ -255,6 +258,7 @@ class NcclParser:
                         "sm": gpu_elem.get("sm", ""),
                         "gdr": gpu_elem.get("gdr", ""),
                     })
+                    self.gpu_cpu_idx.append(cpu_direct_current_idx)
 
             elif pci_class.startswith(NIC_PCI_CLASS_PREFIX):
                 pci_device_key = f"pci_device{pci_device_index}"
@@ -528,6 +532,10 @@ class NcclParser:
             for attr, val in meta.items():
                 if val:
                     node.attributes.add(attribute=attr, value=str(val))
+            if idx < len(self.gpu_cpu_idx):
+                cpu_idx = self.gpu_cpu_idx[idx]
+                if cpu_idx < len(self.cpu_affinity) and self.cpu_affinity[cpu_idx]:
+                    node.attributes.add(attribute="cpu_affinity", value=self.cpu_affinity[cpu_idx])
 
         if self.nic_metadata and hasattr(self, "nic"):
             for idx, meta in enumerate(self.nic_metadata):
