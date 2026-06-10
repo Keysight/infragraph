@@ -58,11 +58,16 @@ class NcclHelper:
         # Detects NUMA topology
         # Builds the internal topology graph
         # Dumps XML to NCCL_TOPO_DUMP_FILE if the env var is set
-        # ncclCommInitAll(comms, nDevices, devs); 
+        # ncclCommInitAll(comms, nDevices, devs);
         ret = nccl.ncclCommInitAll(comms, ctypes.c_int(n_devices), devs)
         if ret != 0:
-            print(f"NCCL init failed with error code: {ret}")
-            return
+            nccl.ncclGetErrorString.restype = ctypes.c_char_p
+            reason = nccl.ncclGetErrorString(ret).decode("utf-8", "replace")
+            raise RuntimeError(
+                f"NCCL failed to initialize (error {ret}: {reason}), so no topology "
+                "was generated. Re-run with NCCL_DEBUG=WARN for the underlying CUDA "
+                "error, or pass an existing topology XML with --input instead."
+            )
 
         print(f"Topology dumped to: {os.environ.get('NCCL_TOPO_DUMP_FILE', 'not set')}")
 
