@@ -74,7 +74,7 @@ class NcclHelper:
 class NcclParser:
     """Parser for NCCL XML topology files to generate device topology graphs."""
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, device_name: str):
         _, ext = os.path.splitext(file_path)
         if ext.lower() != ".xml":
             raise ValueError(
@@ -84,7 +84,7 @@ class NcclParser:
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
         self.device = Device()
-        self.device.name = "mydevice"
+        self.device.name = device_name
 
         # Data structures for tracking components
         self.pci_bridge_to_pcidevice: Dict[str, List[str]] = {}
@@ -551,7 +551,8 @@ class NcclParser:
 
 
 def run_nccl_parser(
-    input_file: str,
+    device_name: str,
+    input_file: str = None,  
     output_file: str = "device.yaml",
     dump_format: str = "yaml",
 ) -> str:
@@ -564,6 +565,9 @@ def run_nccl_parser(
         NcclHelper.generate_nccl_topology()
         input_file = str(tmp_xml)
 
+    if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
+        output_file = os.path.join(output_file, f"device.{dump_format.lower()}")
+
     _, ext = os.path.splitext(output_file)
     ext = ext.lstrip(".").lower()
 
@@ -575,7 +579,7 @@ def run_nccl_parser(
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
 
-    parser = NcclParser(input_file)
+    parser = NcclParser(input_file, device_name)
     device_model = parser.parse()
 
     serialized_data = device_model.serialize(dump_format)
@@ -587,9 +591,9 @@ def run_nccl_parser(
     req = GraphRequest()
     req.infragraph.annotations.choice = "full"
     annotation_output = parser.get_annotations().get_graph(req)
-    annotation_file = str(Path(output_file).parent / "nccl_annotation.json")
+    annotation_file = str(Path(output_file).parent / "annotated_infragraph.json")
     with open(annotation_file, "w", encoding="utf-8") as f:
         f.write(annotation_output)
-        print(f"Annotation output written to: {annotation_file}")
+        print(f"Annotated infragraph (infrastructure + annotations) written to: {annotation_file}")
     return serialized_data
 
