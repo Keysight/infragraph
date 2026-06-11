@@ -161,8 +161,7 @@ def _generate_instance_json(infrastructure, service, host_names, switch_names):
             if is_switch:
                 style = NODE_STYLES["switch_dev"]
             elif is_host:
-                style = NODE_STYLES.get(device_name,
-                        NODE_STYLES.get(instance.name, NODE_STYLES["host"]))
+                style = NODE_STYLES.get(device_name, NODE_STYLES.get(instance.name, NODE_STYLES["host"]))
             else:
                 style = NODE_STYLES["custom"]
 
@@ -226,51 +225,7 @@ def _compute_racks(instance_nodes, instance_edges):
     for i, rack in enumerate(racks):
         rack["id"] = f"rack_{i}"
     return racks
-
-def _generate_instance_with_rack_json(instance_nodes, instance_edges, racks):
-    """Generate the top-level infrastructure view by collapsing racked instances into single rack nodes.
-    Params:
-        instance_nodes (list[dict]): instance-level nodes
-        instance_edges (list[dict]): instance-level edges
-        racks (list[dict]): output of _compute_racks.
-    Returns:
-        dict: vis.js-ready JSON with "nodes" and "edges" keys.
-    """
-    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
-
-    nodes = []
-
-    # one node per rack
-    for rack in racks:
-        style = _get_style("rack")
-        nodes.append({
-            "id": rack["id"],
-            "label": f"rack[{rack['id'].split('_')[1]}]",
-            "title": f"Rack: {rack['id']}\nInstances: {len(rack['members'])}",
-            "type": "rack", "device": "rack",
-            "shape": style.get("shape", "dot"),
-            "image": style.get("image"),
-            "color": style.get("color"), "size": style.get("size", 48),
-            "drillable": True,
-            "drillTarget": f"{rack['id']}.json",
-        })
-
-    # pass-through: instances not absorbed into any rack
-    for n in instance_nodes:
-        if n["id"] not in member_to_rack:
-            nodes.append(n)
-
-    # edges: remap racked endpoints to their rack, drop intra-rack edges
-    raw_edges = []
-    for e in instance_edges:
-        f = member_to_rack.get(e["from"], e["from"])
-        t = member_to_rack.get(e["to"], e["to"])
-        if f == t:
-            continue    #drop intra rack edges
-        raw_edges.append({**e, "from": f, "to": t})
-
-    return {"nodes": nodes, "edges": _collapse_parallel_edges(raw_edges)}
-
+    
 def _generate_rack_json(rack, service, host_names, switch_names,
                         inst_device, rack_edge_list):
     """Generate the drill-down view JSON for one rack.
@@ -313,15 +268,146 @@ def _generate_rack_json(rack, service, host_names, switch_names,
     return {"nodes": nodes,
             "edges": _collapse_parallel_edges(rack_edge_list)}
 
+def _compute_rack_groups(racks, instance_nodes, instance_edges):
+    """Group racks that connect to the aggregation switches.
+    Returns list[dict]: each {"id": "rackgrp_N", "members": sorted[rack_id],
+    "aggs": sorted[agg_inst]}.
+    """
+    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}  # devices that belong to a rack
+    switch_insts = {n["id"] for n in instance_nodes if n["type"] == "switch"}   # check if a device is a switch
+
+    # rack id -> set of agg switches it uplinks to
+    rack_aggs = {r["id"]: set() for r in racks}
+    for e in instance_edges:
+        for a, b in ((e["from"], e["to"]), (e["to"], e["from"])):
+            if a in switch_insts and a not in member_to_rack and b in member_to_rack:
+                rack_aggs[member_to_rack[b]].add(a)
+
+    # grouping racks
+    by_key = {}
+    for rid, aggs in rack_aggs.items():
+        by_key.setdefault(frozenset(aggs), []).append(rid)
+    groups = []
+    for aggs, rack_ids in by_key.items():
+        if len(rack_ids) < 2:              # singletons do not collapse
+            continue
+        groups.append({"members": sorted(rack_ids), "aggs": sorted(aggs)})
+    groups.sort(key=lambda g: g["members"][0])
+    for i, g in enumerate(groups):
+        g["id"] = f"rackgrp_{i}"    # naming group nodes
+    return groups
+
+def _generate_grouped_json(instance_nodes, instance_edges, racks, groups):
+    """Top view: racks sharing an identical agg-set collapse into a group node.
+    Agg switches remain as their own top-level nodes.
+    """
+    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
+    rack_to_group = {rid: g["id"] for g in groups for rid in g["members"]}
+
+    def collapse(inst):
+        rid = member_to_rack.get(inst, inst)    # return rid
+        return rack_to_group.get(rid, rid)
+
+    grouped_racks = set(rack_to_group)
+    nodes = []
+
+    for g in groups:
+        style = _get_style("rack")
+        nodes.append({
+            "id": g["id"], 
+            "label": f"grp[{g['id'].split('_')[1]}]",   #rackgrp_3 --> grp[3]
+            "title": f"Rack group: {g['id']}\nRacks: {len(g['members'])}\n"
+                     f"Uplinks to {len(g['aggs'])} agg switches",
+            "type": "rackgroup", 
+            "device": "rackgroup",
+            "shape": style.get("shape", "dot"), 
+            "image": style.get("image"),
+            "color": "#1d3a4e", 
+            "size": 60,
+            "drillable": True, 
+            "drillTarget": f"{g['id']}.json",
+        })
+
+    for rack in racks:                     # ungrouped racks (singleton) pass through as rack nodes
+        if rack["id"] in grouped_racks:
+            continue
+        style = _get_style("rack")
+        nodes.append({
+            "id": rack["id"], 
+            "label": f"rack[{rack['id'].split('_')[1]}]",
+            "title": f"Rack: {rack['id']}\nInstances: {len(rack['members'])}",
+            "type": "rack", 
+            "device": "rack",
+            "shape": style.get("shape", "dot"), 
+            "image": style.get("image"),
+            "color": style.get("color"), 
+            "size": style.get("size", 48),
+            "drillable": True, 
+            "drillTarget": f"{rack['id']}.json",
+        })
+
+    all_rack_members = {m for r in racks for m in r["members"]}
+    for n in instance_nodes:               # other intances in infra level
+        if n["id"] not in all_rack_members:
+            nodes.append(n)
+
+    raw_edges = []
+    for e in instance_edges:
+        f, t = collapse(e["from"]), collapse(e["to"])
+        if f == t:
+            continue    #skip intra edges
+        raw_edges.append({**e, "from": f, "to": t})
+
+    return {
+        "nodes": nodes,
+        "edges": _collapse_parallel_edges(raw_edges)
+    }
+
+def _generate_rack_group_json(group, racks, instance_edges):
+    """Drill view for one rack-group: its member racks, edges between them
+    """
+    member_to_rack = {m: r["id"] for r in racks for m in r["members"]}
+    rack_members = {r["id"]: set(r["members"]) for r in racks}
+    group_racks = set(group["members"])
+
+    nodes = []
+    for rid in sorted(group_racks):
+        style = _get_style("rack")
+        nodes.append({
+            "id": rid, 
+            "label": f"rack[{rid.split('_')[1]}]",
+            "title": f"Rack: {rid}\nInstances: {len(rack_members[rid])}",
+            "type": "rack", 
+            "device": "rack",
+            "shape": style.get("shape", "dot"), 
+            "image": style.get("image"),
+            "color": style.get("color"), 
+            "size": style.get("size", 48),
+            "drillable": True, 
+            "drillTarget": f"{rid}.json",
+        })
+
+    raw_edges = []
+    for e in instance_edges:
+        f = member_to_rack.get(e["from"])
+        t = member_to_rack.get(e["to"])
+        if f in group_racks and t in group_racks and f != t:
+            raw_edges.append({**e, "from": f, "to": t})
+
+    return {
+        "nodes": nodes,
+        "edges": _collapse_parallel_edges(raw_edges)
+    }
+
 def run_visualizer(input_file=None, infrastructure=None, output="./viz",
                    hosts=(), switches=()):
     """Entry point to the visualizer.
     Params:
-        input_file: Path to YAML/JSON file.
-        infrastructure: Infrastructure object.
-        output: Output directory path.
-        hosts: Host device names.
-        switches: Switch device names.
+        input_file: Path to YAML/JSON file
+        infrastructure: Infrastructure object
+        output: Output directory path
+        hosts: Host device names
+        switches: Switch device names
     """
     host_names = _split_names(hosts)
     switch_names = _split_names(switches)
@@ -343,8 +429,7 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
     all_device_names = set(service._device_data.keys())
 
     # build instance-level data ONCE; reused for racks and the top view
-    instance_nodes, instance_edges = _generate_instance_json(
-        infra, service, host_names, switch_names)
+    instance_nodes, instance_edges = _generate_instance_json(infra, service, host_names, switch_names)
     
     # compute racks from the instance-level data (no walking of G)
     racks = _compute_racks(instance_nodes, instance_edges)
@@ -358,11 +443,13 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
         if f_rack and f_rack == t_rack:
             rack_edges[f_rack].append(e)
 
-    # infrastructure view (racks collapsed)
-    infra_json = _generate_instance_with_rack_json(instance_nodes, instance_edges, racks)
+    groups = _compute_rack_groups(racks, instance_nodes, instance_edges)
+
+    infra_json = _generate_grouped_json(instance_nodes, instance_edges, racks, groups)
     all_views["infrastructure.json"] = infra_json
-    print(f"  Generated: infrastructure.json "
-          f"({len(infra_json['nodes'])} nodes, {len(infra_json['edges'])} edges)")
+
+    for g in groups:
+        all_views[f"{g['id']}.json"] = _generate_rack_group_json(g, racks, instance_edges)
 
     # rack drill-down views -- each rack gets its pre-filtered edges
     for rack in racks:
@@ -373,8 +460,7 @@ def run_visualizer(input_file=None, infrastructure=None, output="./viz",
 
     # device views (unchanged)
     for device_name, device_data in service._device_data.items():
-        dev_json = _generate_component_json(device_name, device_data,
-                                            all_device_names, infra)
+        dev_json = _generate_component_json(device_name, device_data,all_device_names, infra)
         all_views[f"{device_name}.json"] = dev_json
         print(f"  Generated: {device_name}.json "
               f"({len(dev_json['nodes'])} nodes, {len(dev_json['edges'])} edges)")
