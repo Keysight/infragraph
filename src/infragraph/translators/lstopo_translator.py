@@ -5,7 +5,7 @@ import shutil
 import xml.etree.ElementTree as ET
 
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from infragraph import *
 
 # Constants
@@ -122,8 +122,22 @@ class LstopoParser:
         
         for idx, pkg in enumerate(packages):
             cpu_str = f"cpu_{idx}"
-            root_bridges = pkg.findall(".//object[@type='Bridge'][@depth='0']")
-            self.package_to_root_map[cpu_str] = len(root_bridges)
+            # Root bridges sit under Package on NUMA-aware systems, or directly
+            # under Machine as siblings of Package on non-NUMA systems.
+            pkg_roots = pkg.findall(".//object[@type='Bridge'][@depth='0']")
+            if pkg_roots:
+                self.package_to_root_map[cpu_str] = len(pkg_roots)
+            else:
+                self.package_to_root_map[cpu_str] = 0
+
+        # If no package claimed any root bridges, they are Machine-level siblings;
+        # distribute them evenly across packages.
+        if not any(self.package_to_root_map.values()):
+            all_roots = len(machine.findall(".//object[@type='Bridge'][@depth='0']"))
+            per_pkg = all_roots // self.cpu_count if self.cpu_count else all_roots
+            remainder = all_roots % self.cpu_count if self.cpu_count else 0
+            for idx, cpu_str in enumerate(self.package_to_root_map):
+                self.package_to_root_map[cpu_str] = per_pkg + (1 if idx < remainder else 0)
         
         # Create CPU component
         self.cpu = self.device.components.add(
