@@ -1,0 +1,248 @@
+description: 2 Tier Clos Fabric
+devices:
+- components:
+  - choice: cpu
+    count: 1
+    description: Generic CPU
+    name: cpu
+  - choice: xpu
+    count: 2
+    description: Generic GPU/XPU
+    name: xpu
+  - choice: switch
+    count: 1
+    description: NVLink Switch
+    name: nvlsw
+  - choice: switch
+    count: 1
+    description: PCI Express Switch Gen 4
+    name: pciesw
+  - choice: nic
+    count: 2
+    description: Generic Nic
+    name: nic
+  - choice: custom
+    count: 1
+    custom:
+      type: mgmt-nic
+    description: Mgmt Nic
+    name: mgmt
+  description: A generic server with npu_factor * 4 xpu(s)
+  edges:
+  - ep1:
+      component: mgmt
+    ep2:
+      component: cpu[0]
+    link: pcie
+    scheme: one2one
+  - ep1:
+      component: cpu
+    ep2:
+      component: cpu
+    link: fabric
+    scheme: many2many
+  - ep1:
+      component: xpu
+    ep2:
+      component: nvlsw
+    link: nvlink
+    scheme: many2many
+  - ep1:
+      component: cpu[0]
+    ep2:
+      component: pciesw[0]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: xpu[0:2]
+    ep2:
+      component: pciesw[0]
+    link: pcie
+    scheme: many2many
+  - ep1:
+      component: nic[0:2]
+    ep2:
+      component: pciesw[0]
+    link: pcie
+    scheme: many2many
+  links:
+  - description: CPU Fabric
+    name: fabric
+  - name: nvlink
+  - name: pcie
+  name: server
+- components:
+  - choice: cpu
+    count: 1
+    description: Generic ASIC
+    name: asic
+  - choice: port
+    count: 16
+    description: Generic port
+    name: port
+  description: A generic switch
+  edges:
+  - ep1:
+      component: asic
+    ep2:
+      component: port
+    link: ic
+    scheme: many2many
+  links:
+  - description: Generic integrated circuitry
+    name: ic
+  name: switch
+edges:
+- ep1:
+    component: nic
+    instance: host[0]
+  ep2:
+    component: port
+    instance: leafsw[0]
+  link: leaf-link
+  scheme: one2one
+- ep1:
+    component: nic
+    instance: host[1]
+  ep2:
+    component: port
+    instance: leafsw[1]
+  link: leaf-link
+  scheme: one2one
+- ep1:
+    component: nic
+    instance: host[2]
+  ep2:
+    component: port
+    instance: leafsw[2]
+  link: leaf-link
+  scheme: one2one
+- ep1:
+    component: nic
+    instance: host[3]
+  ep2:
+    component: port
+    instance: leafsw[3]
+  link: leaf-link
+  scheme: one2one
+- ep1:
+    component: port[2]
+    instance: leafsw[0]
+  ep2:
+    component: port[0]
+    instance: spinesw[0]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[3]
+    instance: leafsw[0]
+  ep2:
+    component: port[0]
+    instance: spinesw[1]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[4]
+    instance: leafsw[0]
+  ep2:
+    component: port[0]
+    instance: spinesw[2]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[2]
+    instance: leafsw[1]
+  ep2:
+    component: port[1]
+    instance: spinesw[0]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[3]
+    instance: leafsw[1]
+  ep2:
+    component: port[1]
+    instance: spinesw[1]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[4]
+    instance: leafsw[1]
+  ep2:
+    component: port[1]
+    instance: spinesw[2]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[2]
+    instance: leafsw[2]
+  ep2:
+    component: port[2]
+    instance: spinesw[0]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[3]
+    instance: leafsw[2]
+  ep2:
+    component: port[2]
+    instance: spinesw[1]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[4]
+    instance: leafsw[2]
+  ep2:
+    component: port[2]
+    instance: spinesw[2]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[2]
+    instance: leafsw[3]
+  ep2:
+    component: port[3]
+    instance: spinesw[0]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[3]
+    instance: leafsw[3]
+  ep2:
+    component: port[3]
+    instance: spinesw[1]
+  link: spine-link
+  scheme: one2one
+- ep1:
+    component: port[4]
+    instance: leafsw[3]
+  ep2:
+    component: port[3]
+    instance: spinesw[2]
+  link: spine-link
+  scheme: one2one
+instances:
+- count: 4
+  device: server
+  name: host
+- count: 4
+  device: switch
+  name: leafsw
+- count: 3
+  device: switch
+  name: spinesw
+links:
+- description: Link characteristics for connectivity between servers and leaf switches
+  name: leaf-link
+  physical:
+    bandwidth:
+      choice: gigabits_per_second
+      gigabits_per_second: 100
+- description: Link characteristics for connectivity between leaf switches and spine
+    switches
+  name: spine-link
+  physical:
+    bandwidth:
+      choice: gigabits_per_second
+      gigabits_per_second: 400
+name: closfabric

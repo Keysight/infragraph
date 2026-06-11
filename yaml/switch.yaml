@@ -1,0 +1,21 @@
+components:
+- choice: cpu
+  count: 1
+  description: Generic ASIC
+  name: asic
+- choice: port
+  count: 16
+  description: Generic port
+  name: port
+description: A generic switch
+edges:
+- ep1:
+    component: asic
+  ep2:
+    component: port
+  link: ic
+  scheme: many2many
+links:
+- description: Generic integrated circuitry
+  name: ic
+name: switch
