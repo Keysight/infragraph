@@ -10,7 +10,8 @@ paths:
 
         Creating a fully qualified infrastructure graph requires the following steps:
           - process each of the infrastructure instance objects by locating the device and creating a subgraph using the device's edges and substituting the instance name for the device name.
-          - process each of the infrastructure edges, looking up the instance to determine the max count and the name to be substituted for the device and link the subgraphs to create a complete infrastructure graph
+          - process each of the infrastructure edges, looking up the instance to determine the max count and the name to be substituted for the device and link the subgraphs to create a complete infrastructure graph 
+          - resets all the annotations
       requestBody:
         required: true
         content:
@@ -80,7 +81,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/graph.yaml#/components/schemas/AnnotateRequest'
+              $ref: '../models/annotation.yaml#/components/schemas/Annotation'
       responses:
         '200':
           $ref: '../models/request.yaml#/components/responses/Success'

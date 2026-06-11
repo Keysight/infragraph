@@ -7,7 +7,7 @@ MLCommons [**Chakra**](https://mlcommons.org/working-groups/research/chakra/) re
 
 Together, **Chakra + InfraGraph** let you pair workload traces with infrastructure blueprints to analyze current systems and co‑design future ones, while safely sharing artifacts across teams and partners.
 
-![InfraGraph+Chakra-Ecosystem](./images/chakra-infragraph-ecosystem.png)
+![InfraGraph+Chakra-Ecosystem](./images/chakra-infragraph-ecosystem.svg)
 
 ## InfraGraph Helper Tools
 Like **Chakra**, **InfraGraph** also proposes a set of helper tools that can help users while working with InfraGraph. 

@@ -1,4 +1,4 @@
-/* InfraGraph 1.0.0
+/* InfraGraph 2.0.0
  * ### Overview
  * InfraGraph or `infrastructure graph` defines a model-driven, vendor-neutral, standard
  * interface for capturing a system of systems suitable for use in co-designing AI/HPC
@@ -451,95 +451,180 @@ message Warning {
   repeated string warnings = 1;
 }
 
-// Request specifying the desired format for the returned graph.
-message GraphRequest {
+// Configuration controlling which annotations are returned with the graph.
+message AnnotationConfig {
 
-  message Format {
-    enum Enum {
-      unspecified = 0;
-      networkx = 1;
-    }
-  }
-  // The format that the graph will be returned in.
-  optional Format.Enum format = 1;
+  // Selects whether the response includes the full set of annotations or only the user-applied
+  // (partial) annotations.
+  AnnotationType annotations = 1;
 }
 
-// The content of the graph response, specifying the format and the serialized graph
-// data.
-message GraphContent {
+// Selects the scope of annotations to return on graph elements.
+message AnnotationType {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      networkx = 1;
+      full = 1;
+      partial = 2;
     }
   }
-  // Specifies the format of the returned graph content.
+  // Chooses between returning the complete annotation set or only the
+  // partial (user-applied) annotations.
+  // - full: include every attribute present on nodes, edges and links.
+  // - partial: include only attributes added on top of the underlying infrastructure.
   optional Choice.Enum choice = 1;
 
-  // This contains the returned graph content formatted as a networkx yaml string.
-  optional string networkx = 2;
+  // Returns every attribute set on graph elements, including those derived from the underlying
+  // infrastructure.
+  optional string full = 2;
+
+  // Returns only the annotations that have been explicitly applied on top of the infrastructure,
+  // excluding immutable infrastructure-derived attributes.
+  optional string partial = 3;
+}
+
+// The infragraph representation of the current graph, consisting of the infrastructure
+// definition and the annotations applied to its nodes, edges and links.
+message GraphResponseInfragraph {
+
+  // The infrastructure definition that the graph was built from.
+  Infrastructure infrastructure = 1;
+
+  // The set of annotations applied to nodes, edges and links of the graph.
+  Annotation annotations = 2;
+}
+
+// Selects the representation used when returning the graph.
+message GraphType {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      infragraph = 1;
+    }
+  }
+  // The graph representation to return.
+  // - infragraph: native infrastructure + annotations representation.
+  optional Choice.Enum choice = 1;
+}
+
+// Request specifying which graph representation to return and how
+// annotations should be included in the response.
+message GraphRequest {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      infragraph = 1;
+      networkx = 2;
+    }
+  }
+  // The graph representation to return.
+  // - infragraph: infrastructure and annotations as a structured object.
+  // - networkx: a networkx node-link graph serialized as a YAML string.
+  optional Choice.Enum choice = 1;
+
+  // Annotation configuration applied when returning the graph as an infragraph (infrastructure
+  // and annotations).
+  AnnotationConfig infragraph = 2;
+
+  // Annotation configuration applied when returning the graph as a networkx node-link
+  // YAML string.
+  AnnotationConfig networkx = 3;
+}
+
+// The content of a graph response, returned either as a structured infragraph object
+// or as a networkx YAML string depending on the request.
+message GraphResponseContent {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      infragraph = 1;
+      networkx = 2;
+    }
+  }
+  // The representation contained in this response.
+  // - infragraph: structured infrastructure and annotations object.
+  // - networkx: networkx node-link graph serialized as a YAML string.
+  optional Choice.Enum choice = 1;
+
+  // The graph returned as a structured infragraph (infrastructure plus annotations).
+  GraphResponseInfragraph infragraph = 2;
+
+  // The graph returned as a networkx node-link graph serialized as a YAML string.
+  optional string networkx = 3;
+}
+
+// Defines an annotation to be applied to a graph node.
+message AnnotationAttribute {
+
+  // The attribute name that will be added to the endpoint.
+  optional string attribute = 1;
+
+  // The attribute value that will be added to the endpoint.
+  optional string value = 2;
 }
 
 // Defines an annotation to be applied to a graph node.
 message AnnotationNode {
 
-  // A fully qualified node name that MUST exist in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Node name that MUST exist or match nodes present in the graph. This supports slicing
+  // operator and converts to expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string name = 1;
 
-  // The attribute name that will be added to the endpoint.
-  optional string attribute = 2;
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
+}
 
-  // The attribute value that will be added to the endpoint.
-  optional string value = 3;
+// Defines an annotation to be applied to a graph link.
+message AnnotationLink {
+
+  // A fully qualified link name that MUST exist in the graph.
+  // - pcie
+  optional string name = 1;
+
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 2;
 }
 
 // Defines an annotation to be applied to a graph edge.
 message AnnotationEdge {
 
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep2
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string ep1 = 1;
 
-  // A fully qualified endpoint name that MUST exist as part of an edge along with ep1
-  // in the graph.
-  // - server.0.xpu.0
-  // - server.6.nic.3
-  // - switch.2.asic.0
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
   optional string ep2 = 2;
 
-  // The attribute name that will be added to the edge.
-  optional string attribute = 3;
-
-  // The attribute value that will be added to the edge.
-  optional string value = 4;
+  // An inventory of attributes and values.
+  repeated AnnotationAttribute attributes = 3;
 }
 
 // Request object specifying which graph elements (nodes or edges) to annotate and the
 // annotations to apply.
-message AnnotateRequest {
+message Annotation {
 
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      nodes = 1;
-      edges = 2;
-    }
-  }
-  // Select whether to annotate nodes or edges..
-  optional Choice.Enum choice = 1;
+  // List of annotations to apply to nodes.
+  repeated AnnotationNode nodes = 1;
 
-  // List of node annotations to apply when the choice is set to nodes.
-  repeated AnnotationNode nodes = 2;
+  // List of annotations to apply to edges.
+  repeated AnnotationEdge edges = 2;
 
-  // List of edge annotations to apply when the choice is set to edges.
-  repeated AnnotationEdge edges = 3;
+  // List of annotations to apply to links.
+  repeated AnnotationLink links = 3;
 }
 
 // Represents a generic name and value pair attribute.
@@ -744,9 +829,9 @@ message Failure {
   Error error = 1;
 }
 
-// The entire fully validated graph content.
+// The current graph content, returned in the representation selected by the request.
 message GraphResponse {
-  GraphContent graph_content = 1;
+  GraphResponseContent graph_response_content = 1;
 }
 
 // Answer to the query request.
@@ -772,7 +857,7 @@ message GetGraphRequest {
   GraphRequest graph_request = 1;
 }
 message GetGraphResponse {
-  GraphContent graph_content = 1;
+  GraphResponseContent graph_response_content = 1;
 }
 
 
@@ -785,7 +870,7 @@ message QueryGraphResponse {
 
 
 message AnnotateGraphRequest {
-  AnnotateRequest annotate_request = 1;
+  Annotation annotation = 1;
 }
 message AnnotateGraphResponse {
   Warning warning = 1;
@@ -814,6 +899,7 @@ service Openapi {
   // - process each of the infrastructure edges, looking up the instance to determine
   // the max count and the name to be substituted for the device and link the subgraphs
   // to create a complete infrastructure graph
+  // - resets all the annotations
   rpc SetGraph(SetGraphRequest) returns (SetGraphResponse);
   // streaming version of the rpc SetGraph
   rpc streamSetGraph(stream Data) returns (SetGraphResponse);

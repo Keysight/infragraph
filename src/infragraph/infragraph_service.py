@@ -7,12 +7,14 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 
 """
 
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+import re
+import json
+import yaml
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
-import re
-import yaml
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from itertools import product as iterproduct
 from infragraph import *
 
 
@@ -42,11 +44,18 @@ class DeviceData:
 class InfraGraphService(Api):
     """InfraGraph Services"""
 
+    _IMMUTABLE_ATTRIBUTES: frozenset[str] = frozenset(
+        {"type", "instance", "instance_idx", "device", "composed_device", "link"}
+    )
+
     def __init__(self):
         super().__init__()
         self._graph: Graph = Graph()
         self._device_data = {}
+        self._graph_node_prefix_map: Dict[str, List[str]] = {}
+        self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
+
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -63,6 +72,67 @@ class InfraGraphService(Api):
         if self._graph is None:
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
+
+
+    def _expand_node_string(self, s: str) -> List[str]:
+        """Expand a device/component string with slice notation into dot-notation paths.
+
+        Format: name[start:stop]name[start:stop]...
+        Each [start:stop] expands like range(start, stop). Segments without a slice
+        are kept as-is. Results are the cartesian product of all segment expansions,
+        joined with '.'.
+
+        Examples:
+            "dgx"              -> ["dgx"]
+            "dgx[0:3]"         -> ["dgx.0", "dgx.1", "dgx.2"]
+            "dgx[0:2]cpu[0:2]" -> ["dgx.0.cpu.0", "dgx.0.cpu.1",
+                                    "dgx.1.cpu.0", "dgx.1.cpu.1"]
+        """
+        if not s:
+            return []
+
+
+        if "." in s:
+            return [s]
+        # Parse the input string into (name, start, stop) tuples.
+        # The regex matches a name (alphanumeric/underscore/hyphen) optionally
+        # followed by a slice in the form [start:stop].
+        # If no slice is present, start and stop are empty strings.
+        pattern = r'([A-Za-z0-9_-]+)(?:\[(\d+):(\d+)\])?'
+        matches = re.findall(pattern, s)
+
+        if not matches:
+            return [s]
+
+        # For each matched segment, build a list of expanded strings.
+        # A segment with a slice expands to: ["name.0", "name.1", ..., "name.(stop-1)"]
+        # A segment without a slice expands to just: ["name"]
+        segments: List[List[str]] = []
+
+        for match in matches:
+            name = match[0]
+            start = match[1]
+            stop = match[2]
+
+            if start and stop:
+                # Expand the slice range into individual indexed entries
+                expanded = []
+                for i in range(int(start), int(stop)):
+                    expanded.append(name + "." + str(i))
+                segments.append(expanded)
+            else:
+                # No slice — segment is a single plain name
+                segments.append([name])
+
+        # Compute the cartesian product across all segments and join with '.'
+        # e.g. ["dgx.0", "dgx.1"] x ["cpu.0", "cpu.1"]
+        #   -> ["dgx.0.cpu.0", "dgx.0.cpu.1", "dgx.1.cpu.0", "dgx.1.cpu.1"]
+        result: List[str] = []
+
+        for combo in iterproduct(*segments):
+            result.append(".".join(combo))
+
+        return result
 
     def _expand_device_endpoint(
         self,
@@ -309,7 +379,7 @@ class InfraGraphService(Api):
         """
 
         self._parse_device_components()
-        self._parse_device_edges()    
+        self._parse_device_edges()
     
     def _generate_device_nodes(self, instance_name: str, device_name: str):
         """
@@ -521,12 +591,15 @@ class InfraGraphService(Api):
             self._infrastructure = Infrastructure().deserialize(payload)
         else:
             self._infrastructure = payload
+        # Initialize an empty graph, populate it with device and instance nodes, validate the resulting device edges and infrastructure edges, run final graph-wide validation, and then build the prefix and link lookup maps used for fast endpoint resolution.
         self._graph = Graph()
         self._generate_device_data()
         self._generate_instance_data()
         self._validate_device_edges()
         self._parse_infrastructure_edges()
         self._validate_graph()
+        self._build_prefix_map()
+        self._build_link_map()
 
     def _validate_device_edges(self):
         """Ensure that there are no edges between device instances
@@ -549,12 +622,87 @@ class InfraGraphService(Api):
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
+        
+    def _build_partial_graph(self) -> Graph:
+        partial_graph = Graph()
+        for node, data in self._graph.nodes(data=True):
+            filtered = {k: v for k, v in data.items() if k not in self._IMMUTABLE_ATTRIBUTES}
+            partial_graph.add_node(node, **filtered)
+        for ep1, ep2, data in self._graph.edges(data=True):
+            filtered = {k: v for k, v in data.items() if k not in self._IMMUTABLE_ATTRIBUTES}
+            partial_graph.add_edge(ep1, ep2, **filtered)
+        return partial_graph
 
-    def get_graph(self) -> str:
+
+    def get_graph(self, request: GraphRequest) -> str:
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
             raise ValueError("Graph is not set. Please call set_graph() first.")
-        return yaml.dump(json_graph.node_link_data(self._graph, edges="edges"))
+
+        if request.choice == request.INFRAGRAPH:
+            return self.populate_infragraph_dict(self._graph, request.infragraph.annotations.choice)
+
+        is_full = request.networkx.annotations.choice == "full"
+        graph = self._graph if is_full else self._build_partial_graph()
+        return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
+
+    def populate_infragraph_dict(self, source_graph, attr_type):
+        infragraph_dict = {
+            "infrastructure": self._infrastructure.serialize('dict'),
+            "annotations": {}
+        }
+
+        is_full = attr_type == "full"
+
+        def node_attrs_filter(attrs):
+            return attrs.items() if is_full else (
+                (k, v) for k, v in attrs.items()
+                if k not in self._IMMUTABLE_ATTRIBUTES
+            )
+
+        def edge_attrs_filter(attrs):
+            return attrs.items() if is_full else (
+                (k, v) for k, v in attrs.items()
+                if k not in self._IMMUTABLE_ATTRIBUTES
+            )
+
+        annotation_nodes = [
+            {
+                "name": node_name,
+                "attributes": [
+                    {"attribute": k, "value": v}
+                    for k, v in node_attrs_filter(node_attrs)
+                ]
+            }
+            for node_name, node_attrs in source_graph.nodes(data=True)
+            if node_attrs
+        ]
+
+        annotation_edges = []
+        seen_links = {}
+        for ep1, ep2, edge_attrs in source_graph.edges(data=True):
+            if not edge_attrs:
+                continue
+            filtered = list(edge_attrs_filter(edge_attrs))
+            annotation_edges.append({
+                "ep1": ep1,
+                "ep2": ep2,
+                "attributes": [{"attribute": k, "value": v} for k, v in filtered]
+            })
+            link_name = edge_attrs.get("link")
+            if link_name and link_name not in seen_links:
+                seen_links[link_name] = {
+                    "name": link_name,
+                    "attributes": [{"attribute": k, "value": v} for k, v in filtered]
+                }
+
+        infragraph_dict["annotations"] = {
+            "nodes": annotation_nodes,
+            "edges": annotation_edges,
+            "links": list(seen_links.values())
+        }
+
+        return json.dumps(infragraph_dict, indent=2)
 
     def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
         """Returns the shortest path between two endpoints in the graph."""
@@ -609,16 +757,102 @@ class InfraGraphService(Api):
                 endpoints.append(node)
         return endpoints
 
-    def annotate_graph(self, payload: Union[str, AnnotateRequest]):
+    def _build_prefix_map(self):
+        """Build a prefix-to-nodes lookup map from all nodes in the graph.
+
+        Each graph node is a dot-separated path (e.g. "dgx.0.cpu.1.port.2").
+        This method indexes every prefix of that path so that a caller can
+        look up all nodes that live under a given prefix without scanning the
+        full node list each time.
+
+        Example:
+            Node "dgx.0.cpu.1" produces three entries:
+                "dgx"         -> [..., "dgx.0.cpu.1"]
+                "dgx.0"       -> [..., "dgx.0.cpu.1"]
+                "dgx.0.cpu.1" -> [..., "dgx.0.cpu.1"]
+
+        The result is stored in `self._graph_node_prefix_map` as a
+        dict[str, List[str]], where each key is a prefix and the value is
+        the list of fully qualified node names that share that prefix.
+
+        This map is consumed by lookups that resolve a partial node name
+        (e.g. "dgx.0") to all of its descendants in the graph.
+        """
+
+        for node in self._graph.nodes:
+            parts = node.split(".")
+            for i in range(1, len(parts) + 1):
+                prefix = ".".join(parts[:i])
+                self._graph_node_prefix_map.setdefault(prefix, []).append(node)
+
+    def _build_link_map(self):
+        """Build a lookup of link name -> list of (ep1, ep2) edge tuples.
+
+        Lets annotate_graph resolve a link annotation to all edges sharing
+        that link name in O(1) instead of scanning every edge. Stays valid
+        across annotate_graph calls because annotations never add edges or
+        mutate the "link" attribute (it's in _IMMUTABLE_ATTRIBUTES).
+        """
+        self._link_to_edges_map = {}
+        for ep1, ep2, data in self._graph.edges(data=True):
+            link_name = data.get("link")
+            if link_name is not None:
+                self._link_to_edges_map.setdefault(link_name, []).append((ep1, ep2))
+
+    def annotate_graph(self, payload: Union[str, Annotation]):
         """Annotation the graph using the data provided in the payload"""
         if isinstance(payload, str):
-            annotate_request = AnnotateRequest().deserialize(payload)
+            annotate_request = Annotation().deserialize(payload)
         else:
-            annotate_request: AnnotateRequest = payload
+            annotate_request: Annotation = payload
+        
         for annotation_node in annotate_request.nodes:
-            endpoint = self._graph.nodes[annotation_node.name]
-            endpoint[annotation_node.attribute] = annotation_node.value
+            # expand the nodes
+            nodes = self._expand_node_string(annotation_node.name)
+            matched = set()
+            for node in nodes:
+                list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
+                if list_from_prefix_map: 
+                    matched.update(list_from_prefix_map)
+                else:
+                    raise ValueError(f"{node} not present in networx graph")
+            for attribute_kvp in annotation_node.attributes:
+                if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
+                    networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
+                else:
+                    raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
 
+        
+        # edges
+        for annotation_node in annotate_request.edges:
+            # expand the nodes
+            source_edges = self._expand_node_string(annotation_node.ep1)
+            destination_edges = self._expand_node_string(annotation_node.ep2)
+
+            matched_edges = []
+            adj = {n: set(self._graph.neighbors(n)) for n in self._graph.nodes}
+            for s in source_edges:
+                # only check neighbors of s (not all edges)
+                for d in adj[s]:
+                    if d in destination_edges:
+                        matched_edges.append((s, d))
+
+            for attribute_kvp in annotation_node.attributes:
+                if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
+                    networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
+                
+                else:
+                    raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for edge")
+
+        # links
+        for annotation_link in annotate_request.links:
+            edges_for_link = self._link_to_edges_map.get(annotation_link.name, [])
+            for link_annotation in annotation_link.attributes:
+                if link_annotation.attribute in self._IMMUTABLE_ATTRIBUTES:
+                    raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {annotation_link.name}")
+                for ep1, ep2 in edges_for_link:
+                    self._graph[ep1][ep2][link_annotation.attribute] = link_annotation.value
+                        
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""
         if isinstance(payload, str):

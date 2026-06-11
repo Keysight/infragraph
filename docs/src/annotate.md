@@ -2,7 +2,7 @@
 # The `annotate_graph` API
 
 ## Overview
-Once the infrastructure or system of systems has been defined by using the `set_graph` API the base graph can be extended by using the `annotate_graph` API to add additional data using nodes and edges as endpoints for the data.
+Once the infrastructure or system of systems has been defined by using the `set_graph` API the base graph can be extended by using the `annotate_graph` API to add additional data using nodes, edges, and links as endpoints for the data.
 
 The main objective of the `annotate_graph` API is to separate the infrastructure model from specific use-case models by allowing the graph to be extended with any type of data.  This ensures that `InfraGraph` does not morph into an attempt to define every nuance present in a system of systems.
 
@@ -18,12 +18,43 @@ Some examples of additional data are:
     - device addresses
     - device routing tables
 
+### Annotation Structure
+The `annotate_graph` API accepts an `Annotation` object that targets **nodes**, **edges**, or **links** in the graph. Each target supports one or more key-value attributes:
+
+```python
+annotation = Annotation()
+
+# add a node annotation
+node = annotation.nodes.add(name="host.0.xpu.0")
+node.attributes.add(attribute="rank", value="0")
+
+# add an edge annotation
+edge = annotation.edges.add(ep1="host.0.xpu.0", ep2="switch.0")
+edge.attributes.add(attribute="bandwidth", value="400G")
+
+# add a link annotation
+link = annotation.links.add(name="pcie")
+link.attributes.add(attribute="version", value="5.0")
+
+service.annotate_graph(annotation)
+```
+
+### Node Name Slicing
+Node names support a slicing operator that expands to the fully qualified dot-separated format, making it easy to target ranges of nodes without enumerating each one individually:
+
+| Slice notation | Expands to |
+|---|---|
+| `server[0]xpu[0]` | `server.0.xpu.0` |
+| `server[0:2]` | `server.0`, `server.1` |
+| `server[0:2]xpu[0:3]` | `server.0.xpu.0`, `server.0.xpu.1`, `server.0.xpu.2`, `server.1.xpu.0`, ... |
+| `switch` | `switch` (unchanged) |
+
 The following code examples demonstrates how to use the `query_graph` API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
 
 ## Adding `rank` data
 In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `xpu`.
 
-The following code demonstrates adding a `rank` attribute to every `host` instance that has a component with the name of `xpu`.
+The following code demonstrates adding a `rank` attribute to every `host` instance that has a component with the name of `xpu`. Each matching node is added to the `Annotation` object and a `rank` attribute is attached via `attributes.add`.
 <details open>
 <summary><strong>Add a rank to each host xpu</strong></summary>
 ```python
@@ -34,7 +65,7 @@ The following code demonstrates adding a `rank` attribute to every `host` instan
 ## Adding `ipaddress` data
 In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a `mgmt` nic component.
 
-The following code demonstrates adding an `ipaddress` attribute to the `host` instance `mgmt` nic.
+The following code demonstrates adding an `ipaddress` attribute to the `host` instance `mgmt` nic. Each matching node is added to the `Annotation` object and an `ipaddress` attribute is attached via `attributes.add`.
 <details open>
 <summary><strong>Add an ipaddress to each host mgmt component</strong></summary>
 ```python
