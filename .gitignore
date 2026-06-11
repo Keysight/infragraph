@@ -685,3 +685,10 @@ src/tests/test_notebooks/
 src/infragraph/visualizer/frontend/js/vis-network.min.js
 viz/
 demo/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
