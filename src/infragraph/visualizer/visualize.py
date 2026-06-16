@@ -60,7 +60,7 @@ def _collapse_parallel_edges(edges):
     for key, val in grouped.items():
         e = val["edge"]
         count = val["count"]
-        e["label"] = f"\u00d7{count} {e.get('link', '')}" if count > 1 else None
+        e["label"] = f"\u00d7{count} {e.get('link', '')}" if count > 1 else e.get("link","")
         e["width"] = min(1 + count, 6) if count > 1 else 1
         result.append(e)
     return result
@@ -137,7 +137,7 @@ def _generate_component_json(device_name, device_data, all_device_names,infrastr
             seen.add(edge_key)
             raw_edges.append({
                 "from": src_mapped, "to": dst_mapped, "link": link,
-                "color": _get_link_color(link), "title": f"Link: {link}",
+                "color": _get_link_color(link), "title": f"Link: {link}", "label":link,
             })
 
     return {
@@ -210,7 +210,7 @@ def _generate_instance_json(infrastructure, service, host_names, switch_names):
 
         raw_edges.append({
             "from": u_inst, "to": v_inst, "link": link,
-            "color": _get_link_color(link), "title": f"Link: {link}{bw}",
+            "color": _get_link_color(link), "title": f"Link: {link}{bw}","label":link,
         })
 
     return {
