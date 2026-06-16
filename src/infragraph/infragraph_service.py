@@ -34,6 +34,7 @@ class DeviceData:
         self.nodes = {}
         self.components = {}
         self.edges = {}
+        self.links = {}
     
     def add_edge(self, ep1, ep2, link):
         if ep1 in self.edges:
@@ -47,6 +48,16 @@ class InfraGraphService(Api):
     _IMMUTABLE_ATTRIBUTES: frozenset[str] = frozenset(
         {"type", "instance", "instance_idx", "device", "composed_device", "link"}
     )
+
+    # Short forms for physical link unit choices used in edge attribute strings.
+    _UNIT_ABBREVIATIONS: Dict[str, str] = {
+        "gigabits_per_second": "Gbps",
+        "gigabytes_per_second": "GBps",
+        "gigatransfers_per_second": "GT/s",
+        "ms": "ms",
+        "us": "us",
+        "ns": "ns",
+    }
 
     def __init__(self):
         super().__init__()
@@ -298,6 +309,8 @@ class InfraGraphService(Api):
                         component_type = component.choice
                     dd.nodes[component.name + "." + str(index)] = component_type
                 dd.components[component.name] = component.count
+            for link in device.links:
+                dd.links[link.name] = link
             self._device_data[device.name] = dd
             
     def _parse_device_edges(self):
@@ -347,24 +360,47 @@ class InfraGraphService(Api):
         """
         This parses the global infrastructure edges and expands the instances and endpoints
         """
+        infrastructure_links = {link.name: link for link in self._infrastructure.links}
         for edge in self._infrastructure.edges:
             instance1 = self._parse_edge_instance(edge.ep1)
             endpoints1 = self._expand_instance_endpoint(instance1, edge.ep1)
             instance2 = self._parse_edge_instance(edge.ep2)
             endpoints2 = self._expand_instance_endpoint(instance2, edge.ep2)
+            edge_attrs = self._link_edge_attrs(edge.link, infrastructure_links.get(edge.link))
             for src_eps, dst_eps in [(x, y) for x, y in zip(endpoints1, endpoints2)]:
                 if edge.scheme == InfrastructureEdge.MANY2MANY:  # cartesion product
                     for src, dst in [(x, y) for x in src_eps for y in dst_eps]:
                         if src == dst:
-                            continue
-                        self._graph.add_edge(src, dst, link=edge.link)
+                            continue 
+                        self._graph.add_edge(src, dst, **edge_attrs)
                 elif edge.scheme == InfrastructureEdge.ONE2ONE:  # meshed product
                     for src, dst in [(x, y) for x, y in zip(src_eps, dst_eps, strict=False)]:
                         if src == dst:
                             continue
-                        self._graph.add_edge(src, dst, link=edge.link)
+                        self._graph.add_edge(src, dst, **edge_attrs)
                 else:
                     raise NotImplementedError(f"Edge creation scheme {edge.scheme} is not supported")
+
+    def _link_edge_attrs(self, link_name: str, link_obj) -> Dict[str, Any]:
+        """Build the edge attribute dict for a link.
+
+        Always includes the link name. For each physical property that is
+        set (bandwidth, latency), the value and its unit are attached as a
+        "<value> <unit>" string using the short-form unit, e.g.:
+            {"link": "ici", "bandwidth": "1400 Gbps", "latency": "5 ns"}
+        """
+        attrs: Dict[str, Any] = {"link": link_name}
+        if link_obj is not None and link_obj.physical is not None:
+            for property_name in ("bandwidth", "latency"):
+                physical_property = getattr(link_obj.physical, property_name)
+                if physical_property is None or physical_property.choice is None:
+                    continue
+                value = getattr(physical_property, physical_property.choice)
+                if value is None:
+                    continue
+                unit = self._UNIT_ABBREVIATIONS.get(physical_property.choice, physical_property.choice)
+                attrs[property_name] = f"{value} {unit}"
+        return attrs
 
     def _generate_device_data(self):
         """
@@ -472,7 +508,7 @@ class InfraGraphService(Api):
                     source = instance_name + "." + endpoint_1
                     destination = instance_name + "." + dest_endpoint_tuple[0]
                     link = dest_endpoint_tuple[1]
-                    self._graph.add_edge(source, destination, link=link)
+                    self._graph.add_edge(source, destination, **self._link_edge_attrs(link, device_data.links.get(link)))
 
     def _generate_device_edges(self, instance_name: str, device_name: str):
         """
@@ -544,7 +580,7 @@ class InfraGraphService(Api):
                 source = instance_name + "." + src_endpoint
                 destination = instance_name + "." + dest_endpoint[0]
                 link = dest_endpoint[1]
-                self._graph.add_edge(source, destination, link=link)
+                self._graph.add_edge(source, destination, **self._link_edge_attrs(link, device_data.links.get(link)))
         self._generate_composed_edges(instance_name, device_name)
          
     def _generate_instance_data(self):
