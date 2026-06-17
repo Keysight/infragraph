@@ -22,7 +22,7 @@ const fabricOptions = {
 const internalOptions = {
   layout: {
     hierarchical: {
-      enabled: true, direction: 'LR', sortMethod: 'directed',
+      enabled: true, direction: 'DU', sortMethod: 'directed',
       nodeSpacing: 100, levelSeparation: 180
     }
   },
