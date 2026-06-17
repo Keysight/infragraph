@@ -1,0 +1,25 @@
+{
+  "name": "infragraph",
+  "version": "1.0.0",
+  "description": "[![PyPI](https://img.shields.io/pypi/v/infragraph)](https://pypi.org/project/infragraph/) [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/infragraph)](https://pypi.org/project/infragraph/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Documentation](https://img.shields.io/badge/docs-infragraph.dev-blue)](https://infragraph.dev) [![GitHub issues](https://img.shields.io/github/issues/Keysight/infragraph)](https://github.com/Keysight/infragraph/issues) [![GitHub stars](https://img.shields.io/github/stars/Keysight/infragraph)](https://github.com/Keysight/infragraph/stargazers) [![PyPI - Downloads](https://img.shields.io/pypi/dm/infragraph)](https://pypi.org/project/infragraph/) [![CI/CD](https://github.com/Keysight/infragraph/actions/workflows/workflow.yml/badge.svg)](https://github.com/Keysight/infragraph/actions/workflows/workflow.yml) [![GitHub last commit](https://img.shields.io/github/last-commit/Keysight/infragraph)](https://github.com/Keysight/infragraph/commits) [![GitHub contributors](https://img.shields.io/github/contributors/Keysight/infragraph)](https://github.com/Keysight/infragraph/graphs/contributors) [![GitHub repo size](https://img.shields.io/github/repo-size/Keysight/infragraph)](https://github.com/Keysight/infragraph) [![GitHub Release](https://img.shields.io/github/v/release/Keysight/infragraph)](https://github.com/Keysight/infragraph/releases)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anusghos/infragraph.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anusghos/infragraph/issues"
+  },
+  "homepage": "https://github.com/anusghos/infragraph#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0"
+  }
+}

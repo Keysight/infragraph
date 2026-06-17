@@ -11,6 +11,8 @@ clean: ## recreate clean virtual environment
 	source .venv/bin/activate && pip install --upgrade pip && pip install --progress-bar on -r requirements.txt
 	rm -f src/infragraph/visualizer/frontend/js/vis-network.min.js
 	curl -kL https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js -o src/infragraph/visualizer/frontend/js/vis-network.min.js
+	npm install
+	npx playwright install --with-deps
 
 .PHONY: generate
 generate: ## generate artifacts using OpenApiArt
