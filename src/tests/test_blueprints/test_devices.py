@@ -7,6 +7,7 @@ from infragraph.blueprints.devices.nvidia.dgx import NvidiaDGX
 from infragraph.blueprints.devices.ironwood_rack import IronwoodRack
 from infragraph.blueprints.devices.generic.server import Server
 from infragraph.blueprints.devices.generic.generic_switch import Switch
+from infragraph.blueprints.devices.amd.mi300x import MI300X
 
 
 @pytest.mark.asyncio
@@ -19,6 +20,7 @@ from infragraph.blueprints.devices.generic.generic_switch import Switch
         Cx5(),
         NvidiaDGX(),
         IronwoodRack(),
+        MI300X()
     ],
 )
 async def test_devices(count, device):
