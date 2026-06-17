@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import yaml
 import json
@@ -292,26 +293,41 @@ def _split_names(names):
     return result
 
 
+def _parse_infra_text(text, source):
+    """Parse infrastructure text as JSON, falling back to YAML."""
+    try:
+        return json.loads(text)
+    except (JSONDecodeError, ValueError):
+        try:
+            return yaml.safe_load(text)
+        except YAMLError as e:
+            raise ValueError(f"Invalid YAML/JSON in '{source}': {e}")
+
+
 def _load_infrastructure(input_file, infrastructure):
-    """load the yaml/json file
-    Params: 
-            input_file: given yaml/json file
+    """load the yaml/json infrastructure from a file, stdin, or an object
+    Params:
+            input_file: path to a yaml/json file, or "-"/None to read stdin
             infrastructure: infrastructure object"""
     if infrastructure is not None:
         return infrastructure
-    if not input_file:
-        raise ValueError("Either input_file or infrastructure must be provided")
-    try:
-        with open(input_file, "r", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except (JSONDecodeError, ValueError):
-                f.seek(0)
-                data = yaml.safe_load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Input file not found: '{input_file}'")
-    except YAMLError as e:
-        raise ValueError(f"Invalid YAML in '{input_file}': {e}")
+
+    # Read from stdin when no path is given or when "-" is passed (e.g. piped input).
+    if not input_file or input_file == "-":
+        text = sys.stdin.read()
+        if not text.strip():
+            raise ValueError(
+                "No input provided. Pass --input <file> or pipe data via stdin."
+            )
+        data = _parse_infra_text(text, "<stdin>")
+    else:
+        try:
+            with open(input_file, "r", encoding="utf-8") as f:
+                text = f.read()
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Input file not found: '{input_file}'")
+        data = _parse_infra_text(text, input_file)
+
     infra = Infrastructure()
     infra.deserialize(data)
     return infra

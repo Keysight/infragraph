@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import tempfile
 import shutil
@@ -572,6 +573,9 @@ def run_lstopo_parser(
             )
     tmp_xml = None
     
+    # "-" means write the serialized output to stdout (e.g. for piping).
+    to_stdout = output_file == "-"
+
     if input_file is None:
         tmp_xml = Path(tempfile.gettempdir()) / "lstopo_output.xml"
 
@@ -582,7 +586,7 @@ def run_lstopo_parser(
 
         input_file = str(tmp_xml)
 
-    else:
+    elif not to_stdout:
         _, ext = os.path.splitext(output_file)
         ext = ext.lstrip(".").lower()
 
@@ -599,13 +603,21 @@ def run_lstopo_parser(
 
     serialized_data = device_model.serialize(dump_format)
 
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(serialized_data)
-        print("translated output file", output_file)
+    if to_stdout:
+        # Only the serialized data goes to stdout so it can be piped cleanly;
+        # status messages go to stderr.
+        sys.stdout.write(serialized_data)
+        if not serialized_data.endswith("\n"):
+            sys.stdout.write("\n")
+        print("translated output written to stdout", file=sys.stderr)
+    else:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(serialized_data)
+            print("translated output file", output_file, file=sys.stderr)
 
     # delete temp file if created
     if tmp_xml and tmp_xml.exists():
         tmp_xml.unlink()
-        print("removed /tmp/lstopo_output.xml")
+        print("removed /tmp/lstopo_output.xml", file=sys.stderr)
     return serialized_data
 
