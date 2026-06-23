@@ -1,7 +1,8 @@
 import typer
 from infragraph.translators.translator_handler import run_translator
 from infragraph.visualizer.visualize import run_visualizer
- 
+from infragraph.blueprint_handler import build_blueprint_app
+
 app = typer.Typer()
  
 @app.command()
@@ -51,6 +52,13 @@ def visualize(
         output=output_dir,
     )
  
- 
-if __name__ == "__main__":
+# Mount the dynamically-built per-device `blueprint` commands as a Typer sub-app.
+app.add_typer(build_blueprint_app(), name="blueprint")
+
+
+def main():
     app()
+
+
+if __name__ == "__main__":
+    main()

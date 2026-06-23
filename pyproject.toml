@@ -63,4 +63,4 @@ artifacts = [
 "src/**" = "infragraph"
 
 [project.scripts]
-infragraph = "infragraph.__main__:app"
+infragraph = "infragraph.__main__:main"
