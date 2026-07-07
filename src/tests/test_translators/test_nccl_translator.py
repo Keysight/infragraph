@@ -11,7 +11,7 @@ DEVICE_NAME = "dgx_a100"
 def _mock_file_path():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.abspath(
-        os.path.join(current_dir, "mock_data", "dgx_a100_nccl_topo.xml")
+        os.path.join(current_dir, "resources", "dgx_a100_nccl_topo.xml")
     )
 
 

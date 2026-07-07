@@ -7,7 +7,7 @@ from infragraph.translators.lstopo_translator import LstopoParser
 @pytest.mark.asyncio
 async def test_supermicro_hyper_221H():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    mock_data_path = os.path.join(current_dir, "mock_data")
+    mock_data_path = os.path.join(current_dir, "resources")
     mock_file_path = os.path.abspath(
         os.path.join(mock_data_path, "supermicro.xml")
     )
@@ -41,7 +41,7 @@ async def test_supermicro_hyper_221H():
 @pytest.mark.asyncio
 async def test_nvidia_dgx_2h():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    mock_data_path = os.path.join(current_dir, "mock_data")
+    mock_data_path = os.path.join(current_dir, "resources")
     mock_file_path = os.path.abspath(
         os.path.join(mock_data_path, "NVIDIA-DGX2H-2pa24co+16nvml+1nvswitch+10ib.xml")
     )

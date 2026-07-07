@@ -101,7 +101,7 @@ class LstopoParser:
             raise ValueError(
                 "Could not determine the device name from the lstopo XML "
                 "(no 'DMIProductName' or 'PlatformModel' info found). "
-                "Please provide it explicitly via the --device_name option."
+                "Please provide it explicitly via the --device-name option."
             )
     
     def _parse_cpu_info(self):

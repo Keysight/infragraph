@@ -13,7 +13,7 @@ def run_translator(tool: str, input_file: str, output_path: str, dump_format: st
         if device_name is None:
             raise ValueError(
                 "The 'nccl' translator requires a device name. "
-                "Please provide it via the --device_name option."
+                "Please provide it via the --device-name option."
             )
         run_nccl_parser(device_name, input_file, output_path, dump_format)
     
