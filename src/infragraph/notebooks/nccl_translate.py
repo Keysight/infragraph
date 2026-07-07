@@ -7,7 +7,7 @@ from infragraph import *
 
 #%%
 current_dir = os.path.dirname(os.path.abspath(__file__))
-mock_data_path = os.path.join(current_dir, "../../tests/test_translators/mock_data")
+mock_data_path = os.path.join(current_dir, "../../tests/test_translators/resources")
 nccl_xml_file = os.path.join(mock_data_path, "dgx_a100_nccl_topo.xml")
 
 #%%
