@@ -6,13 +6,14 @@ app = typer.Typer()
  
 @app.command()
 def translate(
-    tool = typer.Argument(..., help="Translator to use"),
+    tool = typer.Argument(..., help="Translator to use available lstopo, nccl"),
     input_file = typer.Option(None, "--input", "-i", help="Input file Path"),
-    output_file = typer.Option("dev.yaml","--output", "-o", help="Output file path"),
+    output_file = typer.Option("device.yaml","--output", "-o", help="Output file path"),
+    device_name = typer.Option(None, "--device-name", help="Name of the device or system being described. Required for the 'nccl' translator; inferred from the XML for 'lstopo' if not provided."),
     dump = typer.Option("yaml", "--dump", help="Dump format (json or yaml)")
 ):
- 
-    run_translator(tool, input_file, output_file, dump)
+    """Translate the tools"""
+    run_translator(tool, input_file, output_file, dump, device_name)
  
 @app.command()
 def visualize(

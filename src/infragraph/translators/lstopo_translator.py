@@ -41,7 +41,7 @@ NIC_VENDOR_CLASS = {
 class LstopoParser:
     """Parser for lstopo XML files to generate device topology graphs."""
     
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, device_name: str | None = None):
         _, ext = os.path.splitext(file_path)
         if ext.lower() != ".xml":
             raise ValueError(
@@ -50,6 +50,7 @@ class LstopoParser:
         self.tree = ET.parse(file_path)
         self.root = self.tree.getroot()
         self.device = Device()
+        self.device_name = device_name
         self.infrastructure = Infrastructure()
         
         # Data structures for tracking components
@@ -84,15 +85,24 @@ class LstopoParser:
             return infra
     
     def _extract_device_name(self):
-        """Extract device name from DMI or Platform info."""
+        """Use the explicitly provided name, otherwise extract it from DMI or Platform info."""
+        if self.device_name:
+            self.device.name = self.device_name
+            return
+
         dmi_elem = self.root.find(".//info[@name='DMIProductName']")
         platform_elem = self.root.find(".//info[@name='PlatformModel']")
-        
-        self.device.name = (
-            dmi_elem.get("value") if dmi_elem is not None 
-            else platform_elem.get("value") if platform_elem is not None 
-            else "your_device"
-        )
+
+        if dmi_elem is not None:
+            self.device.name = dmi_elem.get("value")
+        elif platform_elem is not None:
+            self.device.name = platform_elem.get("value")
+        else:
+            raise ValueError(
+                "Could not determine the device name from the lstopo XML "
+                "(no 'DMIProductName' or 'PlatformModel' info found). "
+                "Please provide it explicitly via the --device-name option."
+            )
     
     def _parse_cpu_info(self):
         """Parse CPU information and create CPU components."""
@@ -200,11 +210,12 @@ class LstopoParser:
         # Create NVSwitch component
         if self.nv_switch_count > 0:
             self.nvlsw = self.device.components.add(
-                name="nvlsw",
+                name="nvsw",
                 description="NV Switch",
                 count=self.nv_switch_count,
             )
-            self.nvlsw.choice = Component.SWITCH
+            self.nvlsw.choice = Component.CUSTOM
+            self.nvlsw.custom.type = "switch"
         
         # Create GPU components
         self.gpu_name_to_component = self._create_gpu_components()
@@ -555,8 +566,8 @@ class LstopoParser:
                 edge.ep1.component = f"{self.pci_device.name}[{pci_device_index}]"
                 edge.ep2.component = f"{self.nvlsw.name}[{nvswitch_key[5:]}]"
 
-
 def run_lstopo_parser(
+    device_name: str,
     input_file: str | None = None,
     output_file: str = "devices.yaml",
     dump_format: str = "yaml",
@@ -582,23 +593,27 @@ def run_lstopo_parser(
 
         input_file = str(tmp_xml)
 
-    else:
-        _, ext = os.path.splitext(output_file)
-        ext = ext.lstrip(".").lower()
+    # If output points to a directory, write a default file (devices.<format>) inside it.
+    if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
+        output_file = os.path.join(output_file, f"devices.{dump_format.lower()}")
 
-        if ext != dump_format.lower():
-            raise ValueError(
-                f"Output extension '.{ext}' does not match format '{dump_format}'."
-            )
+    _, ext = os.path.splitext(output_file)
+    ext = ext.lstrip(".").lower()
+
+    if ext != dump_format.lower():
+        raise ValueError(
+            f"Output extension '.{ext}' does not match format '{dump_format}'."
+        )
 
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
 
-    parser = LstopoParser(input_file)
+    parser = LstopoParser(input_file, device_name)
     device_model = parser.parse()
 
     serialized_data = device_model.serialize(dump_format)
 
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(serialized_data)
         print("translated output file", output_file)
@@ -607,5 +622,7 @@ def run_lstopo_parser(
     if tmp_xml and tmp_xml.exists():
         tmp_xml.unlink()
         print("removed /tmp/lstopo_output.xml")
-    return serialized_data
+    
+
+
 
