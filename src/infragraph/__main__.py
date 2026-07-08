@@ -6,12 +6,13 @@ app = typer.Typer()
 
 @app.command()
 def discover(
-    tool = typer.Argument(..., help="Discoverer to use"),
+    tool = typer.Argument(..., help="Discoverer to use [lstopo, nccl]"),
     output_file = typer.Option(None, "--output", "-o", help="Output file path (defaults to device.<dump>)"),
+    device_name = typer.Option(None, "--device-name", help="Name of the device or system being described. Required for the 'nccl' discoverer."),
     dump = typer.Option("yaml", "--dump", help="Dump format (json or yaml)")
 ):
     """Run the tool on the local machine to auto-generate and translate the topology."""
-    run_discoverer(tool, output_file, dump)
+    run_discoverer(tool, output_file, dump, device_name)
 
 @app.command()
 def translate(
