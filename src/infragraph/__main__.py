@@ -15,14 +15,16 @@ def discover(
 
 @app.command()
 def translate(
-    tool = typer.Argument(..., help="Translator to use"),
+    tool = typer.Argument(..., help="Translator to use available lstopo, nccl"),
     input_file = typer.Option(..., "--input", "-i", help="Input file Path"),
     output_file = typer.Option(None, "--output", "-o", help="Output file path (defaults to device.<dump>)"),
+    device_name = typer.Option(None, "--device-name", help="Name of the device or system being described. Required for the 'nccl' translator; inferred from the XML for 'lstopo' if not provided."),
     dump = typer.Option("yaml", "--dump", help="Dump format (json or yaml)")
 ):
     """Translate an existing topology input file into an InfraGraph."""
-    run_translator(tool, input_file, output_file, dump)
+    run_translator(tool, input_file, output_file, dump, device_name)
 
+ 
 @app.command()
 def visualize(
     input_path: str = typer.Option(
