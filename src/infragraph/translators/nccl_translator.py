@@ -600,5 +600,10 @@ def run_nccl_parser(
     with open(annotation_file, "w", encoding="utf-8") as f:
         f.write(annotation_output)
         print(f"Annotated infragraph (infrastructure + annotations) written to: {annotation_file}")
+
+    # delete temp file if created
+    if tmp_xml and tmp_xml.exists():
+        tmp_xml.unlink()
+        print(f"removed {tmp_xml}")
     return serialized_data
 
