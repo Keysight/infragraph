@@ -69,6 +69,7 @@ jobs:
           git config user.email "actions@github.com"
           git add --force artifacts/openapi.yaml
           git add --force artifacts/infragraph.proto
+          git add --force src/infragraph/infragraph.proto
           git add --force docs/src/openapi.html
           if git status --porcelain | grep .
             then
