@@ -1,9 +1,10 @@
 SHELL := /bin/bash
 
-VENV_DIR := .venv
+VENV_DIR  := .venv
 PYTHON    := $(if $(wildcard $(VENV_DIR)/bin/python3),$(VENV_DIR)/bin/python3,python3)
 PIP       := $(if $(wildcard $(VENV_DIR)/bin/pip),$(VENV_DIR)/bin/pip,pip)
-PIP3      := $(if $(wildcard $(VENV_DIR)/bin/pip3),$(VENV_DIR)/bin/pip3,pip3)
+PYTEST    := $(if $(wildcard $(VENV_DIR)/bin/pytest),$(VENV_DIR)/bin/pytest,pytest)
+JUPYTEXT  := $(if $(wildcard $(VENV_DIR)/bin/jupytext),$(VENV_DIR)/bin/jupytext,jupytext)
 
 help:
 	@awk -F ':|##' '/^[^\t].+:.*##/ { printf "\033[36mmake %-28s\033[0m -%s\n", $$1, $$NF }' $(MAKEFILE_LIST) | sort
@@ -31,8 +32,8 @@ generate: ## generate artifacts using OpenApiArt
 .PHONY: test
 test: ## run unit tests on the src/infragraph files
 	$(PIP) uninstall -y infragraph && \
-	make pre-test-notebook && \
-	pytest -s
+	$(MAKE) pre-test-notebook && \
+	$(PYTEST) -s
 
 .PHONY: package
 package: generate ## create sdist/wheel packages from OpenAPIArt generated artifacts
@@ -43,7 +44,7 @@ package: generate ## create sdist/wheel packages from OpenAPIArt generated artif
 
 .PHONY: install
 install: package ## pip install infragraph package
-	$(PIP3) install dist/infragraph*.whl --force-reinstall
+	$(PIP) install dist/infragraph*.whl --force-reinstall
 
 .PHONY: deploy
 PYPI_TOKEN=__invalid_token__
@@ -66,6 +67,6 @@ yaml: ## generate yaml contents for docs
 .PHONY: pre-test-notebook
 pre-test-notebook:
 	rm -rf src/tests/test_notebooks
-	jupytext --to notebook src/infragraph/notebooks/*.py
+	$(JUPYTEXT) --to notebook src/infragraph/notebooks/*.py
 	cd src && $(PYTHON) notebook_to_test_script.py
 	rm -rf src/infragraph/notebooks/*.ipynb
