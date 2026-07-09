@@ -1,10 +1,10 @@
 SHELL := /bin/bash
 
 VENV_DIR  := .venv
-PYTHON    := $(if $(wildcard $(VENV_DIR)/bin/python3),$(VENV_DIR)/bin/python3,python3)
-PIP       := $(if $(wildcard $(VENV_DIR)/bin/pip),$(VENV_DIR)/bin/pip,pip)
-PYTEST    := $(if $(wildcard $(VENV_DIR)/bin/pytest),$(VENV_DIR)/bin/pytest,pytest)
-JUPYTEXT  := $(if $(wildcard $(VENV_DIR)/bin/jupytext),$(VENV_DIR)/bin/jupytext,jupytext)
+PYTHON    := $(if $(wildcard $(VENV_DIR)/bin/python3),$(abspath $(VENV_DIR)/bin/python3),python3)
+PIP       := $(if $(wildcard $(VENV_DIR)/bin/pip),$(abspath $(VENV_DIR)/bin/pip),pip)
+PYTEST    := $(if $(wildcard $(VENV_DIR)/bin/pytest),$(abspath $(VENV_DIR)/bin/pytest),pytest)
+JUPYTEXT  := $(if $(wildcard $(VENV_DIR)/bin/jupytext),$(abspath $(VENV_DIR)/bin/jupytext),jupytext)
 
 help:
 	@awk -F ':|##' '/^[^\t].+:.*##/ { printf "\033[36mmake %-28s\033[0m -%s\n", $$1, $$NF }' $(MAKEFILE_LIST) | sort
