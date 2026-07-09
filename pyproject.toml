@@ -50,6 +50,7 @@ exclude = [
     "!pyproject.toml",
     "!README.md",
     "!src/**/*.py",
+    "!src/**/*.proto",
     "!src/docs/*.*",
     "!src/infragraph/visualizer/*.*",
 ]
