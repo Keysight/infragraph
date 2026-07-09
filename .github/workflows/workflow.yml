@@ -32,6 +32,7 @@ jobs:
           Builds yaml from src devices and infrastructures
           Builds docs site using src and generated yaml
         run: |
+          make venv
           make clean
           make install
           make test
