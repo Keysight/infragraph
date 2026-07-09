@@ -51,6 +51,7 @@ exclude = [
     "!README.md",
     "!src/**/*.py",
     "!src/docs/*.*",
+    "!src/**/*.proto",
     "!src/infragraph/visualizer/*.*",
 ]
 

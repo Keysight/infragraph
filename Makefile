@@ -19,6 +19,7 @@ generate: ## generate artifacts using OpenApiArt
 	source .venv/bin/activate && \
 	python3 generate.py
 	cp -f artifacts/infragraph/*.py src/infragraph/
+	cp -f artifacts/infragraph.proto src/infragraph/
 	rm -rf src/docs || true
 	mkdir src/docs
 	cp -f artifacts/*.* src/docs
