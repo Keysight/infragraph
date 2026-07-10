@@ -19,7 +19,7 @@ Some examples of additional data are:
     - device routing tables
 
 ### Annotation Structure
-The `annotate_graph` API accepts an `Annotation` object that targets **nodes**, **edges**, or **links** in the graph. Each target supports one or more key-value attributes:
+The `annotate_graph` API accepts an `Annotation` object that targets **nodes**, **edges**, **links**, or the **graph** itself. Each target supports one or more key-value attributes:
 
 ```python
 annotation = Annotation()
@@ -35,6 +35,10 @@ edge.attributes.add(attribute="bandwidth", value="400G")
 # add a link annotation
 link = annotation.links.add(name="pcie")
 link.attributes.add(attribute="version", value="5.0")
+
+# add a graph-level annotation
+annotation.graph.add(attribute="cluster", value="rack-a")
+annotation.graph.add(attribute="experiment", value="run-42")
 
 service.annotate_graph(annotation)
 ```
@@ -70,5 +74,19 @@ The following code demonstrates adding an `ipaddress` attribute to the `host` in
 <summary><strong>Add an ipaddress to each host mgmt component</strong></summary>
 ```python
 {% include-markdown "../../src/tests/test_ipaddress_annotations.py" %}
+```
+</details>
+
+## Adding graph-level metadata
+Graph-level annotations attach key-value attributes directly to the graph itself, rather than to a specific node, edge, or link. This is useful for tagging the entire infrastructure with metadata such as cluster identity, experiment context, environment, or ownership.
+
+Graph attributes are stored in the NetworkX `Graph.graph` dictionary and are returned in the `annotations.graph` field of both `infragraph` and `networkx` `get_graph` responses.
+
+Immutable infrastructure-derived attributes (e.g., `type`, `link`) are rejected on graph targets, consistent with node and edge annotation rules.
+
+<details open>
+<summary><strong>Add metadata attributes to the graph</strong></summary>
+```python
+{% include-markdown "../../src/tests/test_graph_annotations.py" %}
 ```
 </details>
