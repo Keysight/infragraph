@@ -921,6 +921,13 @@ class InfraGraphService(Api):
                 for k, v in node[1].items():
                     match.attributes.add(name=k, value=v if isinstance(v, str) else str(v))
             return query_response_content
+        elif query_request.choice == QueryRequest.GRAPH_FILTERS:
+            graph_matches = list(self._graph.graph.items())
+            for graph_filter in query_request.graph_filters:
+                graph_matches = self._graph_attribute_filter(graph_matches, graph_filter.attribute_filter)
+            for name, value in graph_matches:
+                query_response_content.graph_matches.add(name=name, value=value if isinstance(value, str) else str(value))
+            return query_response_content
         else:
             raise NotImplementedError("Query edges not implemented")
 
@@ -948,4 +955,17 @@ class InfraGraphService(Api):
                     results.append(node)
                 elif query.operator == QueryNodeId.REGEX and re.match(query.value, v) is not None:
                     results.append(node)
+        return results
+
+    def _graph_attribute_filter(self, attributes: List[Any], query: QueryAttribute) -> List[Any]:
+        results = []
+        for name, value in attributes:
+            if name != query.name:
+                continue
+            if query.operator == QueryAttribute.EQ and query.value == value:
+                results.append((name, value))
+            elif query.operator == QueryAttribute.CONTAINS and query.value in value:
+                results.append((name, value))
+            elif query.operator == QueryAttribute.REGEX and re.match(query.value, value) is not None:
+                results.append((name, value))
         return results
