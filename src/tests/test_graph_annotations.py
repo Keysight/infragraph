@@ -38,7 +38,7 @@ async def test_graph_annotation_infragraph_output():
 
     request = GraphRequest()
     request.choice = GraphRequest.INFRAGRAPH
-    request.infragraph.annotations.choice = AnnotationConfig.FULL
+    request.infragraph.annotations.choice = AnnotationType.FULL
     result = json.loads(service.get_graph(request))
 
     graph_attrs = {a["attribute"]: a["value"] for a in result["annotations"]["graph"]}
@@ -53,7 +53,7 @@ async def test_graph_annotation_networkx_output():
 
     request = GraphRequest()
     request.choice = GraphRequest.NETWORKX
-    request.networkx.annotations.choice = AnnotationConfig.FULL
+    request.networkx.annotations.choice = AnnotationType.FULL
     result = yaml.safe_load(service.get_graph(request))
 
     assert result["graph"]["topology"] == "fat-tree"
@@ -68,7 +68,7 @@ async def test_graph_annotation_multiple_attributes():
 
     request = GraphRequest()
     request.choice = GraphRequest.INFRAGRAPH
-    request.infragraph.annotations.choice = AnnotationConfig.FULL
+    request.infragraph.annotations.choice = AnnotationType.FULL
     result = json.loads(service.get_graph(request))
 
     graph_attrs = {a["attribute"]: a["value"] for a in result["annotations"]["graph"]}
@@ -106,7 +106,7 @@ async def test_graph_annotation_partial_excludes_immutable():
 
     request = GraphRequest()
     request.choice = GraphRequest.INFRAGRAPH
-    request.infragraph.annotations.choice = AnnotationConfig.PARTIAL
+    request.infragraph.annotations.choice = AnnotationType.PARTIAL
     result = json.loads(service.get_graph(request))
 
     graph_attrs = {a["attribute"]: a["value"] for a in result["annotations"]["graph"]}
