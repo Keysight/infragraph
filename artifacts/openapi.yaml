@@ -1049,17 +1049,20 @@ components:
       properties:
         choice:
           description: |-
-            Indicates the type of results returned - node matches or shortest path matches.
+            Indicates the type of results returned - node matches, shortest path matches, or graph attribute matches.
           type: string
           x-enum:
             node_matches:
               x-field-uid: 1
             shortest_path_matches:
               x-field-uid: 2
+            graph_matches:
+              x-field-uid: 3
           x-field-uid: 1
           enum:
           - node_matches
           - shortest_path_matches
+          - graph_matches
         node_matches:
           description: |-
             Array of nodes matching the query criteria.
@@ -1074,6 +1077,13 @@ components:
           items:
             $ref: '#/components/schemas/QueryShortestPathItem'
           x-field-uid: 3
+        graph_matches:
+          description: |-
+            Array of graph-level attributes matching the query criteria.
+          type: array
+          items:
+            $ref: '#/components/schemas/NameValue'
+          x-field-uid: 4
     QueryAttribute:
       description: |-
         Criteria for filtering nodes based on attribute names, values, and operators.
@@ -1214,9 +1224,24 @@ components:
             Node ID at which the shortest path ends.
           type: string
           x-field-uid: 3
+    QueryGraphFilter:
+      description: |-
+        Defines a filter on graph-level attributes.
+      type: object
+      properties:
+        name:
+          description: |-
+            Name of this graph filter.
+          type: string
+          x-field-uid: 1
+        attribute_filter:
+          description: |-
+            Attribute-based filter criteria.
+          $ref: '#/components/schemas/QueryAttribute'
+          x-field-uid: 2
     QueryRequest:
       description: |-
-        A request object specifying filters to be used for querying nodes or shortest paths.
+        A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
       type: object
       properties:
         choice:
@@ -1229,9 +1254,12 @@ components:
               x-field-uid: 1
             shortest_path_filters:
               x-field-uid: 2
+            graph_filters:
+              x-field-uid: 3
           enum:
           - node_filters
           - shortest_path_filters
+          - graph_filters
         node_filters:
           description: |-
             List of filters to match nodes.
@@ -1251,6 +1279,13 @@ components:
           x-status:
             status: under_review
             information: Proposal to abstract the shortest path interface to the graph.
+        graph_filters:
+          description: |-
+            List of filters to match graph-level attributes.
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryGraphFilter'
+          x-field-uid: 4
     Version:
       description: |-
         Version details

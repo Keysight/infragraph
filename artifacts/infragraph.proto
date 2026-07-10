@@ -672,9 +672,11 @@ message QueryResponseContent {
       unspecified = 0;
       node_matches = 1;
       shortest_path_matches = 2;
+      graph_matches = 3;
     }
   }
-  // Indicates the type of results returned - node matches or shortest path matches.
+  // Indicates the type of results returned - node matches, shortest path matches, or
+  // graph attribute matches.
   optional Choice.Enum choice = 1;
 
   // Array of nodes matching the query criteria.
@@ -682,6 +684,9 @@ message QueryResponseContent {
 
   // Array of shortest path results matching the query criteria.
   repeated QueryShortestPathItem shortest_path_matches = 3;
+
+  // Array of graph-level attributes matching the query criteria.
+  repeated NameValue graph_matches = 4;
 }
 
 // Criteria for filtering nodes based on attribute names, values, and operators.
@@ -782,7 +787,18 @@ message QueryShortestPathFilter {
   optional string destination = 3;
 }
 
-// A request object specifying filters to be used for querying nodes or shortest paths.
+// Defines a filter on graph-level attributes.
+message QueryGraphFilter {
+
+  // Name of this graph filter.
+  optional string name = 1;
+
+  // Attribute-based filter criteria.
+  QueryAttribute attribute_filter = 2;
+}
+
+// A request object specifying filters to be used for querying nodes, graph attributes,
+// or shortest paths.
 message QueryRequest {
 
   message Choice {
@@ -790,6 +806,7 @@ message QueryRequest {
       unspecified = 0;
       node_filters = 1;
       shortest_path_filters = 2;
+      graph_filters = 3;
     }
   }
   // Type of filters specified in this query request.
@@ -803,6 +820,9 @@ message QueryRequest {
   // Add shortest path filters to retrive the shortest path between source and destination
   // nodes
   repeated QueryShortestPathFilter shortest_path_filters = 3;
+
+  // List of filters to match graph-level attributes.
+  repeated QueryGraphFilter graph_filters = 4;
 }
 
 // Version details
