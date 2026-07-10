@@ -17,13 +17,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/infrastructure.yaml#/components/schemas/Infrastructure'
+              $ref: './infrastructure.yaml#/components/schemas/Infrastructure'
       responses:
         '200':
-          $ref: '../models/request.yaml#/components/responses/Success'
+          $ref: './request.yaml#/components/responses/Success'
           x-field-uid: 1
         default:
-          $ref: '../models/request.yaml#/components/responses/Failure'
+          $ref: './request.yaml#/components/responses/Failure'
           x-field-uid: 2
   /get_graph:
     post:
@@ -37,13 +37,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/graph.yaml#/components/schemas/GraphRequest'
+              $ref: './graph.yaml#/components/schemas/GraphRequest'
       responses:
         '200':
-          $ref: '../models/graph.yaml#/components/responses/GraphResponse'
+          $ref: './graph.yaml#/components/responses/GraphResponse'
           x-field-uid: 1
         default:
-          $ref: '../models/request.yaml#/components/responses/Failure'
+          $ref: './request.yaml#/components/responses/Failure'
           x-field-uid: 2
   /query_graph:
     post:
@@ -59,13 +59,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../models/query.yaml#/components/schemas/QueryRequest'
+              $ref: './query.yaml#/components/schemas/QueryRequest'
       responses:
         '200':
-          $ref: '../models/query.yaml#/components/responses/QueryResponse'
+          $ref: './query.yaml#/components/responses/QueryResponse'
           x-field-uid: 1
         default:
-          $ref: '../models/request.yaml#/components/responses/Failure'
+          $ref: './request.yaml#/components/responses/Failure'
           x-field-uid: 2
   /annotate_graph:
     post:
@@ -74,18 +74,17 @@ paths:
       x-stream: client
       description: >-
         Extend the current graph created by the `set_graph` API.
-
           - example: Update specific endpoints with name/value information such as `rank=0`
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '../models/annotation.yaml#/components/schemas/Annotation'
+              $ref: './annotation.yaml#/components/schemas/Annotation'
       responses:
         '200':
-          $ref: '../models/request.yaml#/components/responses/Success'
+          $ref: './request.yaml#/components/responses/Success'
           x-field-uid: 1
         default:
-          $ref: '../models/request.yaml#/components/responses/Failure'
+          $ref: './request.yaml#/components/responses/Failure'
           x-field-uid: 2

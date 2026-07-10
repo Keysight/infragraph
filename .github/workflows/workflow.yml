@@ -46,7 +46,7 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          echo "::set-output name=version::v$(grep version api/info.yaml | cut -d: -f2 | sed -e 's/ //g')"
+          echo "::set-output name=version::v$(grep version schema/info.yaml | cut -d: -f2 | sed -e 's/ //g')"
 
       - name: Check tag for current version
         uses: mukunku/tag-exists-action@v1.0.0
