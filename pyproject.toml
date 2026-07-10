@@ -33,7 +33,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path="api/info.yaml"
+path="schema/info.yaml"
 pattern="version:\\s*(?P<version>(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?)"
 
 [tool.hatch.build.sources]
