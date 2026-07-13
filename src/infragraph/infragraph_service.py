@@ -10,6 +10,7 @@ Python slice notation is a concise and powerful syntax for extracting a subset o
 import re
 import json
 import yaml
+import warnings
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
@@ -64,7 +65,6 @@ class InfraGraphService(Api):
         self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
 
-
     @property
     def infrastructure(self) -> Infrastructure:
         """Return the current backing store infrastructure"""
@@ -80,7 +80,6 @@ class InfraGraphService(Api):
         if self._graph is None:
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
-
 
     def _expand_node_string(self, s: str) -> List[str]:
         """Expand a device/component string with slice notation into dot-notation paths.
@@ -670,11 +669,10 @@ class InfraGraphService(Api):
             partial_graph.add_edge(ep1, ep2, **filtered)
         return partial_graph
 
-
     def get_graph(self, request: GraphRequest) -> str:
         """Returns the current networkx graph as a serialized json string."""
         if self._graph is None:
-            raise ValueError("Graph is not set. Please call set_graph() first.")
+            raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
 
         if request.choice == request.INFRAGRAPH:
             return self.populate_infragraph_dict(self._graph, request.infragraph.annotations.choice)
@@ -703,11 +701,17 @@ class InfraGraphService(Api):
                 if k not in self._IMMUTABLE_ATTRIBUTES
             )
 
+        def stringify(v):
+            # AnnotationAttribute.value is schema-typed as str; non-str attribute
+            # values (e.g. the immutable int "instance_idx") must be coerced so
+            # the resulting annotations can be deserialized back into an Annotation.
+            return v if isinstance(v, str) else str(v)
+
         annotation_nodes = [
             {
                 "name": node_name,
                 "attributes": [
-                    {"attribute": k, "value": v}
+                    {"attribute": k, "value": stringify(v)}
                     for k, v in node_attrs_filter(node_attrs)
                 ]
             }
@@ -724,18 +728,18 @@ class InfraGraphService(Api):
             annotation_edges.append({
                 "ep1": ep1,
                 "ep2": ep2,
-                "attributes": [{"attribute": k, "value": v} for k, v in filtered]
+                "attributes": [{"attribute": k, "value": stringify(v)} for k, v in filtered]
             })
             link_name = edge_attrs.get("link")
             if link_name and link_name not in seen_links:
                 seen_links[link_name] = {
                     "name": link_name,
-                    "attributes": [{"attribute": k, "value": v} for k, v in filtered]
+                    "attributes": [{"attribute": k, "value": stringify(v)} for k, v in filtered]
                 }
 
         graph_attrs = source_graph.graph
         annotation_graph = [
-            {"attribute": k, "value": v}
+            {"attribute": k, "value": stringify(v)}
             for k, v in graph_attrs.items()
             if is_full or k not in self._IMMUTABLE_ATTRIBUTES
         ]
@@ -865,8 +869,8 @@ class InfraGraphService(Api):
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
                     networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
                 else:
-                    raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
-
+                    warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for {annotation_node.name}")
+            
         # edges
         for annotation_node in annotate_request.edges:
             # expand the nodes
@@ -884,23 +888,25 @@ class InfraGraphService(Api):
             for attribute_kvp in annotation_node.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
                     networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
-                
                 else:
-                    raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for edge")
+                    warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for edge")
+                    
 
         # links
         for annotation_link in annotate_request.links:
             edges_for_link = self._link_to_edges_map.get(annotation_link.name, [])
             for link_annotation in annotation_link.attributes:
                 if link_annotation.attribute in self._IMMUTABLE_ATTRIBUTES:
-                    raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {annotation_link.name}")
+                    warnings.warn(f"Skipping immutable attribute {link_annotation.attribute} for {annotation_link.name}")
+                    continue
                 for ep1, ep2 in edges_for_link:
                     self._graph[ep1][ep2][link_annotation.attribute] = link_annotation.value
 
         # graph
         for attribute_kvp in annotate_request.graph:
             if attribute_kvp.attribute in self._IMMUTABLE_ATTRIBUTES:
-                raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for graph")
+                warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
+                continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
 
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:

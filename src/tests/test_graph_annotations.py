@@ -88,12 +88,13 @@ async def test_graph_annotation_overwrite():
 
 @pytest.mark.asyncio
 async def test_graph_annotation_immutable_rejected():
-    """Annotating an immutable attribute raises ValueError."""
+    """Annotating an immutable attribute warns and is skipped, not raised."""
     service = _make_service()
     annotation = Annotation()
     annotation.graph.add(attribute="type", value="custom")
-    with pytest.raises(ValueError):
+    with pytest.warns(UserWarning):
         service.annotate_graph(annotation)
+    assert service._graph.graph.get("type") != "custom"
 
 
 @pytest.mark.asyncio
@@ -101,7 +102,7 @@ async def test_graph_annotation_partial_excludes_immutable():
     """Partial infragraph output excludes immutable attributes from graph annotations."""
     service = _make_service()
     _annotate_graph(service, label="visible")
-    # manually inject an immutable key to simulate pre-existing state
+    # manually inject an immutable key to simulate immutable state
     service._graph.graph["type"] = "should-be-hidden"
 
     request = GraphRequest()
