@@ -183,18 +183,6 @@ components:
           description: Node ID at which the shortest path ends.
           type: string
           x-field-uid: 3
-    QueryGraphFilter:
-      description: Defines a filter on graph-level attributes.
-      type: object
-      properties:
-        name:
-          description: Name of this graph filter.
-          type: string
-          x-field-uid: 1
-        attribute_filter:
-          description: Attribute-based filter criteria.
-          $ref: "#/components/schemas/QueryAttribute"
-          x-field-uid: 2
     QueryRequest:
       description: A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
       type: object
@@ -227,12 +215,6 @@ components:
             status: under_review
             information: |-
               Proposal to abstract the shortest path interface to the graph.
-        graph_filters:
-          description: List of filters to match graph-level attributes.
-          type: array
-          items:
-            $ref: "#/components/schemas/QueryGraphFilter"
-          x-field-uid: 4
   responses:
     QueryResponse:
       description: |-

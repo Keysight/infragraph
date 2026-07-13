@@ -626,6 +626,10 @@ class InfraGraphService(Api):
             self._infrastructure = payload
         # Initialize an empty graph, populate it with device and instance nodes, validate the resulting device edges and infrastructure edges, run final graph-wide validation, and then build the prefix and link lookup maps used for fast endpoint resolution.
         self._graph = Graph()
+        if self._infrastructure.name:
+            self._graph.graph["name"] = self._infrastructure.name
+        if self._infrastructure.description:
+            self._graph.graph["description"] = self._infrastructure.description
         self._generate_device_data()
         self._generate_instance_data()
         self._validate_device_edges()
@@ -657,7 +661,7 @@ class InfraGraphService(Api):
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
         
     def _build_partial_graph(self) -> Graph:
-        partial_graph = Graph()
+        partial_graph = Graph(**self._graph.graph)
         for node, data in self._graph.nodes(data=True):
             filtered = {k: v for k, v in data.items() if k not in self._IMMUTABLE_ATTRIBUTES}
             partial_graph.add_node(node, **filtered)
@@ -921,13 +925,6 @@ class InfraGraphService(Api):
                 for k, v in node[1].items():
                     match.attributes.add(name=k, value=v if isinstance(v, str) else str(v))
             return query_response_content
-        elif query_request.choice == QueryRequest.GRAPH_FILTERS:
-            graph_matches = list(self._graph.graph.items())
-            for graph_filter in query_request.graph_filters:
-                graph_matches = self._graph_attribute_filter(graph_matches, graph_filter.attribute_filter)
-            for name, value in graph_matches:
-                query_response_content.graph_matches.add(name=name, value=value if isinstance(value, str) else str(value))
-            return query_response_content
         else:
             raise NotImplementedError("Query edges not implemented")
 
@@ -955,17 +952,4 @@ class InfraGraphService(Api):
                     results.append(node)
                 elif query.operator == QueryNodeId.REGEX and re.match(query.value, v) is not None:
                     results.append(node)
-        return results
-
-    def _graph_attribute_filter(self, attributes: List[Any], query: QueryAttribute) -> List[Any]:
-        results = []
-        for name, value in attributes:
-            if name != query.name:
-                continue
-            if query.operator == QueryAttribute.EQ and query.value == value:
-                results.append((name, value))
-            elif query.operator == QueryAttribute.CONTAINS and query.value in value:
-                results.append((name, value))
-            elif query.operator == QueryAttribute.REGEX and re.match(query.value, value) is not None:
-                results.append((name, value))
         return results

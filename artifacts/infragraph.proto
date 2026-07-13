@@ -787,16 +787,6 @@ message QueryShortestPathFilter {
   optional string destination = 3;
 }
 
-// Defines a filter on graph-level attributes.
-message QueryGraphFilter {
-
-  // Name of this graph filter.
-  optional string name = 1;
-
-  // Attribute-based filter criteria.
-  QueryAttribute attribute_filter = 2;
-}
-
 // A request object specifying filters to be used for querying nodes, graph attributes,
 // or shortest paths.
 message QueryRequest {
@@ -820,9 +810,6 @@ message QueryRequest {
   // Add shortest path filters to retrive the shortest path between source and destination
   // nodes
   repeated QueryShortestPathFilter shortest_path_filters = 3;
-
-  // List of filters to match graph-level attributes.
-  repeated QueryGraphFilter graph_filters = 4;
 }
 
 // Version details

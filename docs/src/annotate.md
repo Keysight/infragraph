@@ -90,13 +90,3 @@ Immutable infrastructure-derived attributes (e.g., `type`, `link`) are rejected 
 {% include-markdown "../../src/tests/test_graph_annotations.py" %}
 ```
 </details>
-
-## Querying graph-level metadata
-Graph-level attributes added with `annotate_graph` can be queried with the `query_graph` API using a `graph_filters` request, filtering by attribute name using the `eq`, `contains`, or `regex` operators.
-
-<details open>
-<summary><strong>Query metadata attributes on the graph</strong></summary>
-```python
-{% include-markdown "../../src/tests/test_graph_query.py" %}
-```
-</details>
