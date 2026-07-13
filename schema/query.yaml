@@ -57,8 +57,6 @@ components:
               x-field-uid: 1
             shortest_path_matches:
               x-field-uid: 2
-            graph_matches:
-              x-field-uid: 3
           x-field-uid: 1
         node_matches:
           description: Array of nodes matching the query criteria.
@@ -72,12 +70,6 @@ components:
           items:
             $ref: "#/components/schemas/QueryShortestPathItem"
           x-field-uid: 3
-        graph_matches:
-          description: Array of graph-level attributes matching the query criteria.
-          type: array
-          items:
-            $ref: "#/components/schemas/NameValue"
-          x-field-uid: 4
     QueryAttribute:
       description: Criteria for filtering nodes based on attribute names, values, and operators.
       type: object
@@ -196,8 +188,6 @@ components:
               x-field-uid: 1
             shortest_path_filters:
               x-field-uid: 2
-            graph_filters:
-              x-field-uid: 3
         node_filters:
           description: List of filters to match nodes.
           type: array

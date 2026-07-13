@@ -672,7 +672,6 @@ message QueryResponseContent {
       unspecified = 0;
       node_matches = 1;
       shortest_path_matches = 2;
-      graph_matches = 3;
     }
   }
   // Indicates the type of results returned - node matches, shortest path matches, or
@@ -684,9 +683,6 @@ message QueryResponseContent {
 
   // Array of shortest path results matching the query criteria.
   repeated QueryShortestPathItem shortest_path_matches = 3;
-
-  // Array of graph-level attributes matching the query criteria.
-  repeated NameValue graph_matches = 4;
 }
 
 // Criteria for filtering nodes based on attribute names, values, and operators.
@@ -796,7 +792,6 @@ message QueryRequest {
       unspecified = 0;
       node_filters = 1;
       shortest_path_filters = 2;
-      graph_filters = 3;
     }
   }
   // Type of filters specified in this query request.
