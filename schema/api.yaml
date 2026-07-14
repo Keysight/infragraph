@@ -59,7 +59,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: './query.yaml#/components/schemas/QueryRequest'
+              $ref: './query.yaml#/components/schemas/Query'
       responses:
         '200':
           $ref: './query.yaml#/components/responses/QueryResponse'

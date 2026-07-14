@@ -1,161 +1,151 @@
 components:
   schemas:
-    NameValue:
-      description: Represents a generic name and value pair attribute.
+    Query.Attribute:
+      description: Attribute and its value.
       type: object
       properties:
-        name:
-          description: Name of the attribute or property.
+        attribute:
+          description: |-
+            The attribute key.
           type: string
           x-field-uid: 1
         value:
-          description: Value corresponding to the name.
+          description: |-
+            The attribute value.
           type: string
           x-field-uid: 2
-    QueryResponseItem:
-      description: Represents a single item returned from a query, identified by an id and associated attributes.
+    Query.Response.Node:
+      description: Matched node name and its attributes present in the graph.
       type: object
       properties:
-        id:
-          description: Unique identifier of the item.
+        name:
+          description: |-
+            Matched node name present in the graph.
           type: string
           x-field-uid: 1
         attributes:
-          description: List of name-value pairs describing item attributes.
+          description: |-
+            An inventory of attributes and values of the current node.
           type: array
           items:
-            $ref: "#/components/schemas/NameValue"
+            $ref: "#/components/schemas/Query.Attribute"
           x-field-uid: 2
-    QueryShortestPathItem:
-      description: Represents a shortest path result containing a name and an ordered list of nodes on the path.
+    Query.Response.Edge:
+      description: Matched edges and their attributes present in the graph.
       type: object
-      required:
-        - name
-        - nodes
       properties:
-        name:
+        ep1:
           description: |-
-            Name of the shortest path filter
+            Matched endpoint one.
           type: string
           x-field-uid: 1
+        ep2:
+          description: |-
+            Matched endpoint two
+          type: string
+          x-field-uid: 2
+        attributes:
+          description: |-
+            An inventory of attributes and values.
+          type: array
+          items:
+            $ref: "#/components/schemas/Query.Attribute"
+          x-field-uid: 3  
+    Query.Response:
+      description: Query response object - a query filter can act on the graph and respond with array of nodes or edges or graph attributes.
+      type: object
+      properties:
         nodes:
+          description: List of matches nodes of the graph with attributes.
+          type: array
+          items:
+            $ref: "#/components/schemas/Query.Response.Node"
+          x-field-uid: 1
+        edges:
+          type: array
+          description:  List of matches edges of the graph with attributes.
+          items:
+            $ref: "#/components/schemas/Query.Response.Edge"
+          x-field-uid: 2
+        graph:
+          description: List of matched graph attributes.
+          type: array
+          items:
+            $ref: "#/components/schemas/Query.Attribute"
+          x-field-uid: 3 
+    Query.Request.Edge:
+      description: Defines request for edge match
+      type: object
+      properties:
+        ep1:
           description: |-
-            An array of node ids that make up the shortest path
-          type: array
-          items:
-            type: string
-          x-field-uid: 2
-    QueryResponseContent:
-      description: The content of a query response, indicating the type of match and containing corresponding results.
-      type: object
-      properties:
-        choice:
-          description: Indicates the type of results returned - node matches, shortest path matches, or graph attribute matches.
-          type: string
-          x-enum:
-            node_matches:
-              x-field-uid: 1
-            shortest_path_matches:
-              x-field-uid: 2
-          x-field-uid: 1
-        node_matches:
-          description: Array of nodes matching the query criteria.
-          type: array
-          items:
-            $ref: "#/components/schemas/QueryResponseItem"
-          x-field-uid: 2
-        shortest_path_matches:
-          description: Array of shortest path results matching the query criteria.
-          type: array
-          items:
-            $ref: "#/components/schemas/QueryShortestPathItem"
-          x-field-uid: 3
-    QueryAttribute:
-      description: Criteria for filtering nodes based on attribute names, values, and operators.
-      type: object
-      properties:
-        name:
-          description: Attribute name to filter on.
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
           x-field-uid: 1
-        operator:
-          description: Operator used for attribute filtering.
+        ep2:
+          description: |-
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
           type: string
           x-field-uid: 2
-          x-enum:
-            eq:
-              x-field-uid: 1
-            regex:
-              x-field-uid: 2
-            contains:
-              x-field-uid: 3
-        value:
-          description: Value to compare the attribute against.
-          type: string
-          x-field-uid: 3
+    Query.Request.Attribute:
+      description: Query request attributes with logical operation on all of the attributes.
+      type: object
+      properties:
+        attributes:
+          description: |-
+            Attributes for filter
+          type: array
+          items:
+            $ref: "#/components/schemas/Query.Attribute"
+          x-field-uid: 1
         logic:
-          description: Logical operation to combine this filter with others.
+          description: Logical operation to combine this filter with others. Default is "and".
           type: string
-          x-field-uid: 4
+          x-field-uid: 2
           x-enum:
             and:
               x-field-uid: 1
             or:
               x-field-uid: 2
-    QueryNodeId:
-      description: Criteria for filtering node IDs using specified operators and logical combinations.
-      type: object
-      properties:
-        operator:
-          description: Operator used to filter node IDs.
-          type: string
-          x-field-uid: 1
-          x-enum:
-            eq:
-              x-field-uid: 1
-            regex:
-              x-field-uid: 2
-            contains:
-              x-field-uid: 3
-        value:
-          description: Value pattern for filtering node IDs.
-          type: string
-          x-field-uid: 2
-        logic:
-          description: Logical operation to combine this ID filter with others.
-          type: string
-          x-field-uid: 3
-          x-enum:
-            and:
-              x-field-uid: 1
-            or:
-              x-field-uid: 2
-    QueryNodeFilter:
+    Query.Request.Filter:
       description: Defines a filter on nodes, either by attributes or by node IDs.
       type: object
       properties:
-        name:
-          description: Name of this node filter.
-          type: string
-          x-field-uid: 1
-        choice:
-          description: Type of node filter, either attribute or ID based.
-          type: string
-          x-field-uid: 2
-          x-enum:
-            attribute_filter:
-              x-field-uid: 1
-            id_filter:
-              x-field-uid: 2
         attribute_filter:
           description: Attribute-based filter criteria.
-          $ref: "#/components/schemas/QueryAttribute"
+          $ref: "#/components/schemas/Query.Request.Attribute"
+          x-field-uid: 1
+        choice:
+          description: Type of node filter, edge filter or generic filter.
+          type: string
+          default: generic_filter
+          x-field-uid: 2
+          x-enum:
+            edge_filter:
+              x-field-uid: 1
+            generic_filter:
+              x-field-uid: 2
+            node_filter:
+              x-field-uid: 3
+        node_filter:
+          description:  |-
+            Node name filter. Node name that MUST exist or match nodes present in the graph. This supports slicing operator and converts to expanded format:
+            - server[0]xpu[0]
+            - server[0:2]
+            - switch
+          type: string
           x-field-uid: 3
-        id_filter:
-          description: ID-based filter criteria.
-          $ref: "#/components/schemas/QueryNodeId"
+        edge_filter:
+          description: Node id filter.
+          $ref: "#/components/schemas/Query.Request.Edge"
           x-field-uid: 4
-    QueryShortestPathFilter:
+    Query.Request.ShortestPath:
       description: Filter specifying the shortest path constraints, with source and destination nodes.
       type: object
       required:
@@ -168,14 +158,14 @@ components:
           type: string
           x-field-uid: 1
         source:
-          description: Node ID from which to start the shortest path.
+          description: Node ID from which to start the shortest path. This should be an EXACT match.
           type: string
           x-field-uid: 2
         destination:
-          description: Node ID at which the shortest path ends.
+          description: Node ID at which the shortest path ends. This should be an EXACT match.
           type: string
           x-field-uid: 3
-    QueryRequest:
+    Query:
       description: A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
       type: object
       properties:
@@ -184,27 +174,19 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            node_filters:
+            filter:
               x-field-uid: 1
-            shortest_path_filters:
+            shortest_path:
               x-field-uid: 2
-        node_filters:
-          description: List of filters to match nodes.
-          type: array
-          items:
-            $ref: "#/components/schemas/QueryNodeFilter"
+        filter:
+          description: filter to get data from graph.
+          $ref: "#/components/schemas/Query.Request.Filter"
           x-field-uid: 2
-        shortest_path_filters:
+        shortest_path:
           description: |-
             Add shortest path filters to retrive the shortest path between source and destination nodes
-          type: array
-          items:
-            $ref: "#/components/schemas/QueryShortestPathFilter"
+          $ref: "#/components/schemas/Query.Request.ShortestPath"
           x-field-uid: 3
-          x-status:
-            status: under_review
-            information: |-
-              Proposal to abstract the shortest path interface to the graph.
   responses:
     QueryResponse:
       description: |-
@@ -212,4 +194,4 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/QueryResponseContent'
+            $ref: '#/components/schemas/Query.Response'
