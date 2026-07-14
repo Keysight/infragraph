@@ -916,10 +916,6 @@ class InfraGraphService(Api):
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
                 continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
-
-    def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
-        """Returns the shortest path between two endpoints in the graph."""
-        return 
     
     def query_graph(self, payload: Union[str, Query]) -> QueryResponse:
         """Query the graph"""
@@ -946,7 +942,6 @@ class InfraGraphService(Api):
             # process attributes or create a map?
             matched_nodes = []
             matched_edges = []
-            print("======================== before access ===================")
             print(query_request.filter.choice)
             logic = query_request.filter.attribute_filter.logic
             attribute_map = {}
@@ -954,8 +949,6 @@ class InfraGraphService(Api):
                 attribute_map[attribute.attribute] = attribute.value
 
             # now check for nodes, edges first before we move to generic?
-            print("========================")
-            print(query_request.filter.choice)
             if query_request.filter.choice == "node_filter":
                 # get all the nodes?
                 query_nodes = self._expand_node_string(query_request.filter.node_filter)
