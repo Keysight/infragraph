@@ -37,7 +37,7 @@ class Visualizer:
         "serdes": "#72928C", "electrical": "#C3554F", "internal_binding": "#888888",
     }
 
-    def __init__(self, infrastructure, annotations=None, output="./viz", hosts=(), switches=()):
+    def __init__(self, service=None, output="./viz", hosts=(), switches=()):
         """
         entry point to visualizer
         Params:
@@ -47,25 +47,16 @@ class Visualizer:
             hosts: Host names
             switches: Switch names
         """
+        self.service = service
         self.output = output
         self.host_names = self._split_names(hosts)
         self.switch_names = self._split_names(switches)
-        self.infrastructure = infrastructure
-        self.annotations = annotations
-        self.service = None
         self.all_device_names = set()
         self.output_dir = None
 
-        self.service = InfraGraphService()
-        self.service.set_graph(self.infrastructure)
-
-        # set the annotations here
-        if self.annotations is not None:
-            self.service.annotate_graph(self.annotations)
-
-        print(f"Infrastructure: {self.infrastructure.name}")
+        print(f"Infrastructure: {self.service.infrastructure.name}")
         print(f"  Devices: {list(self.service._device_data.keys())}")
-        print(f"  Instances: {[(i.name, i.count) for i in self.infrastructure.instances]}")
+        print(f"  Instances: {[(i.name, i.count) for i in self.service.infrastructure.instances]}")
         print(f"  Host devices: {self.host_names}")
         print(f"  Switch devices: {self.switch_names}")
         graph_attrs = self.service.get_networkx_graph().graph
@@ -175,7 +166,7 @@ class Visualizer:
         Returns:
             dict: vis.js-ready JSON with "nodes" and "edges" keys."""
         comp_descriptions = {}
-        for device in self.infrastructure.devices:
+        for device in self.service.infrastructure.devices:
             if device.name == device_name:
                 for comp in device.components:
                     comp_descriptions[comp.name] = comp.description
@@ -186,7 +177,7 @@ class Visualizer:
         # is shared across all instances of device_name, so we show the first
         # instance's attributes.
         G = self.service.get_networkx_graph()
-        first_instance = next((i for i in self.infrastructure.instances if i.device == device_name), None)
+        first_instance = next((i for i in self.service.infrastructure.instances if i.device == device_name), None)
         instance_prefix = f"{first_instance.name}.0." if first_instance is not None else None
 
         nodes = []
@@ -262,7 +253,7 @@ class Visualizer:
 
         # Instance nodes
         nodes = []
-        for instance in self.infrastructure.instances:
+        for instance in self.service.infrastructure.instances:
             device_name = instance.device
             for idx in range(instance.count):
                 is_host = device_name in self.host_names
@@ -300,7 +291,7 @@ class Visualizer:
 
             link = data.get("link", "unknown")
             bw = ""
-            for infra_link in self.infrastructure.links:
+            for infra_link in self.service.infrastructure.links:
                 if infra_link.name == link:
                     if hasattr(infra_link, 'physical') and infra_link.physical is not None:
                         bw_obj = infra_link.physical.bandwidth
@@ -393,4 +384,9 @@ def run_visualizer(input_file=None, infrastructure=None, annotations=None, outpu
         if annotations is None:
             annotations = loaded_annotations
 
-    Visualizer(infrastructure=infrastructure, annotations=annotations, output=output, hosts=hosts, switches=switches)
+    service = InfraGraphService()
+    service.set_graph(infrastructure)
+        # set the annotations here
+    if annotations is not None:
+        service.annotate_graph(annotations)
+    Visualizer(service, output=output, hosts=hosts, switches=switches)
