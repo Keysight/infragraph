@@ -2,7 +2,7 @@ import pytest
 import os
 import yaml
 
-from infragraph import QueryRequest, QueryNodeFilter, QueryNodeId
+from infragraph import Query
 from infragraph.translators.nccl_translator import NcclParser
 
 DEVICE_NAME = "dgx_a100"
@@ -65,36 +65,33 @@ async def test_dgx_a100_nccl_annotations():
     service = nccl_parser.get_annotations()
 
     # Query the graph for the annotated xpu nodes.
-    xpu_request = QueryRequest()
-    xpu_filter = xpu_request.node_filters.add(name="xpu filter")
-    xpu_filter.choice = QueryNodeFilter.ID_FILTER
-    xpu_filter.id_filter.operator = QueryNodeId.REGEX
-    xpu_filter.id_filter.value = rf"{DEVICE_NAME}\.0\.xpu\.\d+"
+    xpu_request = Query()
+    xpu_request.filter.choice = "node_filter"
+    xpu_request.filter.node_filter = f"{DEVICE_NAME}.0.xpu"
+    # An attribute filter must be set for the response to include node attributes.
+    xpu_request.filter.attribute_filter.attributes.add(attribute="busid", value="")
     xpu_response = service.query_graph(xpu_request)
 
     # One annotated node per GPU.
-    assert len(xpu_response.node_matches) == 8
+    assert len(xpu_response.nodes) == 8
 
     # Every GPU node carries the metadata pulled from the XML.
-    attrs = {a.name: a.value for a in xpu_response.node_matches[0].attributes}
+    attrs = {a.attribute: a.value for a in xpu_response.nodes[0].attributes}
     for key in ("busid", "rank", "dev", "sm", "gdr", "cpu_affinity"):
         assert key in attrs, f"missing '{key}' annotation on xpu node"
 
     # Query the rank attribute and confirm it is present on every GPU node.
-    rank_request = QueryRequest()
-    rank_filter = rank_request.node_filters.add(name="rank filter")
-    rank_filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
-    rank_filter.attribute_filter.name = "rank"
-    rank_filter.attribute_filter.operator = QueryNodeId.REGEX
-    rank_filter.attribute_filter.value = r"\d+"
+    rank_request = Query()
+    rank_request.filter.choice = "generic_filter"
+    rank_request.filter.attribute_filter.attributes.add(attribute="rank", value="")
     rank_response = service.query_graph(rank_request)
 
-    assert len(rank_response.node_matches) == 8
+    assert len(rank_response.nodes) == 8
 
     ranks = sorted(
         int(a.value)
-        for match in rank_response.node_matches
+        for match in rank_response.nodes
         for a in match.attributes
-        if a.name == "rank"
+        if a.attribute == "rank"
     )
     assert ranks == list(range(8))

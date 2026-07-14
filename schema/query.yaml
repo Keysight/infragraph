@@ -188,10 +188,10 @@ components:
           $ref: "#/components/schemas/Query.Request.ShortestPath"
           x-field-uid: 3
   responses:
-    QueryResponse:
-      description: |-
-        Answer to the query request.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Query.Response'
+      QueryResponseContent:
+        description: |-
+          Answer to the query request.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query.Response'

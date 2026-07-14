@@ -812,7 +812,7 @@ message GraphResponse {
 }
 
 // Answer to the query request.
-message QueryResponse {
+message QueryResponseContent {
   QueryResponse query_response = 1;
 }
 
