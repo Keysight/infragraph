@@ -10,7 +10,7 @@ Once released, a versioned package must remain immutable. All changes require a 
 
 ## Version Update Policy
 
-The Infragraph version is maintained in [api/info.yaml](../../api/info.yaml). Any version change must be made exclusively in this file, and the modification must be included in a dedicated merge request (MR).
+The Infragraph version is maintained in [schema/info.yaml](../../schema/info.yaml). Any version change must be made exclusively in this file, and the modification must be included in a dedicated merge request (MR).
 
 ## Version Bumping Rules
 A version bump is required whenever there is a change to the API or models. The version follows the `MAJOR.MINOR.PATCH` format, updated according to the following rules:

@@ -7,7 +7,7 @@ The following command generates these artifacts:
 import openapiart
 
 openapiart.OpenApiArt(
-    api_files=["./api/info.yaml", "./api/api.yaml"],
+    api_files=["./schema/info.yaml", "./schema/api.yaml"],
     protobuf_name="infragraph",
     artifact_dir="artifacts",
     generate_version_api=True,

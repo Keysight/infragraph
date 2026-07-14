@@ -20,13 +20,10 @@ from infragraph import *
 
 class GraphError(Exception):
     """Custom exception for graph-related errors."""
-
     pass
-
 
 class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
-
     pass
 
 class DeviceData:
@@ -629,6 +626,10 @@ class InfraGraphService(Api):
             self._infrastructure = payload
         # Initialize an empty graph, populate it with device and instance nodes, validate the resulting device edges and infrastructure edges, run final graph-wide validation, and then build the prefix and link lookup maps used for fast endpoint resolution.
         self._graph = Graph()
+        if self._infrastructure.name:
+            self._graph.graph["name"] = self._infrastructure.name
+        if self._infrastructure.description:
+            self._graph.graph["description"] = self._infrastructure.description
         self._generate_device_data()
         self._generate_instance_data()
         self._validate_device_edges()
@@ -660,7 +661,7 @@ class InfraGraphService(Api):
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
         
     def _build_partial_graph(self) -> Graph:
-        partial_graph = Graph()
+        partial_graph = Graph(**self._graph.graph)
         for node, data in self._graph.nodes(data=True):
             filtered = {k: v for k, v in data.items() if k not in self._IMMUTABLE_ATTRIBUTES}
             partial_graph.add_node(node, **filtered)
@@ -732,10 +733,18 @@ class InfraGraphService(Api):
                     "attributes": [{"attribute": k, "value": v} for k, v in filtered]
                 }
 
+        graph_attrs = source_graph.graph
+        annotation_graph = [
+            {"attribute": k, "value": v}
+            for k, v in graph_attrs.items()
+            if is_full or k not in self._IMMUTABLE_ATTRIBUTES
+        ]
+
         infragraph_dict["annotations"] = {
             "nodes": annotation_nodes,
             "edges": annotation_edges,
-            "links": list(seen_links.values())
+            "links": list(seen_links.values()),
+            "graph": annotation_graph
         }
 
         return json.dumps(infragraph_dict, indent=2)
@@ -858,7 +867,6 @@ class InfraGraphService(Api):
                 else:
                     raise ValueError(f"cannot annotate pre-existing attribute {attribute_kvp.attribute} for {annotation_node.name}")
 
-        
         # edges
         for annotation_node in annotate_request.edges:
             # expand the nodes
@@ -888,7 +896,13 @@ class InfraGraphService(Api):
                     raise ValueError(f"Cannot annotate pre-existing attribute {link_annotation.attribute} for {annotation_link.name}")
                 for ep1, ep2 in edges_for_link:
                     self._graph[ep1][ep2][link_annotation.attribute] = link_annotation.value
-                        
+
+        # graph
+        for attribute_kvp in annotate_request.graph:
+            if attribute_kvp.attribute in self._IMMUTABLE_ATTRIBUTES:
+                raise ValueError(f"Cannot annotate pre-existing attribute {attribute_kvp.attribute} for graph")
+            self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
+
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
         """Query the graph"""
         if isinstance(payload, str):

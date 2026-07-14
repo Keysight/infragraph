@@ -5,7 +5,7 @@ A graph is a natural fit to describe a system of systems in a clear, intuitive, 
 
 * Node or vertex represents an entity like a component, device, user, router, etc
 * Edge represents a relationship between nodes
-* Properties store additional information about nodes or edges
+* Properties store additional information about nodes, edges, or the graph itself
 
 ### Principles
 [InfraGraph](https://github.com/Keysight/infragraph) is a `collection of APIs and Models` used to describe AI/HPC infrastructure based on the following core principles:

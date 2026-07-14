@@ -625,6 +625,9 @@ message Annotation {
 
   // List of annotations to apply to links.
   repeated AnnotationLink links = 3;
+
+  // List of attributes to apply to the whole graph.
+  repeated AnnotationAttribute graph = 4;
 }
 
 // Represents a generic name and value pair attribute.
@@ -671,7 +674,8 @@ message QueryResponseContent {
       shortest_path_matches = 2;
     }
   }
-  // Indicates the type of results returned - node matches or shortest path matches.
+  // Indicates the type of results returned - node matches, shortest path matches, or
+  // graph attribute matches.
   optional Choice.Enum choice = 1;
 
   // Array of nodes matching the query criteria.
@@ -779,7 +783,8 @@ message QueryShortestPathFilter {
   optional string destination = 3;
 }
 
-// A request object specifying filters to be used for querying nodes or shortest paths.
+// A request object specifying filters to be used for querying nodes, graph attributes,
+// or shortest paths.
 message QueryRequest {
 
   message Choice {
@@ -915,7 +920,6 @@ service Openapi {
   // streaming version of the rpc QueryGraph
   rpc streamQueryGraph(stream Data) returns (QueryGraphResponse);
   // Extend the current graph created by the `set_graph` API.
-  // 
   // - example: Update specific endpoints with name/value information such as `rank=0`
   rpc AnnotateGraph(AnnotateGraphRequest) returns (AnnotateGraphResponse);
   // streaming version of the rpc AnnotateGraph

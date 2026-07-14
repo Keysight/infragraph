@@ -86,7 +86,7 @@ async def test_dragonfly_mi300x():
     dragonfly_fabric=DragonflyFabric(switch, mi300x, 16, 8, 8)
     assert len(dragonfly_fabric.instances) == 2
     for instance in dragonfly_fabric.instances:
-        if instance.name == "dgx_a100":
+        if instance.name == "mi300x":
             assert instance.count == 2064
         elif instance.name == "router":
             assert instance.count == 2064

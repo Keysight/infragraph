@@ -109,7 +109,6 @@ paths:
       x-stream: client
       description: |-
         Extend the current graph created by the `set_graph` API.
-
           - example: Update specific endpoints with name/value information such as `rank=0`
       requestBody:
         required: true
@@ -984,6 +983,13 @@ components:
           items:
             $ref: '#/components/schemas/Annotation.Link'
           x-field-uid: 3
+        graph:
+          description: |-
+            List of attributes to apply to the whole graph.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Attribute'
+          x-field-uid: 4
     NameValue:
       description: |-
         Represents a generic name and value pair attribute.
@@ -1043,7 +1049,7 @@ components:
       properties:
         choice:
           description: |-
-            Indicates the type of results returned - node matches or shortest path matches.
+            Indicates the type of results returned - node matches, shortest path matches, or graph attribute matches.
           type: string
           x-enum:
             node_matches:
@@ -1210,7 +1216,7 @@ components:
           x-field-uid: 3
     QueryRequest:
       description: |-
-        A request object specifying filters to be used for querying nodes or shortest paths.
+        A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
       type: object
       properties:
         choice:
