@@ -92,34 +92,72 @@ def _annotate_topology(service):
 
     _annotate_edge(service, ep1="dgx_h100[1]xpu", ep2="dgx_h100[1]nvsw", latency="0.08", link_type="nvlink", error_rate="20")
 
-def _make_service():
+@pytest.fixture
+def service():
     dgx = NvidiaDGX()
     clos_fat_tree = SingleTierFabric(dgx, 2)
-    service = InfraGraphService()
-    service.set_graph(clos_fat_tree)
-    return service
+    svc = InfraGraphService()
+    svc.set_graph(clos_fat_tree)
+    _annotate_topology(svc)
+    return svc
 
-def query_attributes(service):
+def test_generic_filter_query(service):
     query = Query()
     query.filter.choice = "generic_filter"
     query.filter.attribute_filter.attributes.add(attribute="cpu_type", value="hyper threaded")
     query_response = service.query_graph(query)
-    assert(len(query_response.nodes) == 2)
+    assert len(query_response.nodes) == 2
     assert "dgx_h100.1.cpu." in query_response.nodes[0].name
 
+def test_query_node_attribute(service):
+    # get all smart nics
+    query = Query()
+    query.filter.node_filter = "dgx_h100"
+    query.filter.attribute_filter.attributes.add(attribute="cx7_type", value="smart")
+    query_response = service.query_graph(query)
+    assert len(query_response.nodes) == 8
+    assert "dgx_h100" in query_response.nodes[0].name
 
-@pytest.mark.asyncio
-async def test_graph_query():
-    service = _make_service()
-    _annotate_topology(service)
 
-    # now query the graph here and validate
-    query_attributes(service)
-
-
+def test_query_rank_node_attribute(service):
+    # get all smart nics
+    query = Query()
+    query.filter.choice = "generic_filter"
+    query.filter.attribute_filter.attributes.add(attribute="rank", value="")
+    query_response = service.query_graph(query)
+    assert len(query_response.nodes) == 16
+    assert "xpu" in query_response.nodes[0].name
     # print_graph(service)
     # visualize_dgx(service.infrastructure, None, "clos_visual")
 
+def test_query_nic_node_attribute(service):
+    # get all smart nics
+    query = Query()
+    query.filter.choice = "generic_filter"
+    query.filter.attribute_filter.attributes.add(attribute="type", value="nic")
+    query_response = service.query_graph(query)
+    assert len(query_response.nodes) == 16
+    assert "cx7" in query_response.nodes[0].name
+
+    # get specific smart nics
+    query = Query()
+    query.filter.node_filter = "dgx_h100[1]"
+    query.filter.attribute_filter.attributes.add(attribute="type", value="nic")
+    query_response = service.query_graph(query)
+    assert len(query_response.nodes) == 8
+    assert "cx7" in query_response.nodes[0].name
+    # print_graph(service)
+    # visualize_dgx(service.infrastructure, None, "clos_visual")
+
+def test_query_graph_attribute(service):
+    # get all smart nics
+    query = Query()
+    query.filter.choice = "generic_filter"
+
+    query.filter.attribute_filter.attributes.add(attribute="region", value="us-east")
+    query_response = service.query_graph(query)
+    assert len(query_response.graph) > 0
+    
 
 if __name__ == "__main__":
     pytest.main(["-s", __file__])

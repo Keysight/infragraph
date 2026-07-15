@@ -1009,6 +1009,12 @@ class InfraGraphService(Api):
                         query_response_edge = query_response.edges.add(ep1=edge[0], ep2=edge[1])
                         for k, v in attrs.items():
                             query_response_edge.attributes.add(attribute=k, value=str(v))
+
+                # get graph attributes and match with attrs?
+                if InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic):
+                    for k, v in self._graph.graph.items():
+                        query_response.graph.add(attribute=k, value=str(v))
+
             return query_response
 
     def _get_networkx_node_attrs(self, node):
