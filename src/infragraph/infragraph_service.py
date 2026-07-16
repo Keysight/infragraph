@@ -917,12 +917,129 @@ class InfraGraphService(Api):
                 continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
     
-    def query_graph(self, payload: Union[str, Query]) -> QueryResponse:
+    def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponse):
+        
+        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filter is None or len(node_filter.attribute_filter.attributes) == 0):
+            return 
+
+        request_node_identifiers = []
+        if node_filter.node_identifier is None or len(node_filter.node_identifier) == 0:
+            request_node_identifiers = list(self._graph)
+        else:
+            for request_nodes in node_filter.node_identifier:  
+                expanded_nodes = self._expand_node_string(request_nodes)
+        
+                for node in expanded_nodes:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
+                    if list_from_prefix_map: 
+                        request_node_identifiers.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{node} not present in networx graph")
+        
+        # check for attributes here
+        if len(node_filter.attribute_filter.attributes) == 0:
+            # all attributes
+            for node in request_node_identifiers:
+                query_response_node = query_response.nodes.add(name=node)
+                # return all attributes
+                if node in self._graph:
+                    attrs = self._graph.nodes[node]
+                    for k, v in attrs.items():
+                        query_response_node.attributes.add(attribute=k, value=str(v))
+                else:
+                    warnings.warn(f"{node} not present in networx graph")
+        else:
+            # match that specific attribute for every node
+            attribute_map = {}
+            logic = node_filter.attribute_filter.logic
+            attribute_map = {}
+            for attribute in node_filter.attribute_filter.attributes:
+                attribute_map[attribute.attribute] = attribute.value
+
+            for node in request_node_identifiers:
+                # get attrs:
+                attrs = self._get_networkx_node_attrs(node)
+                attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
+                if len(attribute_match) > 0:
+                    query_response_node = query_response.nodes.add(name=node)
+                    # add those specific nodes?
+                    for k, v in attribute_match.items():
+                        query_response_node.attributes.add(attribute=k, value=str(v))
+
+    def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponse):
+        
+        if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filter is None or len(edge_filter.attribute_filter.attributes) == 0):
+            return 
+        
+        request_edge_identifiers = []
+        if edge_filter.endpoints is None or len(edge_filter.endpoints) == 0:
+            request_edge_identifiers = list(self._graph.edges)
+        else:
+            for endpoints in edge_filter.endpoints:  
+                expanded_source_edges = self._expand_node_string(endpoints.ep1)
+                expanded_destination_edges = self._expand_node_string(endpoints.ep2)
+                # expand it further
+                # get the expanded source edges
+                source_edges= []
+                for edge_node in expanded_source_edges:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                    if list_from_prefix_map: 
+                        source_edges.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{node} not present in networx graph") 
+                # get the expanded destination edges
+                destination_edges = []
+                for edge_node in expanded_destination_edges:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                    if list_from_prefix_map: 
+                        destination_edges.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{node} not present in networx graph")    
+                            
+                request_edge_identifiers = [
+                    edge
+                    for a, b in iterproduct(source_edges, destination_edges)
+                    for edge in ((a, b), (b, a))
+                    if self._graph.has_edge(*edge)
+                ]
+        
+        # check for attributes here
+        if edge_filter.attribute_filter is not None or len(edge_filter.attribute_filter) == 0:
+            # all attributes
+            for endpoints in request_edge_identifiers:
+                # return all attributes
+                if (endpoints[0], endpoints[1]) in self._graph.edges:
+                    query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                    attrs = self._graph.edges[endpoints[0], endpoints[1]]
+                    for k, v in attrs.items():
+                        query_response_edge.attributes.add(attribute=k, value=str(v))
+                else:
+                    warnings.warn(f"{endpoints[0]} and {endpoints[1]} not present in networx graph")
+        else:
+            # match that specific attribute for every node
+            attribute_map = {}
+            logic = edge_filter.attribute_filter.logic
+            attribute_map = {}
+            for attribute in edge_filter.attribute_filter.attributes:
+                attribute_map[attribute.attribute] = attribute.value
+
+            for endpoints in request_edge_identifiers:
+                # return all attributes
+                if (endpoints[0], endpoints[1]) in self._graph.edges:
+                    attrs = self._graph.edges[endpoints[0], endpoints[1]]
+                    attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
+                    if len(attribute_match) > 0:
+                        query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                        # add those specific nodes?
+                        for k, v in attribute_match.items():
+                            query_response_edge.attributes.add(attribute=k, value=str(v))
+
+    def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponse:
         """Query the graph"""
         if isinstance(payload, str):
-            query_request = Query().deserialize(payload)
+            query_request = QueryRequest().deserialize(payload)
         else:
-            query_request: Query = payload
+            query_request: QueryRequest = payload
 
         query_response = QueryResponse()
         
@@ -939,80 +1056,22 @@ class InfraGraphService(Api):
             return query_response
         
         else:
-            # process attributes or create a map?
-            matched_nodes = []
-            matched_edges = []
-            print(query_request.filter.choice)
-            logic = query_request.filter.attribute_filter.logic
-            attribute_map = {}
-            for attribute in query_request.filter.attribute_filter.attributes:
-                attribute_map[attribute.attribute] = attribute.value
+            self._process_node_filter(node_filter=query_request.filter.node_filter, query_response=query_response)
 
-            # now check for nodes, edges first before we move to generic?
-            if query_request.filter.choice == "node_filter":
-                # get all the nodes?
-                query_nodes = self._expand_node_string(query_request.filter.node_filter)
-                
-                for node in query_nodes:
-                    list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
-                    if list_from_prefix_map: 
-                        matched_nodes.extend(list_from_prefix_map)
-                    else:
-                        raise ValueError(f"{node} not present in networx graph")
-                # process nodes here
-                if len(matched_nodes) == 0:
-                    raise InfrastructureError(f"{query_request.filter.node_filter} did not match any of the node in graph")
-        
-            elif query_request.filter.choice == "edge_filter":
-                source_edges = self._expand_node_string(query_request.filter.edge_filter.ep1)
-                destination_edges = self._expand_node_string(query_request.filter.edge_filter.ep2)
+            self._process_edge_filter(edge_filter=query_request.filter.edge_filter, query_response=query_response)
 
-                adj = {n: set(self._graph.neighbors(n)) for n in self._graph.nodes}
-                for s in source_edges:
-                    # only check neighbors of s (not all edges)
-                    for d in adj[s]:
-                        if d in destination_edges:
-                            matched_edges.append((s, d))        
-                # process nodes here
-                if len(matched_edges) == 0:
-                    raise InfrastructureError(f"{query_request.filter.edge_filter.ep1} and {query_request.filter.edge_filter.ep2} did not match any of the edges in graph")
-                # process here
+            # match that specific attribute for every node
+            if query_request.filter.graph_filter.attributes is not None:
+                attribute_map = {}
+                logic = query_request.filter.graph_filter.logic
+                attribute_map = {}
+                for attribute in query_request.filter.graph_filter.attributes:
+                    attribute_map[attribute.attribute] = attribute.value
 
-            else:
-                # everything here
-                matched_nodes = list(self._graph.nodes)
-                matched_edges = list(self._graph.edges)
-            
-            # process attributes for each of them
-            # maybe the list is empty?
-            if len(attribute_map) == 0:
-                # return the matched nodes and edges
-                # should we add attributes?
-                for node in matched_nodes:
-                    query_response.nodes.add(name=node)
-                
-                for edge in matched_edges:
-                    query_response.edges.add(ep1=edge[0], ep2=edge[1])
-            else:
-                for node in matched_nodes:
-                    # get attrs:
-                    attrs = self._get_networkx_node_attrs(node)
-                    if InfraGraphService._match_attrs(attrs, attribute_map, logic):
-                        query_response_node = query_response.nodes.add(name=node)
-                        for k, v in attrs.items():
-                            query_response_node.attributes.add(attribute=k, value=str(v))
-
-                for edge in matched_edges:
-                    # get attrs:
-                    attrs = self._get_networkx_edge_attrs(edge[0], edge[1])
-                    if InfraGraphService._match_attrs(attrs, attribute_map, logic):
-                        query_response_edge = query_response.edges.add(ep1=edge[0], ep2=edge[1])
-                        for k, v in attrs.items():
-                            query_response_edge.attributes.add(attribute=k, value=str(v))
-
-                # get graph attributes and match with attrs?
-                if InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic):
-                    for k, v in self._graph.graph.items():
+                attribute_match = InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic)
+                if len(attribute_match) > 0:
+                    # add those specific attributes
+                    for k, v in attribute_match.items():
                         query_response.graph.add(attribute=k, value=str(v))
 
             return query_response
@@ -1038,13 +1097,15 @@ class InfraGraphService(Api):
             master = master.lower()
             query = query.lower()
             return query in master
-        
-        matches = []
+
+        matched = {}
 
         for key, query_value in query_dict.items():
             if key not in master_dict:
-                matches.append(False)
                 continue
+            if value_matches(master_dict[key], query_value):
+                matched[key] = master_dict[key]
 
-            matches.append(value_matches(master_dict[key], query_value))
-        return all(matches) if logic == "and" else any(matches)
+        if logic == "and":
+            return matched if len(matched) == len(query_dict) else {}
+        return matched

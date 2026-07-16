@@ -23,7 +23,7 @@ async def test_shortest_path(ranks: Tuple[int, int]):
     service.annotate_graph(annotation.serialize())
 
     # find shortest path from one rank to another
-    query = Query()
+    query = QueryRequest()
     query.shortest_path.name = "rank0-rank1"
     
     

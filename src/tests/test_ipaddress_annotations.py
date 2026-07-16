@@ -13,11 +13,10 @@ async def test_ipaddress_annotations():
     service.set_graph(ClosFabric())
 
     # query the graph for host nics
-    npu_request = Query()
-    npu_request.filter.choice = "generic_filter"
-    npu_request.filter.attribute_filter.attributes.add(attribute="type", value="mgmt-nic")
+    npu_request = QueryRequest()
+    npu_request.filter.node_filter.attribute_filter.attributes.add(attribute="type", value="mgmt-nic")
     nic_response = service.query_graph(npu_request)
-    print(nic_response.nodes)
+    assert len(nic_response.nodes) > 0
 
     # annotate the graph
     annotation = Annotation()
@@ -29,9 +28,8 @@ async def test_ipaddress_annotations():
     service.annotate_graph(annotation)
 
     # query the graph for ipaddress attributes
-    ipaddress_request = Query()
-    ipaddress_request.filter.choice = "generic_filter"
-    ipaddress_request.filter.attribute_filter.attributes.add(attribute="ipaddress", value="")
+    ipaddress_request = QueryRequest()
+    ipaddress_request.filter.node_filter.attribute_filter.attributes.add(attribute="ipaddress", value="")
     ipaddress_response = service.query_graph(ipaddress_request)
     print(ipaddress_response.nodes)
 

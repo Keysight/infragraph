@@ -12,9 +12,8 @@ async def test_rank_annotations():
     service.set_graph(ClosFabric())
 
     # query the graph for host npus
-    npu_request = Query()
-    npu_request.filter.choice = "generic_filter"
-    npu_request.filter.attribute_filter.attributes.add(attribute="type", value="xpu")
+    npu_request = QueryRequest()
+    npu_request.filter.node_filter.attribute_filter.attributes.add(attribute="type", value="xpu")
     npu_response = service.query_graph(npu_request)
 
     annotation = Annotation()
@@ -26,9 +25,8 @@ async def test_rank_annotations():
     service.annotate_graph(annotation)
 
     # query the graph for rank attributes
-    rank_request = Query()
-    rank_request.filter.choice = "generic_filter"
-    rank_request.filter.attribute_filter.attributes.add(attribute="rank", value="")
+    rank_request = QueryRequest()
+    rank_request.filter.node_filter.attribute_filter.attributes.add(attribute="rank", value="")
     rank_response = service.query_graph(rank_request)
 
     # validation

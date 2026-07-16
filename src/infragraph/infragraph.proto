@@ -656,7 +656,7 @@ message QueryResponseEdge {
   // Matched endpoint one.
   optional string ep1 = 1;
 
-  // Matched endpoint two
+  // Matched endpoint two.
   optional string ep2 = 2;
 
   // An inventory of attributes and values.
@@ -667,18 +667,42 @@ message QueryResponseEdge {
 // of nodes or edges or graph attributes.
 message QueryResponse {
 
-  // List of matches nodes of the graph with attributes.
+  // List of matched nodes of the graph with attributes.
   repeated QueryResponseNode nodes = 1;
 
-  // List of matches edges of the graph with attributes.
+  // List of matched edges of the graph with attributes.
   repeated QueryResponseEdge edges = 2;
 
   // List of matched graph attributes.
   repeated QueryAttribute graph = 3;
 }
 
+// Defines request for node match
+message QueryRequestNode {
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  repeated string node_identifier = 1;
+
+  // Attribute-based filter criteria.
+  QueryRequestAttribute attribute_filter = 2;
+}
+
 // Defines request for edge match
 message QueryRequestEdge {
+
+  // Array of edge endpoints where you want to filter
+  repeated QueryRequestEdgeEndpoints endpoints = 1;
+
+  // Attribute-based filter criteria.
+  QueryRequestAttribute attribute_filter = 2;
+}
+
+// Defines request for edge match
+message QueryRequestEdgeEndpoints {
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
   // slicing operator and expands to the networkx expanded format:
@@ -715,30 +739,14 @@ message QueryRequestAttribute {
 // Defines a filter on nodes, either by attributes or by node IDs.
 message QueryRequestFilter {
 
-  // Attribute-based filter criteria.
-  QueryRequestAttribute attribute_filter = 1;
+  // Node name filter
+  QueryRequestNode node_filter = 1;
 
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      edge_filter = 1;
-      generic_filter = 2;
-      node_filter = 3;
-    }
-  }
-  // Type of node filter, edge filter or generic filter.
-  // default = Choice.Enum.generic_filter
-  optional Choice.Enum choice = 2;
+  // Edge filter.
+  QueryRequestEdge edge_filter = 2;
 
-  // Node name filter. Node name that MUST exist or match nodes present in the graph.
-  // This supports slicing operator and converts to expanded format:
-  // - server[0]xpu[0]
-  // - server[0:2]
-  // - switch
-  optional string node_filter = 3;
-
-  // Node id filter.
-  QueryRequestEdge edge_filter = 4;
+  // Graph filter.
+  QueryRequestAttribute graph_filter = 3;
 }
 
 // Filter specifying the shortest path constraints, with source and destination nodes.
@@ -759,7 +767,7 @@ message QueryRequestShortestPath {
 
 // A request object specifying filters to be used for querying nodes, graph attributes,
 // or shortest paths.
-message Query {
+message QueryRequest {
 
   message Choice {
     enum Enum {
@@ -774,7 +782,7 @@ message Query {
   // filter to get data from graph.
   QueryRequestFilter filter = 2;
 
-  // Add shortest path filters to retrive the shortest path between source and destination
+  // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
   QueryRequestShortestPath shortest_path = 3;
 }
@@ -839,7 +847,7 @@ message GetGraphResponse {
 
 
 message QueryGraphRequest {
-  Query query = 1;
+  QueryRequest query_request = 1;
 }
 message QueryGraphResponse {
   QueryResponse query_response = 1;
