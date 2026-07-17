@@ -630,108 +630,100 @@ message Annotation {
   repeated AnnotationAttribute graph = 4;
 }
 
-// Represents a generic name and value pair attribute.
-message NameValue {
-
-  // Name of the attribute or property.
-  optional string name = 1;
-
-  // Value corresponding to the name.
-  optional string value = 2;
-}
-
-// Represents a single item returned from a query, identified by an id and associated
-// attributes.
-message QueryResponseItem {
-
-  // Unique identifier of the item.
-  optional string id = 1;
-
-  // List of name-value pairs describing item attributes.
-  repeated NameValue attributes = 2;
-}
-
-// Represents a shortest path result containing a name and an ordered list of nodes
-// on the path.
-message QueryShortestPathItem {
-
-  // Name of the shortest path filter
-  // required = true
-  optional string name = 1;
-
-  // An array of node ids that make up the shortest path
-  repeated string nodes = 2;
-}
-
-// The content of a query response, indicating the type of match and containing corresponding
-// results.
-message QueryResponseContent {
-
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      node_matches = 1;
-      shortest_path_matches = 2;
-    }
-  }
-  // Indicates the type of results returned - node matches, shortest path matches, or
-  // graph attribute matches.
-  optional Choice.Enum choice = 1;
-
-  // Array of nodes matching the query criteria.
-  repeated QueryResponseItem node_matches = 2;
-
-  // Array of shortest path results matching the query criteria.
-  repeated QueryShortestPathItem shortest_path_matches = 3;
-}
-
-// Criteria for filtering nodes based on attribute names, values, and operators.
+// Attribute and its value.
 message QueryAttribute {
 
-  // Attribute name to filter on.
-  optional string name = 1;
+  // The attribute key.
+  optional string attribute = 1;
 
-  message Operator {
-    enum Enum {
-      unspecified = 0;
-      eq = 1;
-      regex = 2;
-      contains = 3;
-    }
-  }
-  // Operator used for attribute filtering.
-  optional Operator.Enum operator = 2;
-
-  // Value to compare the attribute against.
-  optional string value = 3;
-
-  message Logic {
-    enum Enum {
-      unspecified = 0;
-      and = 1;
-      or = 2;
-    }
-  }
-  // Logical operation to combine this filter with others.
-  optional Logic.Enum logic = 4;
+  // The attribute value.
+  optional string value = 2;
 }
 
-// Criteria for filtering node IDs using specified operators and logical combinations.
-message QueryNodeId {
+// Matched node name and its attributes present in the graph.
+message QueryResponseNode {
 
-  message Operator {
-    enum Enum {
-      unspecified = 0;
-      eq = 1;
-      regex = 2;
-      contains = 3;
-    }
-  }
-  // Operator used to filter node IDs.
-  optional Operator.Enum operator = 1;
+  // Matched node name present in the graph.
+  optional string name = 1;
 
-  // Value pattern for filtering node IDs.
-  optional string value = 2;
+  // An inventory of attributes and values of the current node.
+  repeated QueryAttribute attributes = 2;
+}
+
+// Matched edges and their attributes present in the graph.
+message QueryResponseEdge {
+
+  // Matched endpoint one.
+  optional string ep1 = 1;
+
+  // Matched endpoint two.
+  optional string ep2 = 2;
+
+  // An inventory of attributes and values.
+  repeated QueryAttribute attributes = 3;
+}
+
+// Query response object - a query filter can act on the graph and respond with array
+// of nodes or edges or graph attributes.
+message QueryResponse {
+
+  // List of matched nodes of the graph with attributes.
+  repeated QueryResponseNode nodes = 1;
+
+  // List of matched edges of the graph with attributes.
+  repeated QueryResponseEdge edges = 2;
+
+  // List of matched graph attributes.
+  repeated QueryAttribute graph = 3;
+}
+
+// Defines request for node match
+message QueryRequestNode {
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  repeated string node_identifier = 1;
+
+  // Attribute-based filter criteria.
+  QueryRequestAttribute attribute_filters = 2;
+}
+
+// Defines request for edge match
+message QueryRequestEdge {
+
+  // Array of edge endpoints where you want to filter
+  repeated QueryRequestEdgeEndpoints endpoints = 1;
+
+  // Attribute-based filter criteria.
+  QueryRequestAttribute attribute_filters = 2;
+}
+
+// Defines request for edge match
+message QueryRequestEdgeEndpoints {
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep1 = 1;
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the networkx expanded format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep2 = 2;
+}
+
+// Query request attributes with logical operation on all of the attributes.
+message QueryRequestAttribute {
+
+  // Attributes for filter
+  repeated QueryAttribute attributes = 1;
 
   message Logic {
     enum Enum {
@@ -740,45 +732,35 @@ message QueryNodeId {
       or = 2;
     }
   }
-  // Logical operation to combine this ID filter with others.
-  optional Logic.Enum logic = 3;
+  // Logical operation to combine this filter with others. Default is and.
+  optional Logic.Enum logic = 2;
 }
 
 // Defines a filter on nodes, either by attributes or by node IDs.
-message QueryNodeFilter {
+message QueryRequestFilter {
 
-  // Name of this node filter.
-  optional string name = 1;
+  // Node name filter
+  QueryRequestNode node_filters = 1;
 
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      attribute_filter = 1;
-      id_filter = 2;
-    }
-  }
-  // Type of node filter, either attribute or ID based.
-  optional Choice.Enum choice = 2;
+  // Edge filter.
+  QueryRequestEdge edge_filters = 2;
 
-  // Attribute-based filter criteria.
-  QueryAttribute attribute_filter = 3;
-
-  // ID-based filter criteria.
-  QueryNodeId id_filter = 4;
+  // Graph filter.
+  QueryRequestAttribute graph_filter = 3;
 }
 
 // Filter specifying the shortest path constraints, with source and destination nodes.
-message QueryShortestPathFilter {
+message QueryRequestShortestPath {
 
   // Name of the shortest path filter.
   // required = true
   optional string name = 1;
 
-  // Node ID from which to start the shortest path.
+  // Node ID from which to start the shortest path. This should be an EXACT match.
   // required = true
   optional string source = 2;
 
-  // Node ID at which the shortest path ends.
+  // Node ID at which the shortest path ends. This should be an EXACT match.
   // required = true
   optional string destination = 3;
 }
@@ -790,21 +772,19 @@ message QueryRequest {
   message Choice {
     enum Enum {
       unspecified = 0;
-      node_filters = 1;
-      shortest_path_filters = 2;
+      filters = 1;
+      shortest_path = 2;
     }
   }
   // Type of filters specified in this query request.
   optional Choice.Enum choice = 1;
 
-  // List of filters to match nodes.
-  repeated QueryNodeFilter node_filters = 2;
+  // filter to get data from graph.
+  QueryRequestFilter filters = 2;
 
-  // Under Review: Proposal to abstract the shortest path interface to the graph.
-  // 
-  // Add shortest path filters to retrive the shortest path between source and destination
+  // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
-  repeated QueryShortestPathFilter shortest_path_filters = 3;
+  QueryRequestShortestPath shortest_path = 3;
 }
 
 // Version details
@@ -840,8 +820,8 @@ message GraphResponse {
 }
 
 // Answer to the query request.
-message QueryResponse {
-  QueryResponseContent query_response_content = 1;
+message QueryResponseContent {
+  QueryResponse query_response = 1;
 }
 
 // Data that needs to be streamed
@@ -870,7 +850,7 @@ message QueryGraphRequest {
   QueryRequest query_request = 1;
 }
 message QueryGraphResponse {
-  QueryResponseContent query_response_content = 1;
+  QueryResponse query_response = 1;
 }
 
 

@@ -14,8 +14,8 @@ async def test_infrastructure():
 
     # validations
     g = service.get_networkx_graph()
-    print(f"\nInfrastructure is a {g}")
-    print(networkx.write_network_text(g, vertical_chains=True))
+    # print(f"\nInfrastructure is a {g}")
+    # print(networkx.write_network_text(g, vertical_chains=True))
 
 
 if __name__ == "__main__":

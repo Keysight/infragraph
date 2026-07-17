@@ -23,5 +23,4 @@ service = nccl_parser.get_annotations()
 req = GraphRequest()
 req.infragraph.annotations.choice = "full"
 annotated_graph = service.get_graph(req)  # returns a JSON string
-print(yaml.dump(json.loads(annotated_graph), sort_keys=False))
 # %%

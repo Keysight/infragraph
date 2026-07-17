@@ -25,7 +25,8 @@ async def test_single_tier_fabric_one_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
@@ -41,7 +42,8 @@ async def test_single_tier_fabric_multi_dgx():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
@@ -57,7 +59,8 @@ async def test_single_tier_fabric_multi_server():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 if __name__ == "__main__":
