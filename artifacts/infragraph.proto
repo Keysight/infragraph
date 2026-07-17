@@ -688,7 +688,7 @@ message QueryRequestNode {
   repeated string node_identifier = 1;
 
   // Attribute-based filter criteria.
-  QueryRequestAttribute attribute_filter = 2;
+  QueryRequestAttribute attribute_filters = 2;
 }
 
 // Defines request for edge match
@@ -698,7 +698,7 @@ message QueryRequestEdge {
   repeated QueryRequestEdgeEndpoints endpoints = 1;
 
   // Attribute-based filter criteria.
-  QueryRequestAttribute attribute_filter = 2;
+  QueryRequestAttribute attribute_filters = 2;
 }
 
 // Defines request for edge match
@@ -740,10 +740,10 @@ message QueryRequestAttribute {
 message QueryRequestFilter {
 
   // Node name filter
-  QueryRequestNode node_filter = 1;
+  QueryRequestNode node_filters = 1;
 
   // Edge filter.
-  QueryRequestEdge edge_filter = 2;
+  QueryRequestEdge edge_filters = 2;
 
   // Graph filter.
   QueryRequestAttribute graph_filter = 3;
@@ -772,7 +772,7 @@ message QueryRequest {
   message Choice {
     enum Enum {
       unspecified = 0;
-      filter = 1;
+      filters = 1;
       shortest_path = 2;
     }
   }
@@ -780,7 +780,7 @@ message QueryRequest {
   optional Choice.Enum choice = 1;
 
   // filter to get data from graph.
-  QueryRequestFilter filter = 2;
+  QueryRequestFilter filters = 2;
 
   // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes

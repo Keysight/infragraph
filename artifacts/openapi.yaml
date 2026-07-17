@@ -1085,7 +1085,7 @@ components:
           items:
             type: string
           x-field-uid: 1
-        attribute_filter:
+        attribute_filters:
           description: |-
             Attribute-based filter criteria.
           $ref: '#/components/schemas/Query.Request.Attribute'
@@ -1102,7 +1102,7 @@ components:
           items:
             $ref: '#/components/schemas/Query.Request.Edge.Endpoints'
           x-field-uid: 1
-        attribute_filter:
+        attribute_filters:
           description: |-
             Attribute-based filter criteria.
           $ref: '#/components/schemas/Query.Request.Attribute'
@@ -1158,12 +1158,12 @@ components:
         Defines a filter on nodes, either by attributes or by node IDs.
       type: object
       properties:
-        node_filter:
+        node_filters:
           description: |-
             Node name filter
           $ref: '#/components/schemas/Query.Request.Node'
           x-field-uid: 1
-        edge_filter:
+        edge_filters:
           description: |-
             Edge filter.
           $ref: '#/components/schemas/Query.Request.Edge'
@@ -1208,14 +1208,14 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            filter:
+            filters:
               x-field-uid: 1
             shortest_path:
               x-field-uid: 2
           enum:
-          - filter
+          - filters
           - shortest_path
-        filter:
+        filters:
           description: |-
             filter to get data from graph.
           $ref: '#/components/schemas/Query.Request.Filter'
