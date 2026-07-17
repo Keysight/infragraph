@@ -66,9 +66,9 @@ async def test_dgx_a100_nccl_annotations():
 
     # Query the graph for the annotated xpu nodes.
     xpu_request = QueryRequest()
-    xpu_request.filter.node_filter.node_identifier = [f"{DEVICE_NAME}.0.xpu"]
+    xpu_request.filters.node_filters.node_identifier = [f"{DEVICE_NAME}.0.xpu"]
     # An attribute filter must be set for the response to include node attributes.
-    xpu_request.filter.node_filter.attribute_filter.attributes.add(attribute="busid", value="")
+    xpu_request.filters.node_filters.attribute_filters.attributes.add(attribute="busid", value="")
     xpu_response = service.query_graph(xpu_request)
 
     # One annotated node per GPU.
@@ -81,7 +81,7 @@ async def test_dgx_a100_nccl_annotations():
 
     # Query the rank attribute and confirm it is present on every GPU node.
     rank_request = QueryRequest()
-    rank_request.filter.node_filter.attribute_filter.attributes.add(attribute="rank", value="")
+    rank_request.filters.node_filters.attribute_filters.attributes.add(attribute="rank", value="")
     rank_response = service.query_graph(rank_request)
 
     assert len(rank_response.nodes) == 8

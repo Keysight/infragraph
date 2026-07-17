@@ -654,7 +654,7 @@ class InfraGraphService(Api):
         networkx.is_connected(self._graph)
         zero_degree_nodes = [n for n, d in self._graph.degree() if d == 0]
         if len(zero_degree_nodes) > 0:
-            print(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
+            warnings.warn(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
@@ -919,7 +919,7 @@ class InfraGraphService(Api):
     
     def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponse):
         
-        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filter is None or len(node_filter.attribute_filter.attributes) == 0):
+        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
             return 
 
         request_node_identifiers = []
@@ -937,7 +937,7 @@ class InfraGraphService(Api):
                         warnings.warn(f"{node} not present in networx graph")
         
         # check for attributes here
-        if len(node_filter.attribute_filter.attributes) == 0:
+        if len(node_filter.attribute_filters.attributes) == 0:
             # all attributes
             for node in request_node_identifiers:
                 query_response_node = query_response.nodes.add(name=node)
@@ -951,9 +951,9 @@ class InfraGraphService(Api):
         else:
             # match that specific attribute for every node
             attribute_map = {}
-            logic = node_filter.attribute_filter.logic
+            logic = node_filter.attribute_filters.logic
             attribute_map = {}
-            for attribute in node_filter.attribute_filter.attributes:
+            for attribute in node_filter.attribute_filters.attributes:
                 attribute_map[attribute.attribute] = attribute.value
 
             for node in request_node_identifiers:
@@ -968,7 +968,7 @@ class InfraGraphService(Api):
 
     def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponse):
         
-        if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filter is None or len(edge_filter.attribute_filter.attributes) == 0):
+        if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0):
             return 
         
         request_edge_identifiers = []
@@ -986,7 +986,7 @@ class InfraGraphService(Api):
                     if list_from_prefix_map: 
                         source_edges.extend(list_from_prefix_map)
                     else:
-                        warnings.warn(f"{node} not present in networx graph") 
+                        warnings.warn(f"{edge_node} not present in networx graph") 
                 # get the expanded destination edges
                 destination_edges = []
                 for edge_node in expanded_destination_edges:
@@ -994,7 +994,7 @@ class InfraGraphService(Api):
                     if list_from_prefix_map: 
                         destination_edges.extend(list_from_prefix_map)
                     else:
-                        warnings.warn(f"{node} not present in networx graph")    
+                        warnings.warn(f"{edge_node} not present in networx graph")    
                             
                 request_edge_identifiers = [
                     edge
@@ -1004,7 +1004,7 @@ class InfraGraphService(Api):
                 ]
         
         # check for attributes here
-        if edge_filter.attribute_filter is not None or len(edge_filter.attribute_filter) == 0:
+        if edge_filter.attribute_filters is not None or len(edge_filter.attribute_filters) == 0:
             # all attributes
             for endpoints in request_edge_identifiers:
                 # return all attributes
@@ -1018,9 +1018,9 @@ class InfraGraphService(Api):
         else:
             # match that specific attribute for every node
             attribute_map = {}
-            logic = edge_filter.attribute_filter.logic
+            logic = edge_filter.attribute_filters.logic
             attribute_map = {}
-            for attribute in edge_filter.attribute_filter.attributes:
+            for attribute in edge_filter.attribute_filters.attributes:
                 attribute_map[attribute.attribute] = attribute.value
 
             for endpoints in request_edge_identifiers:
@@ -1056,16 +1056,16 @@ class InfraGraphService(Api):
             return query_response
         
         else:
-            self._process_node_filter(node_filter=query_request.filter.node_filter, query_response=query_response)
+            self._process_node_filter(node_filter=query_request.filters.node_filters, query_response=query_response)
 
-            self._process_edge_filter(edge_filter=query_request.filter.edge_filter, query_response=query_response)
+            self._process_edge_filter(edge_filter=query_request.filters.edge_filters, query_response=query_response)
 
             # match that specific attribute for every node
-            if query_request.filter.graph_filter.attributes is not None:
+            if query_request.filters.graph_filter.attributes is not None:
                 attribute_map = {}
-                logic = query_request.filter.graph_filter.logic
+                logic = query_request.filters.graph_filter.logic
                 attribute_map = {}
-                for attribute in query_request.filter.graph_filter.attributes:
+                for attribute in query_request.filters.graph_filter.attributes:
                     attribute_map[attribute.attribute] = attribute.value
 
                 attribute_match = InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic)
