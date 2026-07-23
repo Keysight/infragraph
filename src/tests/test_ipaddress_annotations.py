@@ -14,37 +14,28 @@ async def test_ipaddress_annotations():
 
     # query the graph for host nics
     npu_request = QueryRequest()
-    filter = npu_request.node_filters.add(name="mgmt nic filter")
-    filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
-    filter.attribute_filter.name = "type"
-    filter.attribute_filter.operator = QueryNodeId.EQ
-    filter.attribute_filter.value = "mgmt-nic"
+    npu_request.filters.node_filters.attribute_filters.attributes.add(attribute="type", value="mgmt-nic")
     nic_response = service.query_graph(npu_request)
-    print(nic_response.node_matches)
+    assert len(nic_response.nodes) > 0
 
     # annotate the graph
     annotation = Annotation()
-    for idx, match in enumerate(nic_response.node_matches):
+    for idx, match in enumerate(nic_response.nodes):
         annotation_node = annotation.nodes.add(
-            name=match.id
+            name=match.name
         )
         annotation_node.attributes.add(attribute="ipaddress", value=str(ipaddress.ip_address(idx)))
     service.annotate_graph(annotation)
 
     # query the graph for ipaddress attributes
     ipaddress_request = QueryRequest()
-    filter = ipaddress_request.node_filters.add(name="ipaddress filter")
-    filter.choice = QueryNodeFilter.ATTRIBUTE_FILTER
-    filter.attribute_filter.name = "ipaddress"
-    filter.attribute_filter.operator = QueryNodeId.REGEX
-    filter.attribute_filter.value = r".*"
+    ipaddress_request.filters.node_filters.attribute_filters.attributes.add(attribute="ipaddress", value="")
     ipaddress_response = service.query_graph(ipaddress_request)
-    print(ipaddress_response.node_matches)
 
     # validation
-    assert len(nic_response.node_matches) > 0
-    assert len(nic_response.node_matches) == len(annotation.nodes)
-    assert len(annotation.nodes) == len(ipaddress_response.node_matches)
+    assert len(nic_response.nodes) > 0
+    assert len(nic_response.nodes) == len(annotation.nodes)
+    assert len(annotation.nodes) == len(ipaddress_response.nodes)
 
 
 if __name__ == "__main__":

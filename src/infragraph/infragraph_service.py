@@ -27,6 +27,11 @@ class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
     pass
 
+class InstanceData:
+    def __init__(self, device_name: str, count: int):
+        self.device_name = device_name
+        self.count = count
+
 class DeviceData:
     def __init__(self):
         self.nodes = {}
@@ -61,6 +66,7 @@ class InfraGraphService(Api):
         super().__init__()
         self._graph: Graph = Graph()
         self._device_data = {}
+        self._instance_data = {}
         self._graph_node_prefix_map: Dict[str, List[str]] = {}
         self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
@@ -81,55 +87,110 @@ class InfraGraphService(Api):
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
 
-    def _expand_node_string(self, s: str) -> List[str]:
-        """Expand a device/component string with slice notation into dot-notation paths.
+    def _resolve_slice_indices(self, slice_expr: str, count: Optional[int], context: str) -> List[int]:
+        """Resolve the contents of a single [..] slice expression to a list of indices.
 
-        Format: name[start:stop]name[start:stop]...
-        Each [start:stop] expands like range(start, stop). Segments without a slice
-        are kept as-is. Results are the cartesian product of all segment expansions,
-        joined with '.'.
+        Supports full python slice syntax — "", ":", "1:", ":-1", "::2", "1:5:2", "3" —
+        using `count` (the number of instances/components available) to resolve any
+        omitted or negative bound. If `count` is unknown, only a fully-specified,
+        non-negative "start:stop[:step]" or a single non-negative index can be resolved.
+        """
+        parts = slice_expr.split(":")
+        if len(parts) > 3:
+            raise InfrastructureError(f"Invalid slice '[{slice_expr}]' in '{context}'")
+
+        to_int = lambda p: int(p) if p != "" else None
+
+        if len(parts) == 1:
+            if parts[0] == "":
+                start, stop, step = None, None, None
+            else:
+                idx = to_int(parts[0])
+                if idx < 0:
+                    if count is None:
+                        raise InfrastructureError(
+                            f"Cannot resolve negative index '[{slice_expr}]' for '{context}': "
+                            "count is unknown, call set_graph() first"
+                        )
+                    idx += count
+                return [idx]
+        else:
+            start = to_int(parts[0])
+            stop = to_int(parts[1])
+            step = to_int(parts[2]) if len(parts) == 3 else None
+
+        if count is not None:
+            return list(range(*slice(start, stop, step).indices(count)))
+
+        # count unknown — only fully explicit, non-negative bounds can be resolved
+        if start is None or stop is None or start < 0 or stop < 0:
+            raise InfrastructureError(
+                f"Cannot resolve slice '[{slice_expr}]' for '{context}': "
+                "count is unknown, call set_graph() first"
+            )
+        return list(range(start, stop, step if step is not None else 1))
+
+    def expand_node_string(self, s: str) -> List[str]:
+        """
+        Needs to be called after set_graph API
+        Expand a device/component string with slice notation into dot-notation paths.
+
+        Format: name[slice]name[slice]... where [slice] follows python slice syntax
+        (start:stop:step, all parts optional, negative indices allowed) or a single
+        index. Counts for open-ended/negative slices are resolved from `_instance_data`
+        (for the leading instance name) and `_device_data` (for nested component names).
+        Segments without a slice are kept as-is. Results are the cartesian product of
+        all segment expansions, joined with '.'.
 
         Examples:
             "dgx"              -> ["dgx"]
             "dgx[0:3]"         -> ["dgx.0", "dgx.1", "dgx.2"]
+            "dgx[:]"           -> ["dgx.0", ..., "dgx.(count-1)"]
+            "dgx[:-1]"         -> ["dgx.0", ..., "dgx.(count-2)"]
+            "dgx[1:]"          -> ["dgx.1", ..., "dgx.(count-1)"]
             "dgx[0:2]cpu[0:2]" -> ["dgx.0.cpu.0", "dgx.0.cpu.1",
                                     "dgx.1.cpu.0", "dgx.1.cpu.1"]
         """
         if not s:
             return []
 
-
         if "." in s:
             return [s]
-        # Parse the input string into (name, start, stop) tuples.
-        # The regex matches a name (alphanumeric/underscore/hyphen) optionally
-        # followed by a slice in the form [start:stop].
-        # If no slice is present, start and stop are empty strings.
-        pattern = r'([A-Za-z0-9_-]+)(?:\[(\d+):(\d+)\])?'
-        matches = re.findall(pattern, s)
+
+        # Parse the input string into (name, slice_expr) pairs. The regex matches a
+        # name (alphanumeric/underscore/hyphen) optionally followed by a [..] slice.
+        # slice_expr is None when no brackets are present, and "" for empty brackets "[]".
+        pattern = r'([A-Za-z0-9_-]+)(?:\[([^\]]*)\])?'
+        matches = list(re.finditer(pattern, s))
 
         if not matches:
             return [s]
 
-        # For each matched segment, build a list of expanded strings.
-        # A segment with a slice expands to: ["name.0", "name.1", ..., "name.(stop-1)"]
-        # A segment without a slice expands to just: ["name"]
         segments: List[List[str]] = []
+        device_name: Optional[str] = None
 
-        for match in matches:
-            name = match[0]
-            start = match[1]
-            stop = match[2]
+        for i, match in enumerate(matches):
+            name = match.group(1)
+            slice_expr = match.group(2)
 
-            if start and stop:
-                # Expand the slice range into individual indexed entries
-                expanded = []
-                for i in range(int(start), int(stop)):
-                    expanded.append(name + "." + str(i))
-                segments.append(expanded)
+            if i == 0 and name in self._instance_data:
+                count = self._instance_data[name].count
+                device_name = self._instance_data[name].device_name
+            elif device_name is not None and name in self._device_data.get(device_name, DeviceData()).components:
+                count = self._device_data[device_name].components[name]
             else:
+                count = None
+
+            if slice_expr is None:
                 # No slice — segment is a single plain name
                 segments.append([name])
+            else:
+                indices = self._resolve_slice_indices(slice_expr, count, context=s)
+                segments.append([name + "." + str(idx) for idx in indices])
+
+            # If this segment names a device, chain into it for the next segment's count lookup.
+            if name in self._device_data:
+                device_name = name
 
         # Compute the cartesian product across all segments and join with '.'
         # e.g. ["dgx.0", "dgx.1"] x ["cpu.0", "cpu.1"]
@@ -208,11 +269,11 @@ class InfraGraphService(Api):
             component_name = endpoint_element.split("[")[0]
             if component_name in self._device_data[device_name].components:
                 component_count = self._device_data[device_name].components[component_name]
-                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                _, c_indices = self._split_endpoint(component_count, endpoint_element)
                 generated_endpoints = []
-                for idx in range(c_start, c_stop, c_step):
+                for idx in c_indices:
                     generated_endpoints.append(f"{component_name}.{idx}")
-                
+
                 if len(qualified_endpoints) == 0:
                     qualified_endpoints.extend(generated_endpoints)
                 
@@ -242,16 +303,16 @@ class InfraGraphService(Api):
             raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
         
         # device endpoint here:
-        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
-        
+        _, d_indices = self._split_endpoint(instance.count, device_endpoint)
+
         for endpoint_element in component_endpoint.split("."):
             # if element is component
             component_name = endpoint_element.split("[")[0]
             if component_name in self._device_data[device_name].components:
                 component_count = self._device_data[device_name].components[component_name]
-                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                _, c_indices = self._split_endpoint(component_count, endpoint_element)
                 generated_endpoints = []
-                for idx in range(c_start, c_stop, c_step):
+                for idx in c_indices:
                     generated_endpoints.append(f"{component_name}.{idx}")
                 if len(qualified_endpoints) == 0:
                     qualified_endpoints.extend(generated_endpoints)
@@ -264,7 +325,7 @@ class InfraGraphService(Api):
             device_name = component_name
         # before we add we can expand device endpoint here:
         device_endpoints = []
-        for device_idx in range(d_start, d_stop, d_step):
+        for device_idx in d_indices:
             device_endpoints.append(f"{instance.name}.{device_idx}")
         
         temp_endpoints = qualified_endpoints.copy()
@@ -600,6 +661,7 @@ class InfraGraphService(Api):
             device_name = instance.device
             count = instance.count
             instance_name = instance.name
+            self._instance_data[instance_name] = InstanceData(device_name, count)
             for index in range(0, count):
                 # call the specific class
                 
@@ -654,7 +716,7 @@ class InfraGraphService(Api):
         networkx.is_connected(self._graph)
         zero_degree_nodes = [n for n, d in self._graph.degree() if d == 0]
         if len(zero_degree_nodes) > 0:
-            print(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
+            warnings.warn(f"Infrastructure has nodes that are not connected: {zero_degree_nodes}")
         self_loops = list(networkx.nodes_with_selfloops(self._graph))
         if len(self_loops) > 0:
             raise GraphError(f"Infrastructure has nodes with self loops: {self_loops}")
@@ -681,6 +743,10 @@ class InfraGraphService(Api):
         graph = self._graph if is_full else self._build_partial_graph()
         return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
 
+    @staticmethod
+    def _stringify(v):
+        return v if isinstance(v, str) else str(v)
+
     def populate_infragraph_dict(self, source_graph, attr_type):
         infragraph_dict = {
             "infrastructure": self._infrastructure.serialize('dict'),
@@ -701,17 +767,11 @@ class InfraGraphService(Api):
                 if k not in self._IMMUTABLE_ATTRIBUTES
             )
 
-        def stringify(v):
-            # AnnotationAttribute.value is schema-typed as str; non-str attribute
-            # values (e.g. the immutable int "instance_idx") must be coerced so
-            # the resulting annotations can be deserialized back into an Annotation.
-            return v if isinstance(v, str) else str(v)
-
         annotation_nodes = [
             {
                 "name": node_name,
                 "attributes": [
-                    {"attribute": k, "value": stringify(v)}
+                    {"attribute": k, "value": InfraGraphService._stringify(v)}
                     for k, v in node_attrs_filter(node_attrs)
                 ]
             }
@@ -728,18 +788,18 @@ class InfraGraphService(Api):
             annotation_edges.append({
                 "ep1": ep1,
                 "ep2": ep2,
-                "attributes": [{"attribute": k, "value": stringify(v)} for k, v in filtered]
+                "attributes": [{"attribute": k, "value": InfraGraphService._stringify(v)} for k, v in filtered]
             })
             link_name = edge_attrs.get("link")
             if link_name and link_name not in seen_links:
                 seen_links[link_name] = {
                     "name": link_name,
-                    "attributes": [{"attribute": k, "value": stringify(v)} for k, v in filtered]
+                    "attributes": [{"attribute": k, "value": InfraGraphService._stringify(v)} for k, v in filtered]
                 }
 
         graph_attrs = source_graph.graph
         annotation_graph = [
-            {"attribute": k, "value": stringify(v)}
+            {"attribute": k, "value": InfraGraphService._stringify(v)}
             for k, v in graph_attrs.items()
             if is_full or k not in self._IMMUTABLE_ATTRIBUTES
         ]
@@ -753,35 +813,18 @@ class InfraGraphService(Api):
 
         return json.dumps(infragraph_dict, indent=2)
 
-    def get_shortest_path(self, endpoint1: str, endpoint2: str) -> list[str]:
-        """Returns the shortest path between two endpoints in the graph."""
-        return networkx.shortest_path(self._graph, endpoint1, endpoint2)
-
-    def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, int, int, int]:
-        """Given an endpoint return a list of endpoint strings.
-
-        Assume that the list of endpoint strings will be all for the count
+    def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, List[int]]:
+        """Given an endpoint return its name and the list of resolved indices.
 
         - name, must be present
-        - start index, 0 if not present
-        - stop index, None if not present
-        - step index, 1 if not present
-
-        Pieces should be of valid python slice content:
-        - e.g., "", ":", "0", "0:", "0:1", ":1"
+        - indices, resolved via `_resolve_slice_indices` (supports negative/open-ended
+          slices, e.g. "", ":", "0", "0:", "0:1", ":1", ":-1")
         """
         endpoint_pieces = re.split(r"[\[\]]", endpoint)
         name = endpoint_pieces[0]
-        slice_pieces = [0, count, 1]
-        if len(endpoint_pieces) > 1:
-            if ":" not in endpoint_pieces[1]:
-                slice_pieces[0] = int(endpoint_pieces[1])
-                slice_pieces[1] = slice_pieces[0] + 1
-            else:
-                for idx, slice_piece in enumerate(re.split(r":", endpoint_pieces[1])):
-                    if slice_piece != "":
-                        slice_pieces[idx] = int(slice_piece)
-        return (name, slice_pieces[0], slice_pieces[1], slice_pieces[2])
+        slice_expr = endpoint_pieces[1] if len(endpoint_pieces) > 1 else ""
+        indices = self._resolve_slice_indices(slice_expr, count, context=endpoint)
+        return name, indices
 
     @staticmethod
     def get_component(device: Device, type: str) -> Component:
@@ -857,7 +900,7 @@ class InfraGraphService(Api):
         
         for annotation_node in annotate_request.nodes:
             # expand the nodes
-            nodes = self._expand_node_string(annotation_node.name)
+            nodes = self.expand_node_string(annotation_node.name)
             matched = set()
             for node in nodes:
                 list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
@@ -872,26 +915,40 @@ class InfraGraphService(Api):
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for {annotation_node.name}")
             
         # edges
-        for annotation_node in annotate_request.edges:
+        for annotation_edge in annotate_request.edges:
             # expand the nodes
-            source_edges = self._expand_node_string(annotation_node.ep1)
-            destination_edges = self._expand_node_string(annotation_node.ep2)
+            expanded_source_edges = self.expand_node_string(annotation_edge.ep1)
+            expanded_destination_edges = self.expand_node_string(annotation_edge.ep2)
+            # expand it further
+            # get the expanded source edges
+            source_edges= []
+            for edge_node in expanded_source_edges:
+                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                if list_from_prefix_map: 
+                    source_edges.extend(list_from_prefix_map)
+                else:
+                    raise ValueError(f"{node} not present in networx graph") 
+            # get the expanded destination edges
+            destination_edges = []
+            for edge_node in expanded_destination_edges:
+                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                if list_from_prefix_map: 
+                    destination_edges.extend(list_from_prefix_map)
+                else:
+                    raise ValueError(f"{node} not present in networx graph")    
+                        
+            matched_edges = [
+                edge
+                for a, b in iterproduct(source_edges, destination_edges)
+                for edge in ((a, b), (b, a))
+                if self._graph.has_edge(*edge)
+            ]
 
-            matched_edges = []
-            adj = {n: set(self._graph.neighbors(n)) for n in self._graph.nodes}
-            for s in source_edges:
-                # only check neighbors of s (not all edges)
-                for d in adj[s]:
-                    if d in destination_edges:
-                        matched_edges.append((s, d))
-
-            for attribute_kvp in annotation_node.attributes:
+            for attribute_kvp in annotation_edge.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
                     networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
                 else:
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for edge")
-                    
-
         # links
         for annotation_link in annotate_request.links:
             edges_for_link = self._link_to_edges_map.get(annotation_link.name, [])
@@ -908,54 +965,196 @@ class InfraGraphService(Api):
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
                 continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
+    
+    def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponse):
+        
+        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
+            return 
 
-    def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponseContent:
+        request_node_identifiers = []
+        if node_filter.node_identifier is None or len(node_filter.node_identifier) == 0:
+            request_node_identifiers = list(self._graph)
+        else:
+            for request_nodes in node_filter.node_identifier:  
+                expanded_nodes = self.expand_node_string(request_nodes)
+        
+                for node in expanded_nodes:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
+                    if list_from_prefix_map: 
+                        request_node_identifiers.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{node} not present in networx graph")
+        
+        # check for attributes here
+        if len(node_filter.attribute_filters.attributes) == 0:
+            # all attributes
+            for node in request_node_identifiers:
+                query_response_node = query_response.nodes.add(name=node)
+                # return all attributes
+                if node in self._graph:
+                    attrs = self._graph.nodes[node]
+                    for k, v in attrs.items():
+                        query_response_node.attributes.add(attribute=k, value=str(v))
+                else:
+                    warnings.warn(f"{node} not present in networx graph")
+        else:
+            # match that specific attribute for every node
+            attribute_map = {}
+            logic = node_filter.attribute_filters.logic
+            attribute_map = {}
+            for attribute in node_filter.attribute_filters.attributes:
+                attribute_map[attribute.attribute] = attribute.value
+
+            for node in request_node_identifiers:
+                # get attrs:
+                attrs = self._get_networkx_node_attrs(node)
+                attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
+                if len(attribute_match) > 0:
+                    query_response_node = query_response.nodes.add(name=node)
+                    # add those specific nodes?
+                    for k, v in attribute_match.items():
+                        query_response_node.attributes.add(attribute=k, value=str(v))
+
+    def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponse):
+        
+        if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0):
+            return 
+        
+        request_edge_identifiers = []
+        if edge_filter.endpoints is None or len(edge_filter.endpoints) == 0:
+            request_edge_identifiers = list(self._graph.edges)
+        else:
+            for endpoints in edge_filter.endpoints:  
+                expanded_source_edges = self.expand_node_string(endpoints.ep1)
+                expanded_destination_edges = self.expand_node_string(endpoints.ep2)
+                # expand it further
+                # get the expanded source edges
+                source_edges= []
+                for edge_node in expanded_source_edges:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                    if list_from_prefix_map: 
+                        source_edges.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{edge_node} not present in networx graph") 
+                # get the expanded destination edges
+                destination_edges = []
+                for edge_node in expanded_destination_edges:
+                    list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
+                    if list_from_prefix_map: 
+                        destination_edges.extend(list_from_prefix_map)
+                    else:
+                        warnings.warn(f"{edge_node} not present in networx graph")    
+                            
+                request_edge_identifiers = [
+                    edge
+                    for a, b in iterproduct(source_edges, destination_edges)
+                    for edge in ((a, b), (b, a))
+                    if self._graph.has_edge(*edge)
+                ]
+        
+        # check for attributes here
+        if edge_filter.attribute_filters is not None or len(edge_filter.attribute_filters) == 0:
+            # all attributes
+            for endpoints in request_edge_identifiers:
+                # return all attributes
+                if (endpoints[0], endpoints[1]) in self._graph.edges:
+                    query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                    attrs = self._graph.edges[endpoints[0], endpoints[1]]
+                    for k, v in attrs.items():
+                        query_response_edge.attributes.add(attribute=k, value=str(v))
+                else:
+                    warnings.warn(f"{endpoints[0]} and {endpoints[1]} not present in networx graph")
+        else:
+            # match that specific attribute for every node
+            attribute_map = {}
+            logic = edge_filter.attribute_filters.logic
+            attribute_map = {}
+            for attribute in edge_filter.attribute_filters.attributes:
+                attribute_map[attribute.attribute] = attribute.value
+
+            for endpoints in request_edge_identifiers:
+                # return all attributes
+                if (endpoints[0], endpoints[1]) in self._graph.edges:
+                    attrs = self._graph.edges[endpoints[0], endpoints[1]]
+                    attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
+                    if len(attribute_match) > 0:
+                        query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                        # add those specific nodes?
+                        for k, v in attribute_match.items():
+                            query_response_edge.attributes.add(attribute=k, value=str(v))
+
+    def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponse:
         """Query the graph"""
         if isinstance(payload, str):
             query_request = QueryRequest().deserialize(payload)
         else:
             query_request: QueryRequest = payload
-        query_response_content = QueryResponseContent()
-        if query_request.choice == QueryRequest.NODE_FILTERS:
-            node_matches = self._graph.nodes(data=True)
-            for node_filter in query_request.node_filters:
-                if node_filter.choice == QueryNodeFilter.ID_FILTER:
-                    node_matches = self._node_id_filter(node_matches, node_filter.id_filter)  # type: ignore
-                elif node_filter.choice == QueryNodeFilter.ATTRIBUTE_FILTER:
-                    node_matches = self._attribute_filter(node_matches, node_filter.attribute_filter)  # type: ignore
-                else:
-                    raise InfrastructureError(f"Invalid node query filter {node_filter.choice}")
-            for node in node_matches:
-                match = query_response_content.node_matches.add()
-                match.id = node[0]
-                for k, v in node[1].items():
-                    match.attributes.add(name=k, value=v if isinstance(v, str) else str(v))
-            return query_response_content
+
+        query_response = QueryResponse()
+        
+        if query_request.choice == "shortest_path":
+            if query_request.shortest_path.source not in self._graph:
+                raise InfrastructureError(f"Queried source node does not exist in graph {query_request.shortest_path.source}")
+            if query_request.shortest_path.destination not in self._graph:
+                raise InfrastructureError(f"Queried destination node does not exist in graph {query_request.shortest_path.destination}")
+            
+            path = networkx.shortest_path(self._graph, query_request.shortest_path.source, query_request.shortest_path.destination)
+            for p in path:
+                # add all the nodes in sequence
+                query_response.nodes.add(p)
+            return query_response
+        
         else:
-            raise NotImplementedError("Query edges not implemented")
+            self._process_node_filter(node_filter=query_request.filters.node_filters, query_response=query_response)
 
-    def _node_id_filter(self, nodes: List[Any], query: QueryNodeId) -> List[Any]:
-        results = []
-        for node in nodes:
-            id = node[0]
-            if query.operator == QueryNodeId.EQ and query.value == id:
-                results.append(node)
-            elif query.operator == QueryNodeId.CONTAINS and query.value in id:
-                results.append(node)
-            elif query.operator == QueryNodeId.REGEX and re.match(query.value, id) is not None:
-                results.append(node)
-        return results
+            self._process_edge_filter(edge_filter=query_request.filters.edge_filters, query_response=query_response)
 
-    def _attribute_filter(self, nodes: List[Any], query: QueryAttribute) -> List[Any]:
-        results = []
-        for node in nodes:
-            for k, v in node[1].items():
-                if k != query.name:
-                    continue
-                if query.operator == QueryNodeId.EQ and query.value == v:
-                    results.append(node)
-                elif query.operator == QueryNodeId.CONTAINS and query.value in v:
-                    results.append(node)
-                elif query.operator == QueryNodeId.REGEX and re.match(query.value, v) is not None:
-                    results.append(node)
-        return results
+            # match that specific attribute for every node
+            if query_request.filters.graph_filter.attributes is not None:
+                attribute_map = {}
+                logic = query_request.filters.graph_filter.logic
+                attribute_map = {}
+                for attribute in query_request.filters.graph_filter.attributes:
+                    attribute_map[attribute.attribute] = attribute.value
+
+                attribute_match = InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic)
+                if len(attribute_match) > 0:
+                    # add those specific attributes
+                    for k, v in attribute_match.items():
+                        query_response.graph.add(attribute=k, value=str(v))
+
+            return query_response
+
+    def _get_networkx_node_attrs(self, node):
+        if node not in self._graph:
+            raise ValueError(f"Node '{node}' does not exist.")
+        return self._graph.nodes[node] 
+
+    def _get_networkx_edge_attrs(self, ep1, ep2):
+        if not self._graph.has_edge(ep1, ep2):
+            raise ValueError(f"Edge ({ep1}, {ep2}) does not exist.")
+        return self._graph.edges[ep1, ep2]
+
+    @staticmethod
+    def _match_attrs(master_dict, query_dict, logic="and", case_sensitive=False):
+
+        def value_matches(master_value, query_value):
+            if master_value is None:
+                return False
+            master = str(master_value)
+            query = str(query_value)
+            master = master.lower()
+            query = query.lower()
+            return query in master
+
+        matched = {}
+
+        for key, query_value in query_dict.items():
+            if key not in master_dict:
+                continue
+            if value_matches(master_dict[key], query_value):
+                matched[key] = master_dict[key]
+
+        if logic == "and":
+            return matched if len(matched) == len(query_dict) else {}
+        return matched

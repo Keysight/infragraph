@@ -38,8 +38,9 @@ async def test_devices(count, device):
 
     # validations
     g = service.get_networkx_graph()
-    print(f"\ndevice {device.name} is a {g}")
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(f"\ndevice {device.name} is a {g}")
+    # print(networkx.write_network_text(g, vertical_chains=True))
 
 
 if __name__ == "__main__":
