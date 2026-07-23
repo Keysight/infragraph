@@ -269,11 +269,11 @@ class InfraGraphService(Api):
             component_name = endpoint_element.split("[")[0]
             if component_name in self._device_data[device_name].components:
                 component_count = self._device_data[device_name].components[component_name]
-                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                _, c_indices = self._split_endpoint(component_count, endpoint_element)
                 generated_endpoints = []
-                for idx in range(c_start, c_stop, c_step):
+                for idx in c_indices:
                     generated_endpoints.append(f"{component_name}.{idx}")
-                
+
                 if len(qualified_endpoints) == 0:
                     qualified_endpoints.extend(generated_endpoints)
                 
@@ -303,16 +303,16 @@ class InfraGraphService(Api):
             raise InfrastructureError(f"Endpoint {type(endpoint)} is not valid")
         
         # device endpoint here:
-        _, d_start, d_stop, d_step = self._split_endpoint(instance.count, device_endpoint)
-        
+        _, d_indices = self._split_endpoint(instance.count, device_endpoint)
+
         for endpoint_element in component_endpoint.split("."):
             # if element is component
             component_name = endpoint_element.split("[")[0]
             if component_name in self._device_data[device_name].components:
                 component_count = self._device_data[device_name].components[component_name]
-                _, c_start, c_stop, c_step = self._split_endpoint(component_count, endpoint_element)
+                _, c_indices = self._split_endpoint(component_count, endpoint_element)
                 generated_endpoints = []
-                for idx in range(c_start, c_stop, c_step):
+                for idx in c_indices:
                     generated_endpoints.append(f"{component_name}.{idx}")
                 if len(qualified_endpoints) == 0:
                     qualified_endpoints.extend(generated_endpoints)
@@ -325,7 +325,7 @@ class InfraGraphService(Api):
             device_name = component_name
         # before we add we can expand device endpoint here:
         device_endpoints = []
-        for device_idx in range(d_start, d_stop, d_step):
+        for device_idx in d_indices:
             device_endpoints.append(f"{instance.name}.{device_idx}")
         
         temp_endpoints = qualified_endpoints.copy()
@@ -813,31 +813,18 @@ class InfraGraphService(Api):
 
         return json.dumps(infragraph_dict, indent=2)
 
-    def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, int, int, int]:
-        """Given an endpoint return a list of endpoint strings.
-
-        Assume that the list of endpoint strings will be all for the count
+    def _split_endpoint(self, count: int, endpoint: str) -> Tuple[str, List[int]]:
+        """Given an endpoint return its name and the list of resolved indices.
 
         - name, must be present
-        - start index, 0 if not present
-        - stop index, None if not present
-        - step index, 1 if not present
-
-        Pieces should be of valid python slice content:
-        - e.g., "", ":", "0", "0:", "0:1", ":1"
+        - indices, resolved via `_resolve_slice_indices` (supports negative/open-ended
+          slices, e.g. "", ":", "0", "0:", "0:1", ":1", ":-1")
         """
         endpoint_pieces = re.split(r"[\[\]]", endpoint)
         name = endpoint_pieces[0]
-        slice_pieces = [0, count, 1]
-        if len(endpoint_pieces) > 1:
-            if ":" not in endpoint_pieces[1]:
-                slice_pieces[0] = int(endpoint_pieces[1])
-                slice_pieces[1] = slice_pieces[0] + 1
-            else:
-                for idx, slice_piece in enumerate(re.split(r":", endpoint_pieces[1])):
-                    if slice_piece != "":
-                        slice_pieces[idx] = int(slice_piece)
-        return (name, slice_pieces[0], slice_pieces[1], slice_pieces[2])
+        slice_expr = endpoint_pieces[1] if len(endpoint_pieces) > 1 else ""
+        indices = self._resolve_slice_indices(slice_expr, count, context=endpoint)
+        return name, indices
 
     @staticmethod
     def get_component(device: Device, type: str) -> Component:
