@@ -27,6 +27,11 @@ class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
     pass
 
+class InstanceData:
+    def __init__(self, device_name: str, count: int):
+        self.device_name = device_name
+        self.count = count
+
 class DeviceData:
     def __init__(self):
         self.nodes = {}
@@ -61,6 +66,7 @@ class InfraGraphService(Api):
         super().__init__()
         self._graph: Graph = Graph()
         self._device_data = {}
+        self._instance_data = {}
         self._graph_node_prefix_map: Dict[str, List[str]] = {}
         self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
@@ -81,55 +87,110 @@ class InfraGraphService(Api):
             raise ValueError("The networkx graph has not been created. Please call set_graph() first.")
         return self._graph
 
-    def _expand_node_string(self, s: str) -> List[str]:
-        """Expand a device/component string with slice notation into dot-notation paths.
+    def _resolve_slice_indices(self, slice_expr: str, count: Optional[int], context: str) -> List[int]:
+        """Resolve the contents of a single [..] slice expression to a list of indices.
 
-        Format: name[start:stop]name[start:stop]...
-        Each [start:stop] expands like range(start, stop). Segments without a slice
-        are kept as-is. Results are the cartesian product of all segment expansions,
-        joined with '.'.
+        Supports full python slice syntax — "", ":", "1:", ":-1", "::2", "1:5:2", "3" —
+        using `count` (the number of instances/components available) to resolve any
+        omitted or negative bound. If `count` is unknown, only a fully-specified,
+        non-negative "start:stop[:step]" or a single non-negative index can be resolved.
+        """
+        parts = slice_expr.split(":")
+        if len(parts) > 3:
+            raise InfrastructureError(f"Invalid slice '[{slice_expr}]' in '{context}'")
+
+        to_int = lambda p: int(p) if p != "" else None
+
+        if len(parts) == 1:
+            if parts[0] == "":
+                start, stop, step = None, None, None
+            else:
+                idx = to_int(parts[0])
+                if idx < 0:
+                    if count is None:
+                        raise InfrastructureError(
+                            f"Cannot resolve negative index '[{slice_expr}]' for '{context}': "
+                            "count is unknown, call set_graph() first"
+                        )
+                    idx += count
+                return [idx]
+        else:
+            start = to_int(parts[0])
+            stop = to_int(parts[1])
+            step = to_int(parts[2]) if len(parts) == 3 else None
+
+        if count is not None:
+            return list(range(*slice(start, stop, step).indices(count)))
+
+        # count unknown — only fully explicit, non-negative bounds can be resolved
+        if start is None or stop is None or start < 0 or stop < 0:
+            raise InfrastructureError(
+                f"Cannot resolve slice '[{slice_expr}]' for '{context}': "
+                "count is unknown, call set_graph() first"
+            )
+        return list(range(start, stop, step if step is not None else 1))
+
+    def expand_node_string(self, s: str) -> List[str]:
+        """
+        Needs to be called after set_graph API
+        Expand a device/component string with slice notation into dot-notation paths.
+
+        Format: name[slice]name[slice]... where [slice] follows python slice syntax
+        (start:stop:step, all parts optional, negative indices allowed) or a single
+        index. Counts for open-ended/negative slices are resolved from `_instance_data`
+        (for the leading instance name) and `_device_data` (for nested component names).
+        Segments without a slice are kept as-is. Results are the cartesian product of
+        all segment expansions, joined with '.'.
 
         Examples:
             "dgx"              -> ["dgx"]
             "dgx[0:3]"         -> ["dgx.0", "dgx.1", "dgx.2"]
+            "dgx[:]"           -> ["dgx.0", ..., "dgx.(count-1)"]
+            "dgx[:-1]"         -> ["dgx.0", ..., "dgx.(count-2)"]
+            "dgx[1:]"          -> ["dgx.1", ..., "dgx.(count-1)"]
             "dgx[0:2]cpu[0:2]" -> ["dgx.0.cpu.0", "dgx.0.cpu.1",
                                     "dgx.1.cpu.0", "dgx.1.cpu.1"]
         """
         if not s:
             return []
 
-
         if "." in s:
             return [s]
-        # Parse the input string into (name, start, stop) tuples.
-        # The regex matches a name (alphanumeric/underscore/hyphen) optionally
-        # followed by a slice in the form [start:stop].
-        # If no slice is present, start and stop are empty strings.
-        pattern = r'([A-Za-z0-9_-]+)(?:\[(\d+):(\d+)\])?'
-        matches = re.findall(pattern, s)
+
+        # Parse the input string into (name, slice_expr) pairs. The regex matches a
+        # name (alphanumeric/underscore/hyphen) optionally followed by a [..] slice.
+        # slice_expr is None when no brackets are present, and "" for empty brackets "[]".
+        pattern = r'([A-Za-z0-9_-]+)(?:\[([^\]]*)\])?'
+        matches = list(re.finditer(pattern, s))
 
         if not matches:
             return [s]
 
-        # For each matched segment, build a list of expanded strings.
-        # A segment with a slice expands to: ["name.0", "name.1", ..., "name.(stop-1)"]
-        # A segment without a slice expands to just: ["name"]
         segments: List[List[str]] = []
+        device_name: Optional[str] = None
 
-        for match in matches:
-            name = match[0]
-            start = match[1]
-            stop = match[2]
+        for i, match in enumerate(matches):
+            name = match.group(1)
+            slice_expr = match.group(2)
 
-            if start and stop:
-                # Expand the slice range into individual indexed entries
-                expanded = []
-                for i in range(int(start), int(stop)):
-                    expanded.append(name + "." + str(i))
-                segments.append(expanded)
+            if i == 0 and name in self._instance_data:
+                count = self._instance_data[name].count
+                device_name = self._instance_data[name].device_name
+            elif device_name is not None and name in self._device_data.get(device_name, DeviceData()).components:
+                count = self._device_data[device_name].components[name]
             else:
+                count = None
+
+            if slice_expr is None:
                 # No slice — segment is a single plain name
                 segments.append([name])
+            else:
+                indices = self._resolve_slice_indices(slice_expr, count, context=s)
+                segments.append([name + "." + str(idx) for idx in indices])
+
+            # If this segment names a device, chain into it for the next segment's count lookup.
+            if name in self._device_data:
+                device_name = name
 
         # Compute the cartesian product across all segments and join with '.'
         # e.g. ["dgx.0", "dgx.1"] x ["cpu.0", "cpu.1"]
@@ -600,6 +661,7 @@ class InfraGraphService(Api):
             device_name = instance.device
             count = instance.count
             instance_name = instance.name
+            self._instance_data[instance_name] = InstanceData(device_name, count)
             for index in range(0, count):
                 # call the specific class
                 
@@ -851,7 +913,7 @@ class InfraGraphService(Api):
         
         for annotation_node in annotate_request.nodes:
             # expand the nodes
-            nodes = self._expand_node_string(annotation_node.name)
+            nodes = self.expand_node_string(annotation_node.name)
             matched = set()
             for node in nodes:
                 list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
@@ -868,8 +930,8 @@ class InfraGraphService(Api):
         # edges
         for annotation_edge in annotate_request.edges:
             # expand the nodes
-            expanded_source_edges = self._expand_node_string(annotation_edge.ep1)
-            expanded_destination_edges = self._expand_node_string(annotation_edge.ep2)
+            expanded_source_edges = self.expand_node_string(annotation_edge.ep1)
+            expanded_destination_edges = self.expand_node_string(annotation_edge.ep2)
             # expand it further
             # get the expanded source edges
             source_edges= []
@@ -927,7 +989,7 @@ class InfraGraphService(Api):
             request_node_identifiers = list(self._graph)
         else:
             for request_nodes in node_filter.node_identifier:  
-                expanded_nodes = self._expand_node_string(request_nodes)
+                expanded_nodes = self.expand_node_string(request_nodes)
         
                 for node in expanded_nodes:
                     list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
@@ -976,8 +1038,8 @@ class InfraGraphService(Api):
             request_edge_identifiers = list(self._graph.edges)
         else:
             for endpoints in edge_filter.endpoints:  
-                expanded_source_edges = self._expand_node_string(endpoints.ep1)
-                expanded_destination_edges = self._expand_node_string(endpoints.ep2)
+                expanded_source_edges = self.expand_node_string(endpoints.ep1)
+                expanded_destination_edges = self.expand_node_string(endpoints.ep2)
                 # expand it further
                 # get the expanded source edges
                 source_edges= []
