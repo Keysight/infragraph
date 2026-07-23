@@ -54,7 +54,7 @@ The visualizer produces a multi-level view: a top-level graph of instances and i
 
 # Chakra + InfraGraph Ecosystem
 
-![Chakra + InfraGraph Ecosystem](docs/src/images/chakra-infragraph-ecosystem.png)
+![Chakra + InfraGraph Ecosystem](docs/src/images/chakra-infragraph-ecosystem.svg)
 
 MLCommons [Chakra](https://mlcommons.org/working-groups/research/chakra/) captures AI workload details as Execution Traces — graphs of operators, tensors, dependencies, and timing. InfraGraph complements Chakra by representing the underlying infrastructure — hosts, NICs, xPUs/accelerators, interconnects, and topologies. Together, Chakra + InfraGraph let you pair workload traces with infrastructure blueprints to analyze current systems and co-design future ones, while safely sharing artifacts across teams and partners.
 
