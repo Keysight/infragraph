@@ -117,7 +117,7 @@ def test_query_node_attribute(service):
     # get all smart nics
     query = QueryRequest()
     node_filter = query.filters.node_filters.add(name="cx7_type_filter")
-    node_filter.node_identifier = ["dgx_h100"]
+    node_filter.node_identifiers = ["dgx_h100"]
     node_filter.attribute_filters.attributes.add(attribute="cx7_type", value="smart")
     query_response = service.query_graph(query).filter_query_response
     nodes = query_response.node_filter_results[0].nodes
@@ -156,7 +156,7 @@ def test_query_nic_node_attribute(service):
     # get specific smart nics
     query = QueryRequest()
     node_filter = query.filters.node_filters.add(name="nic_type_filter")
-    node_filter.node_identifier = ["dgx_h100[1]"]
+    node_filter.node_identifiers = ["dgx_h100[1]"]
     node_filter.attribute_filters.attributes.add(attribute="type", value="nic")
     query_response = service.query_graph(query).filter_query_response
     nodes = query_response.node_filter_results[0].nodes
@@ -166,6 +166,18 @@ def test_query_nic_node_attribute(service):
     assert len(query_response.graph) == 0
     # print_graph(service)
     # visualize_dgx(service.infrastructure, None, "clos_visual")
+
+def test_edge_filter_attribute_query(service):
+    query = QueryRequest()
+    edge_filter = query.filters.edge_filters.add(name="nvlink_filter")
+    edge_filter.attribute_filters.attributes.add(attribute="link_type", value="nvlink")
+    query_response = service.query_graph(query).filter_query_response
+    edges = query_response.edge_filter_results[0].edges
+    assert len(edges) == 64
+    attrs = {a.attribute: a.value for a in edges[0].attributes}
+    assert attrs["link_type"] == "nvlink"
+    assert len(query_response.node_filter_results) == 0
+    assert len(query_response.graph) == 0
 
 def test_query_graph_attribute(service):
     # get all smart nics

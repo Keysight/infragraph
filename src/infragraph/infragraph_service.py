@@ -919,16 +919,16 @@ class InfraGraphService(Api):
     
     def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponseFilter):
         
-        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
+        if (node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
             return
 
         node_filter_result = query_response.node_filter_results.add(name=node_filter.name)
 
         request_node_identifiers = []
-        if node_filter.node_identifier is None or len(node_filter.node_identifier) == 0:
+        if node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0:
             request_node_identifiers = list(self._graph)
         else:
-            for request_nodes in node_filter.node_identifier:  
+            for request_nodes in node_filter.node_identifiers:  
                 expanded_nodes = self._expand_node_string(request_nodes)
         
                 for node in expanded_nodes:
@@ -1008,7 +1008,7 @@ class InfraGraphService(Api):
                 ]
         
         # check for attributes here
-        if edge_filter.attribute_filters is not None or len(edge_filter.attribute_filters) == 0:
+        if edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0:
             # all attributes
             for endpoints in request_edge_identifiers:
                 # return all attributes

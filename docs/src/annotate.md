@@ -53,7 +53,7 @@ Node names support a slicing operator that expands to the fully qualified dot-se
 | `server[0:2]xpu[0:3]` | `server.0.xpu.0`, `server.0.xpu.1`, `server.0.xpu.2`, `server.1.xpu.0`, ... |
 | `switch` | `switch` (unchanged) |
 
-The following code examples demonstrates how to use the `query_graph` API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
+The following code examples demonstrates how to use the [`query_graph`](query.md) API in conjunction with the `annotate_graph` API to extend the graph with additional user specific data.
 
 ## Adding `rank` data
 In the [Getting Started](create.md) example, the instances of the `Server` device were created with the name of `host` and each instance having a specific number of components with a name of `xpu`.

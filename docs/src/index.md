@@ -28,6 +28,9 @@ This section provides a comprehensive guide on how a user can annotate various p
 
 It covers the model description with examples for binding physical attributes with the logical infrastructure definition.
 
+### Query the Graph
+The [query](query.md) section covers the `query_graph` API for retrieving nodes, edges, or graph-level attributes that match a set of filters, or resolving the shortest path between two nodes.
+
 ### Services
 The site provides services for `validating` concrete instances of schemas.
 

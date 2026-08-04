@@ -727,35 +727,56 @@ message QueryResponse {
   QueryResponseShortestPath shortest_path_query_response = 3;
 }
 
-// Defines request for node match
+// Defines request for node match. node_identifiers and attribute_filters are both optional,
+// but at least one MUST be set or the filter returns no results:
+// - node_identifiers set, attribute_filters unset: returns all nodes matching the expanded
+// node_identifiers, with all of their attributes.
+// - node_identifiers unset, attribute_filters set: returns nodes from the entire graph
+// that match attribute_filters.
+// - both set: returns nodes matching the expanded node_identifiers that also match
+// attribute_filters.
+// - both unset: returns no results.
 message QueryRequestNode {
 
   // Name of this node_filter, used to identify its matched nodes in the response.
   // required = true
   optional string name = 3;
 
-  // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // Node names that MUST exist or match nodes present in the graph. This supports slicing
+  // operator and expands to the networkx expanded format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
-  repeated string node_identifier = 1;
+  // If omitted, the filter considers every node in the graph, provided attribute_filters
+  // is set; if both are omitted, the filter returns no results.
+  repeated string node_identifiers = 1;
 
-  // Attribute-based filter criteria.
+  // Attribute-based filter criteria. If omitted, matched nodes are returned with all
+  // of their attributes and no attribute-based narrowing is applied.
   QueryRequestAttribute attribute_filters = 2;
 }
 
-// Defines request for edge match
+// Defines request for edge match. endpoints and attribute_filters are both optional,
+// but at least one MUST be set or the filter returns no results:
+// - endpoints set, attribute_filters unset: returns all edges matching the expanded
+// endpoints, with all of their attributes.
+// - endpoints unset, attribute_filters set: returns edges from the entire graph that
+// match attribute_filters.
+// - both set: returns edges matching the expanded endpoints that also match attribute_filters.
+// - both unset: returns no results.
 message QueryRequestEdge {
 
   // Name of this edge_filter, used to identify its matched edges in the response.
   // required = true
   optional string name = 3;
 
-  // Array of edge endpoints where you want to filter
+  // Array of edge endpoints where you want to filter. If omitted, the filter considers
+  // every edge in the graph, provided attribute_filters is set; if both are omitted,
+  // the filter returns no results.
   repeated QueryRequestEdgeEndpoints endpoints = 1;
 
-  // Attribute-based filter criteria.
+  // Attribute-based filter criteria. If omitted, matched edges are returned with all
+  // of their attributes and no attribute-based narrowing is applied.
   QueryRequestAttribute attribute_filters = 2;
 }
 
