@@ -66,29 +66,32 @@ async def test_dgx_a100_nccl_annotations():
 
     # Query the graph for the annotated xpu nodes.
     xpu_request = QueryRequest()
-    xpu_request.filters.node_filters.node_identifier = [f"{DEVICE_NAME}.0.xpu"]
+    xpu_node_filter = xpu_request.filters.node_filters.add(name="xpu_filter")
+    xpu_node_filter.node_identifier = [f"{DEVICE_NAME}.0.xpu"]
     # An attribute filter must be set for the response to include node attributes.
-    xpu_request.filters.node_filters.attribute_filters.attributes.add(attribute="busid", value="")
-    xpu_response = service.query_graph(xpu_request)
+    xpu_node_filter.attribute_filters.attributes.add(attribute="busid", value="")
+    xpu_response = service.query_graph(xpu_request).filter_query_response
+    xpu_nodes = xpu_response.node_filter_results[0].nodes
 
     # One annotated node per GPU.
-    assert len(xpu_response.nodes) == 8
+    assert len(xpu_nodes) == 8
 
     # Every GPU node carries the metadata pulled from the XML.
-    attrs = {a.attribute: a.value for a in xpu_response.nodes[0].attributes}
-    
+    attrs = {a.attribute: a.value for a in xpu_nodes[0].attributes}
+
     assert "busid" in attrs
 
     # Query the rank attribute and confirm it is present on every GPU node.
     rank_request = QueryRequest()
-    rank_request.filters.node_filters.attribute_filters.attributes.add(attribute="rank", value="")
-    rank_response = service.query_graph(rank_request)
+    rank_request.filters.node_filters.add(name="rank_filter").attribute_filters.attributes.add(attribute="rank", value="")
+    rank_response = service.query_graph(rank_request).filter_query_response
+    rank_nodes = rank_response.node_filter_results[0].nodes
 
-    assert len(rank_response.nodes) == 8
+    assert len(rank_nodes) == 8
 
     ranks = sorted(
         int(a.value)
-        for match in rank_response.nodes
+        for match in rank_nodes
         for a in match.attributes
         if a.attribute == "rank"
     )

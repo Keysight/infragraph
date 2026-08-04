@@ -663,22 +663,76 @@ message QueryResponseEdge {
   repeated QueryAttribute attributes = 3;
 }
 
-// Query response object - a query filter can act on the graph and respond with array
-// of nodes or edges or graph attributes.
-message QueryResponse {
+// Response object containing the ordered list of nodes forming the shortest path between
+// the requested source and destination.
+message QueryResponseShortestPath {
 
   // List of matched nodes of the graph with attributes.
   repeated QueryResponseNode nodes = 1;
+}
+
+// Matched nodes for a single named node_filter from the request.
+message QueryResponseNodeFilterResult {
+
+  // Name of the node_filter this result corresponds to.
+  optional string name = 1;
+
+  // List of matched nodes of the graph with attributes.
+  repeated QueryResponseNode nodes = 2;
+}
+
+// Matched edges for a single named edge_filter from the request.
+message QueryResponseEdgeFilterResult {
+
+  // Name of the edge_filter this result corresponds to.
+  optional string name = 1;
 
   // List of matched edges of the graph with attributes.
   repeated QueryResponseEdge edges = 2;
+}
+
+// Response object for a filter query, containing the matched nodes, edges, and graph
+// attributes, grouped by the filter that produced them.
+message QueryResponseFilter {
+
+  // List of node match results, one entry per node_filter in the request.
+  repeated QueryResponseNodeFilterResult node_filter_results = 1;
+
+  // List of edge match results, one entry per edge_filter in the request.
+  repeated QueryResponseEdgeFilterResult edge_filter_results = 2;
 
   // List of matched graph attributes.
   repeated QueryAttribute graph = 3;
 }
 
+// Query response object - a query can respond with either matched filter results (nodes,
+// edges, graph attributes) or a shortest path.
+message QueryResponse {
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      filter_query_response = 1;
+      shortest_path_query_response = 2;
+    }
+  }
+  // Type of response returned for this query.
+  optional Choice.Enum choice = 1;
+
+  // Response data returned from a filter query.
+  QueryResponseFilter filter_query_response = 2;
+
+  // Add shortest path filters to retrieve the shortest path between source and destination
+  // nodes
+  QueryResponseShortestPath shortest_path_query_response = 3;
+}
+
 // Defines request for node match
 message QueryRequestNode {
+
+  // Name of this node_filter, used to identify its matched nodes in the response.
+  // required = true
+  optional string name = 3;
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
   // slicing operator and expands to the networkx expanded format:
@@ -693,6 +747,10 @@ message QueryRequestNode {
 
 // Defines request for edge match
 message QueryRequestEdge {
+
+  // Name of this edge_filter, used to identify its matched edges in the response.
+  // required = true
+  optional string name = 3;
 
   // Array of edge endpoints where you want to filter
   repeated QueryRequestEdgeEndpoints endpoints = 1;
@@ -740,10 +798,10 @@ message QueryRequestAttribute {
 message QueryRequestFilter {
 
   // Node name filter
-  QueryRequestNode node_filters = 1;
+  repeated QueryRequestNode node_filters = 1;
 
   // Edge filter.
-  QueryRequestEdge edge_filters = 2;
+  repeated QueryRequestEdge edge_filters = 2;
 
   // Graph filter.
   QueryRequestAttribute graph_filter = 3;

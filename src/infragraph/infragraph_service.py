@@ -917,10 +917,12 @@ class InfraGraphService(Api):
                 continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
     
-    def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponse):
+    def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponseFilter):
         
         if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
-            return 
+            return
+
+        node_filter_result = query_response.node_filter_results.add(name=node_filter.name)
 
         request_node_identifiers = []
         if node_filter.node_identifier is None or len(node_filter.node_identifier) == 0:
@@ -940,7 +942,7 @@ class InfraGraphService(Api):
         if len(node_filter.attribute_filters.attributes) == 0:
             # all attributes
             for node in request_node_identifiers:
-                query_response_node = query_response.nodes.add(name=node)
+                query_response_node = node_filter_result.nodes.add(name=node)
                 # return all attributes
                 if node in self._graph:
                     attrs = self._graph.nodes[node]
@@ -961,16 +963,18 @@ class InfraGraphService(Api):
                 attrs = self._get_networkx_node_attrs(node)
                 attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
                 if len(attribute_match) > 0:
-                    query_response_node = query_response.nodes.add(name=node)
+                    query_response_node = node_filter_result.nodes.add(name=node)
                     # add those specific nodes?
                     for k, v in attribute_match.items():
                         query_response_node.attributes.add(attribute=k, value=str(v))
 
-    def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponse):
+    def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponseFilter):
         
         if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0):
-            return 
-        
+            return
+
+        edge_filter_result = query_response.edge_filter_results.add(name=edge_filter.name)
+
         request_edge_identifiers = []
         if edge_filter.endpoints is None or len(edge_filter.endpoints) == 0:
             request_edge_identifiers = list(self._graph.edges)
@@ -1009,7 +1013,7 @@ class InfraGraphService(Api):
             for endpoints in request_edge_identifiers:
                 # return all attributes
                 if (endpoints[0], endpoints[1]) in self._graph.edges:
-                    query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                    query_response_edge = edge_filter_result.edges.add(ep1=endpoints[0], ep2=endpoints[1])
                     attrs = self._graph.edges[endpoints[0], endpoints[1]]
                     for k, v in attrs.items():
                         query_response_edge.attributes.add(attribute=k, value=str(v))
@@ -1029,10 +1033,20 @@ class InfraGraphService(Api):
                     attrs = self._graph.edges[endpoints[0], endpoints[1]]
                     attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
                     if len(attribute_match) > 0:
-                        query_response_edge = query_response.edges.add(ep1=endpoints[0], ep2=endpoints[1])
+                        query_response_edge = edge_filter_result.edges.add(ep1=endpoints[0], ep2=endpoints[1])
                         # add those specific nodes?
                         for k, v in attribute_match.items():
                             query_response_edge.attributes.add(attribute=k, value=str(v))
+
+    @staticmethod
+    def _validate_unique_filter_names(filters, filter_type: str):
+        seen_names = set()
+        for filter_item in filters:
+            if not filter_item.name:
+                raise InfrastructureError(f"{filter_type} name is mandatory")
+            if filter_item.name in seen_names:
+                raise InfrastructureError(f"Duplicate {filter_type} name: {filter_item.name}")
+            seen_names.add(filter_item.name)
 
     def query_graph(self, payload: Union[str, QueryRequest]) -> QueryResponse:
         """Query the graph"""
@@ -1052,13 +1066,19 @@ class InfraGraphService(Api):
             path = networkx.shortest_path(self._graph, query_request.shortest_path.source, query_request.shortest_path.destination)
             for p in path:
                 # add all the nodes in sequence
-                query_response.nodes.add(p)
+                query_response.shortest_path_query_response.nodes.add(p)
             return query_response
-        
-        else:
-            self._process_node_filter(node_filter=query_request.filters.node_filters, query_response=query_response)
 
-            self._process_edge_filter(edge_filter=query_request.filters.edge_filters, query_response=query_response)
+        else:
+            InfraGraphService._validate_unique_filter_names(query_request.filters.node_filters, "node_filter")
+            InfraGraphService._validate_unique_filter_names(query_request.filters.edge_filters, "edge_filter")
+
+            filter_response = query_response.filter_query_response
+            for node_filter in query_request.filters.node_filters:
+                self._process_node_filter(node_filter=node_filter, query_response=filter_response)
+
+            for edge_filter in query_request.filters.edge_filters:
+                self._process_edge_filter(edge_filter=edge_filter, query_response=filter_response)
 
             # match that specific attribute for every node
             if query_request.filters.graph_filter.attributes is not None:
@@ -1072,7 +1092,7 @@ class InfraGraphService(Api):
                 if len(attribute_match) > 0:
                     # add those specific attributes
                     for k, v in attribute_match.items():
-                        query_response.graph.add(attribute=k, value=str(v))
+                        filter_response.graph.add(attribute=k, value=str(v))
 
             return query_response
 
