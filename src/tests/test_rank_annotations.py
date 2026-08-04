@@ -13,11 +13,12 @@ async def test_rank_annotations():
 
     # query the graph for host npus
     npu_request = QueryRequest()
-    npu_request.filters.node_filters.attribute_filters.attributes.add(attribute="type", value="xpu")
-    npu_response = service.query_graph(npu_request)
+    npu_request.filters.node_filters.add(name="xpu_filter").attribute_filters.attributes.add(attribute="type", value="xpu")
+    npu_response = service.query_graph(npu_request).filter_query_response
+    npu_nodes = npu_response.node_filter_results[0].nodes
 
     annotation = Annotation()
-    for idx, match in enumerate(npu_response.nodes):
+    for idx, match in enumerate(npu_nodes):
         annotation_node = annotation.nodes.add(
             name=match.name
         )
@@ -26,13 +27,14 @@ async def test_rank_annotations():
 
     # query the graph for rank attributes
     rank_request = QueryRequest()
-    rank_request.filters.node_filters.attribute_filters.attributes.add(attribute="rank", value="")
-    rank_response = service.query_graph(rank_request)
+    rank_request.filters.node_filters.add(name="rank_filter").attribute_filters.attributes.add(attribute="rank", value="")
+    rank_response = service.query_graph(rank_request).filter_query_response
+    rank_nodes = rank_response.node_filter_results[0].nodes
 
     # validation
-    assert len(npu_response.nodes) > 0
-    assert len(npu_response.nodes) == len(annotation.nodes)
-    assert len(annotation.nodes) == len(rank_response.nodes)
+    assert len(npu_nodes) > 0
+    assert len(npu_nodes) == len(annotation.nodes)
+    assert len(annotation.nodes) == len(rank_nodes)
 
 
 if __name__ == "__main__":
