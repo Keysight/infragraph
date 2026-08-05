@@ -1118,7 +1118,7 @@ components:
           x-field-uid: 3
     Query.Response:
       description: |-
-        Query response object - a query can respond with either matched filter results (nodes, edges, graph attributes) or a shortest path.
+        Query response object - a query can respond with either matched attribute query results (nodes, edges, graph attributes) or a shortest path.
       type: object
       properties:
         choice:
@@ -1127,19 +1127,19 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            filters:
+            attribute_query:
               x-field-uid: 1
-            shortest_path:
+            shortest_path_query:
               x-field-uid: 2
           enum:
-          - filters
-          - shortest_path
-        filters:
+          - attribute_query
+          - shortest_path_query
+        attribute_query:
           description: |-
-            Response data returned from a filter query.
+            Response data returned from an attribute query.
           $ref: '#/components/schemas/Query.Response.Filter'
           x-field-uid: 2
-        shortest_path:
+        shortest_path_query:
           description: |-
             Add shortest path filters to retrieve the shortest path between source and destination nodes
           $ref: '#/components/schemas/Query.Response.ShortestPath'
@@ -1302,28 +1302,28 @@ components:
           x-field-uid: 3
     Query.Request:
       description: |-
-        A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
+        A request object specifying the type of query to perform - an attribute query (matching nodes, edges, or graph attributes) or a shortest path query.
       type: object
       properties:
         choice:
           description: |-
-            Type of filters specified in this query request.
+            Type of query being performed by this query request.
           type: string
           x-field-uid: 1
           x-enum:
-            filters:
+            attribute_query:
               x-field-uid: 1
-            shortest_path:
+            shortest_path_query:
               x-field-uid: 2
           enum:
-          - filters
-          - shortest_path
-        filters:
+          - attribute_query
+          - shortest_path_query
+        attribute_query:
           description: |-
-            filter to get data from graph.
+            Node, edge, and graph filters to match against the graph.
           $ref: '#/components/schemas/Query.Request.Filter'
           x-field-uid: 2
-        shortest_path:
+        shortest_path_query:
           description: |-
             Add shortest path filters to retrieve the shortest path between source and destination nodes
           $ref: '#/components/schemas/Query.Request.ShortestPath'

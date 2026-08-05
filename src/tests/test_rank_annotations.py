@@ -13,8 +13,8 @@ async def test_rank_annotations():
 
     # query the graph for host npus
     npu_request = QueryRequest()
-    npu_request.filters.node_filters.add(name="xpu_filter").attribute_filters.attributes.add(attribute="type", value="xpu")
-    npu_response = service.query_graph(npu_request).filters
+    npu_request.attribute_query.node_filters.add(name="xpu_filter").attribute_filters.attributes.add(attribute="type", value="xpu")
+    npu_response = service.query_graph(npu_request).attribute_query
     npu_nodes = npu_response.nodes[0].nodes
 
     annotation = Annotation()
@@ -27,8 +27,8 @@ async def test_rank_annotations():
 
     # query the graph for rank attributes
     rank_request = QueryRequest()
-    rank_request.filters.node_filters.add(name="rank_filter").attribute_filters.attributes.add(attribute="rank", value="")
-    rank_response = service.query_graph(rank_request).filters
+    rank_request.attribute_query.node_filters.add(name="rank_filter").attribute_filters.attributes.add(attribute="rank", value="")
+    rank_response = service.query_graph(rank_request).attribute_query
     rank_nodes = rank_response.nodes[0].nodes
 
     # validation

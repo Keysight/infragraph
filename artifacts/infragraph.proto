@@ -705,26 +705,26 @@ message QueryResponseFilter {
   repeated QueryAttribute graph = 3;
 }
 
-// Query response object - a query can respond with either matched filter results (nodes,
-// edges, graph attributes) or a shortest path.
+// Query response object - a query can respond with either matched attribute query results
+// (nodes, edges, graph attributes) or a shortest path.
 message QueryResponse {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      filters = 1;
-      shortest_path = 2;
+      attribute_query = 1;
+      shortest_path_query = 2;
     }
   }
   // Type of response returned for this query.
   optional Choice.Enum choice = 1;
 
-  // Response data returned from a filter query.
-  QueryResponseFilter filters = 2;
+  // Response data returned from an attribute query.
+  QueryResponseFilter attribute_query = 2;
 
   // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
-  QueryResponseShortestPath shortest_path = 3;
+  QueryResponseShortestPath shortest_path_query = 3;
 }
 
 // Defines request for node match. node_identifiers and attribute_filters are both optional,
@@ -856,26 +856,26 @@ message QueryRequestShortestPath {
   optional string destination = 3;
 }
 
-// A request object specifying filters to be used for querying nodes, graph attributes,
-// or shortest paths.
+// A request object specifying the type of query to perform - an attribute query (matching
+// nodes, edges, or graph attributes) or a shortest path query.
 message QueryRequest {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      filters = 1;
-      shortest_path = 2;
+      attribute_query = 1;
+      shortest_path_query = 2;
     }
   }
-  // Type of filters specified in this query request.
+  // Type of query being performed by this query request.
   optional Choice.Enum choice = 1;
 
-  // filter to get data from graph.
-  QueryRequestFilter filters = 2;
+  // Node, edge, and graph filters to match against the graph.
+  QueryRequestFilter attribute_query = 2;
 
   // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
-  QueryRequestShortestPath shortest_path = 3;
+  QueryRequestShortestPath shortest_path_query = 3;
 }
 
 // Version details

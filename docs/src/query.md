@@ -6,19 +6,19 @@ Once the infrastructure has been defined with `set_graph` and, optionally, exten
 
 A single `QueryRequest` is a `choice` of exactly one of:
 
-- `filters` — one or more named node/edge/graph filters, evaluated independently.
-- `shortest_path` — a source/destination pair to resolve via the graph's shortest path.
+- `attribute_query` — one or more named node/edge/graph filters, evaluated independently.
+- `shortest_path_query` — a source/destination pair to resolve via the graph's shortest path.
 
-The `QueryResponse` mirrors this with a matching `choice` of `filters` or `shortest_path`.
+The `QueryResponse` mirrors this with a matching `choice` of `attribute_query` or `shortest_path_query`.
 
-## Filter Requests
+## Attribute Query Requests
 `Query.Request.Filter` accepts arrays of `node_filters` and `edge_filters`, plus a single `graph_filter`:
 
 ```python
 query = QueryRequest()
-query.filters.node_filters.add(name="...")   # 0 or more
-query.filters.edge_filters.add(name="...")   # 0 or more
-query.filters.graph_filter.attributes.add(attribute="...", value="...")
+query.attribute_query.node_filters.add(name="...")   # 0 or more
+query.attribute_query.edge_filters.add(name="...")   # 0 or more
+query.attribute_query.graph_filter.attributes.add(attribute="...", value="...")
 ```
 
 Every node/edge filter requires a unique **`name`**. Names are what let you tell the results of one filter apart from another when a request carries several — the response groups matches by that name rather than merging everything into one list.
@@ -39,15 +39,38 @@ Each `node_filter` combines `node_identifiers` (or `endpoints` for edges) with `
 
 `attribute_filters` is a single filter shared across **every** entry in `node_identifiers`/`endpoints` within that filter — it cannot be set differently per identifier. If you need different attribute criteria for different node identifiers or edge endpoints, use separate `node_filters`/`edge_filters` entries (each with its own `name`), one per distinct attribute criteria.
 
+### Default Schema Properties
+Every node and edge carries a set of attributes derived directly from the infrastructure schema, in addition to anything added later via `annotate_graph`. `attribute_filters` can match against these the same way it matches user-added annotations.
+
+Node (component) attributes:
+
+| Attribute | Description |
+|---|---|
+| `type` | The component type of this node (e.g. `xpu`, `nic`, `cpu`). |
+| `device` | Name of the device model this component belongs to (e.g. `dgx_h100`). |
+| `instance` | The parent instance path this component belongs to. |
+| `instance_idx` | Numeric index of the parent instance. |
+| `composed_device` | Full instance path this component was composed under. |
+
+Edge attributes:
+
+| Attribute | Description |
+|---|---|
+| `link` | Name of the link/interconnect connecting the two endpoints (e.g. `pcie`, `nvlink`). |
+| `bandwidth` | Present when the link's physical bandwidth is defined in the schema, e.g. `"1400 Gbps"`. |
+| `latency` | Present when the link's physical latency is defined in the schema, e.g. `"5 ns"`. |
+
+`type`, `device`, `instance`, `instance_idx`, `composed_device`, and `link` are immutable — `annotate_graph` rejects attempts to overwrite them. `bandwidth` and `latency` are not immutable and may be overwritten.
+
 ### Node Attribute Filter
 ```python
 query = QueryRequest()
-node_filter = query.filters.node_filters.add(name="smart_nic_filter")
+node_filter = query.attribute_query.node_filters.add(name="smart_nic_filter")
 node_filter.node_identifiers = ["dgx_h100"]
 node_filter.attribute_filters.attributes.add(attribute="cx7_type", value="smart")
 
 query_response = service.query_graph(query)
-result = query_response.filters.nodes[0]
+result = query_response.attribute_query.nodes[0]
 for node in result.nodes:
     print(node.name, {a.attribute: a.value for a in node.attributes})
 ```
@@ -55,11 +78,11 @@ for node in result.nodes:
 ### Edge Attribute Filter
 ```python
 query = QueryRequest()
-edge_filter = query.filters.edge_filters.add(name="nvlink_filter")
+edge_filter = query.attribute_query.edge_filters.add(name="nvlink_filter")
 edge_filter.attribute_filters.attributes.add(attribute="link_type", value="nvlink")
 
 query_response = service.query_graph(query)
-result = query_response.filters.edges[0]
+result = query_response.attribute_query.edges[0]
 for edge in result.edges:
     print(edge.ep1, edge.ep2, {a.attribute: a.value for a in edge.attributes})
 ```
@@ -67,10 +90,10 @@ for edge in result.edges:
 ### Graph Attribute Filter
 ```python
 query = QueryRequest()
-query.filters.graph_filter.attributes.add(attribute="region", value="us-east")
+query.attribute_query.graph_filter.attributes.add(attribute="region", value="us-east")
 
 query_response = service.query_graph(query)
-graph_attrs = {a.attribute: a.value for a in query_response.filters.graph}
+graph_attrs = {a.attribute: a.value for a in query_response.attribute_query.graph}
 ```
 
 ### Multiple Filters in One Request
@@ -79,26 +102,26 @@ Because `node_filters`/`edge_filters` are arrays of named filters, a single requ
 ```python
 query = QueryRequest()
 
-xpus = query.filters.node_filters.add(name="xpus")
+xpus = query.attribute_query.node_filters.add(name="xpus")
 xpus.attribute_filters.attributes.add(attribute="type", value="xpu")
 
-nics = query.filters.node_filters.add(name="smart_nics")
+nics = query.attribute_query.node_filters.add(name="smart_nics")
 nics.attribute_filters.attributes.add(attribute="cx7_type", value="smart")
 
 query_response = service.query_graph(query)
-for result in query_response.filters.nodes:
+for result in query_response.attribute_query.nodes:
     print(result.name, len(result.nodes))
 ```
 
 ## Shortest Path Requests
 ```python
 query = QueryRequest()
-query.shortest_path.name = "rank0-rank1"
-query.shortest_path.source = service.get_endpoints("rank", "0")[0]
-query.shortest_path.destination = service.get_endpoints("rank", "1")[0]
+query.shortest_path_query.name = "rank0-rank1"
+query.shortest_path_query.source = service.get_endpoints("rank", "0")[0]
+query.shortest_path_query.destination = service.get_endpoints("rank", "1")[0]
 
 query_response = service.query_graph(query)
-path = [node.name for node in query_response.shortest_path.nodes]
+path = [node.name for node in query_response.shortest_path_query.nodes]
 ```
 
 `source` and `destination` must be exact node IDs (not slice expressions) already present in the graph.
