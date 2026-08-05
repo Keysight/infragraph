@@ -596,14 +596,14 @@ message AnnotationLink {
 message AnnotationEdge {
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
   optional string ep1 = 1;
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
@@ -672,7 +672,7 @@ message QueryResponseShortestPath {
 }
 
 // Matched nodes for a single named node_filter from the request.
-message QueryResponseNodeFilterResult {
+message QueryResponseNodeFilter {
 
   // Name of the node_filter this result corresponds to.
   optional string name = 1;
@@ -682,7 +682,7 @@ message QueryResponseNodeFilterResult {
 }
 
 // Matched edges for a single named edge_filter from the request.
-message QueryResponseEdgeFilterResult {
+message QueryResponseEdgeFilter {
 
   // Name of the edge_filter this result corresponds to.
   optional string name = 1;
@@ -696,10 +696,10 @@ message QueryResponseEdgeFilterResult {
 message QueryResponseFilter {
 
   // List of node match results, one entry per node_filter in the request.
-  repeated QueryResponseNodeFilterResult node_filter_results = 1;
+  repeated QueryResponseNodeFilter nodes = 1;
 
   // List of edge match results, one entry per edge_filter in the request.
-  repeated QueryResponseEdgeFilterResult edge_filter_results = 2;
+  repeated QueryResponseEdgeFilter edges = 2;
 
   // List of matched graph attributes.
   repeated QueryAttribute graph = 3;
@@ -712,19 +712,19 @@ message QueryResponse {
   message Choice {
     enum Enum {
       unspecified = 0;
-      filter_query_response = 1;
-      shortest_path_query_response = 2;
+      filters = 1;
+      shortest_path = 2;
     }
   }
   // Type of response returned for this query.
   optional Choice.Enum choice = 1;
 
   // Response data returned from a filter query.
-  QueryResponseFilter filter_query_response = 2;
+  QueryResponseFilter filters = 2;
 
   // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
-  QueryResponseShortestPath shortest_path_query_response = 3;
+  QueryResponseShortestPath shortest_path = 3;
 }
 
 // Defines request for node match. node_identifiers and attribute_filters are both optional,
@@ -736,6 +736,9 @@ message QueryResponse {
 // - both set: returns nodes matching the expanded node_identifiers that also match
 // attribute_filters.
 // - both unset: returns no results.
+// attribute_filters is a single filter shared across every entry in node_identifiers
+// - it cannot be set differently per node_identifiers entry. To apply different attribute_filters
+// to different node identifiers, use separate node_filters entries.
 message QueryRequestNode {
 
   // Name of this node_filter, used to identify its matched nodes in the response.
@@ -743,7 +746,7 @@ message QueryRequestNode {
   optional string name = 3;
 
   // Node names that MUST exist or match nodes present in the graph. This supports slicing
-  // operator and expands to the networkx expanded format:
+  // operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
@@ -751,8 +754,11 @@ message QueryRequestNode {
   // is set; if both are omitted, the filter returns no results.
   repeated string node_identifiers = 1;
 
-  // Attribute-based filter criteria. If omitted, matched nodes are returned with all
-  // of their attributes and no attribute-based narrowing is applied.
+  // Attribute-based filter criteria, applied identically to every node matched via node_identifiers
+  // (or to every node in the graph if node_identifiers is omitted). It is not possible
+  // to apply a different attribute_filters to different node_identifiers within the same
+  // node_filter; use a separate node_filters entry for that. If omitted, matched nodes
+  // are returned with all of their attributes and no attribute-based narrowing is applied.
   QueryRequestAttribute attribute_filters = 2;
 }
 
@@ -764,6 +770,9 @@ message QueryRequestNode {
 // match attribute_filters.
 // - both set: returns edges matching the expanded endpoints that also match attribute_filters.
 // - both unset: returns no results.
+// attribute_filters is a single filter shared across every entry in endpoints - it
+// cannot be set differently per endpoints entry. To apply different attribute_filters
+// to different endpoints, use separate edge_filters entries.
 message QueryRequestEdge {
 
   // Name of this edge_filter, used to identify its matched edges in the response.
@@ -775,8 +784,11 @@ message QueryRequestEdge {
   // the filter returns no results.
   repeated QueryRequestEdgeEndpoints endpoints = 1;
 
-  // Attribute-based filter criteria. If omitted, matched edges are returned with all
-  // of their attributes and no attribute-based narrowing is applied.
+  // Attribute-based filter criteria, applied identically to every edge matched via endpoints
+  // (or to every edge in the graph if endpoints is omitted). It is not possible to apply
+  // a different attribute_filters to different endpoints within the same edge_filter;
+  // use a separate edge_filters entry for that. If omitted, matched edges are returned
+  // with all of their attributes and no attribute-based narrowing is applied.
   QueryRequestAttribute attribute_filters = 2;
 }
 
@@ -784,14 +796,14 @@ message QueryRequestEdge {
 message QueryRequestEdgeEndpoints {
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
   optional string ep1 = 1;
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch

@@ -56,7 +56,7 @@ components:
       properties:
         ep1:
           description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the fully qualified graph format:
             - server[0]xpu[0]
             - server[0:2]
             - switch
@@ -64,7 +64,7 @@ components:
           x-field-uid: 1
         ep2:
           description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the fully qualified graph format:
             - server[0]xpu[0]
             - server[0:2]
             - switch

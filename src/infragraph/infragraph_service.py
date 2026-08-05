@@ -922,7 +922,7 @@ class InfraGraphService(Api):
         if (node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
             return
 
-        node_filter_result = query_response.node_filter_results.add(name=node_filter.name)
+        node_filter_result = query_response.nodes.add(name=node_filter.name)
 
         request_node_identifiers = []
         if node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0:
@@ -973,7 +973,7 @@ class InfraGraphService(Api):
         if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0):
             return
 
-        edge_filter_result = query_response.edge_filter_results.add(name=edge_filter.name)
+        edge_filter_result = query_response.edges.add(name=edge_filter.name)
 
         request_edge_identifiers = []
         if edge_filter.endpoints is None or len(edge_filter.endpoints) == 0:
@@ -1066,14 +1066,14 @@ class InfraGraphService(Api):
             path = networkx.shortest_path(self._graph, query_request.shortest_path.source, query_request.shortest_path.destination)
             for p in path:
                 # add all the nodes in sequence
-                query_response.shortest_path_query_response.nodes.add(p)
+                query_response.shortest_path.nodes.add(p)
             return query_response
 
         else:
             InfraGraphService._validate_unique_filter_names(query_request.filters.node_filters, "node_filter")
             InfraGraphService._validate_unique_filter_names(query_request.filters.edge_filters, "edge_filter")
 
-            filter_response = query_response.filter_query_response
+            filter_response = query_response.filters
             for node_filter in query_request.filters.node_filters:
                 self._process_node_filter(node_filter=node_filter, query_response=filter_response)
 

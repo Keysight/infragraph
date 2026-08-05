@@ -32,7 +32,7 @@ async def test_shortest_path(ranks: Tuple[int, int]):
 
     query_response = service.query_graph(query)
     shortest_route = ""
-    for node in query_response.shortest_path_query_response.nodes:
+    for node in query_response.shortest_path.nodes:
         shortest_route = shortest_route + " -> " + node.name
     
     print(f"\nShortest Path between rank {ranks[0]} and rank {ranks[1]}")
