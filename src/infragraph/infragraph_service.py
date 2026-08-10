@@ -968,16 +968,16 @@ class InfraGraphService(Api):
     
     def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponseFilter):
         
-        if (node_filter.node_identifier is None or len(node_filter.node_identifier) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
+        if (node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
             return
 
-        node_filter_result = query_response.node_filter_results.add(name=node_filter.name)
+        node_filter_result = query_response.nodes.add(name=node_filter.name)
 
         request_node_identifiers = []
-        if node_filter.node_identifier is None or len(node_filter.node_identifier) == 0:
+        if node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0:
             request_node_identifiers = list(self._graph)
         else:
-            for request_nodes in node_filter.node_identifier:  
+            for request_nodes in node_filter.node_identifiers:  
                 expanded_nodes = self.expand_node_string(request_nodes)
         
                 for node in expanded_nodes:
@@ -1022,7 +1022,7 @@ class InfraGraphService(Api):
         if (edge_filter.endpoints is None or len(edge_filter.endpoints) == 0) and (edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0):
             return
 
-        edge_filter_result = query_response.edge_filter_results.add(name=edge_filter.name)
+        edge_filter_result = query_response.edges.add(name=edge_filter.name)
 
         request_edge_identifiers = []
         if edge_filter.endpoints is None or len(edge_filter.endpoints) == 0:
@@ -1057,7 +1057,7 @@ class InfraGraphService(Api):
                 ]
         
         # check for attributes here
-        if edge_filter.attribute_filters is not None or len(edge_filter.attribute_filters) == 0:
+        if edge_filter.attribute_filters is None or len(edge_filter.attribute_filters.attributes) == 0:
             # all attributes
             for endpoints in request_edge_identifiers:
                 # return all attributes
@@ -1106,35 +1106,35 @@ class InfraGraphService(Api):
 
         query_response = QueryResponse()
         
-        if query_request.choice == "shortest_path":
-            if query_request.shortest_path.source not in self._graph:
-                raise InfrastructureError(f"Queried source node does not exist in graph {query_request.shortest_path.source}")
-            if query_request.shortest_path.destination not in self._graph:
-                raise InfrastructureError(f"Queried destination node does not exist in graph {query_request.shortest_path.destination}")
-            
-            path = networkx.shortest_path(self._graph, query_request.shortest_path.source, query_request.shortest_path.destination)
+        if query_request.choice == "shortest_path_query":
+            if query_request.shortest_path_query.source not in self._graph:
+                raise InfrastructureError(f"Queried source node does not exist in graph {query_request.shortest_path_query.source}")
+            if query_request.shortest_path_query.destination not in self._graph:
+                raise InfrastructureError(f"Queried destination node does not exist in graph {query_request.shortest_path_query.destination}")
+
+            path = networkx.shortest_path(self._graph, query_request.shortest_path_query.source, query_request.shortest_path_query.destination)
             for p in path:
                 # add all the nodes in sequence
-                query_response.shortest_path_query_response.nodes.add(p)
+                query_response.shortest_path_query.nodes.add(p)
             return query_response
 
         else:
-            InfraGraphService._validate_unique_filter_names(query_request.filters.node_filters, "node_filter")
-            InfraGraphService._validate_unique_filter_names(query_request.filters.edge_filters, "edge_filter")
+            InfraGraphService._validate_unique_filter_names(query_request.attribute_query.node_filters, "node_filter")
+            InfraGraphService._validate_unique_filter_names(query_request.attribute_query.edge_filters, "edge_filter")
 
-            filter_response = query_response.filter_query_response
-            for node_filter in query_request.filters.node_filters:
+            filter_response = query_response.attribute_query
+            for node_filter in query_request.attribute_query.node_filters:
                 self._process_node_filter(node_filter=node_filter, query_response=filter_response)
 
-            for edge_filter in query_request.filters.edge_filters:
+            for edge_filter in query_request.attribute_query.edge_filters:
                 self._process_edge_filter(edge_filter=edge_filter, query_response=filter_response)
 
             # match that specific attribute for every node
-            if query_request.filters.graph_filter.attributes is not None:
+            if query_request.attribute_query.graph_filter.attributes is not None:
                 attribute_map = {}
-                logic = query_request.filters.graph_filter.logic
+                logic = query_request.attribute_query.graph_filter.logic
                 attribute_map = {}
-                for attribute in query_request.filters.graph_filter.attributes:
+                for attribute in query_request.attribute_query.graph_filter.attributes:
                     attribute_map[attribute.attribute] = attribute.value
 
                 attribute_match = InfraGraphService._match_attrs(self._graph.graph, attribute_map, logic)

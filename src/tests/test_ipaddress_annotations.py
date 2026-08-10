@@ -14,9 +14,9 @@ async def test_ipaddress_annotations():
 
     # query the graph for host nics
     npu_request = QueryRequest()
-    npu_request.filters.node_filters.add(name="mgmt_nic_filter").attribute_filters.attributes.add(attribute="type", value="mgmt-nic")
-    nic_response = service.query_graph(npu_request).filter_query_response
-    nic_nodes = nic_response.node_filter_results[0].nodes
+    npu_request.attribute_query.node_filters.add(name="mgmt_nic_filter").attribute_filters.attributes.add(attribute="type", value="mgmt-nic")
+    nic_response = service.query_graph(npu_request).attribute_query
+    nic_nodes = nic_response.nodes[0].nodes
     assert len(nic_nodes) > 0
 
     # annotate the graph
@@ -30,9 +30,9 @@ async def test_ipaddress_annotations():
 
     # query the graph for ipaddress attributes
     ipaddress_request = QueryRequest()
-    ipaddress_request.filters.node_filters.add(name="ipaddress_filter").attribute_filters.attributes.add(attribute="ipaddress", value="")
-    ipaddress_response = service.query_graph(ipaddress_request).filter_query_response
-    ipaddress_nodes = ipaddress_response.node_filter_results[0].nodes
+    ipaddress_request.attribute_query.node_filters.add(name="ipaddress_filter").attribute_filters.attributes.add(attribute="ipaddress", value="")
+    ipaddress_response = service.query_graph(ipaddress_request).attribute_query
+    ipaddress_nodes = ipaddress_response.nodes[0].nodes
 
     # validation
     assert len(nic_nodes) > 0

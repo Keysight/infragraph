@@ -61,7 +61,7 @@ components:
           items:
             $ref: "#/components/schemas/Query.Response.Node"
           x-field-uid: 1
-    Query.Response.NodeFilterResult:
+    Query.Response.NodeFilter:
       description: Matched nodes for a single named node_filter from the request.
       type: object
       properties:
@@ -75,7 +75,7 @@ components:
           items:
             $ref: "#/components/schemas/Query.Response.Node"
           x-field-uid: 2
-    Query.Response.EdgeFilterResult:
+    Query.Response.EdgeFilter:
       description: Matched edges for a single named edge_filter from the request.
       type: object
       properties:
@@ -93,17 +93,17 @@ components:
       description: Response object for a filter query, containing the matched nodes, edges, and graph attributes, grouped by the filter that produced them.
       type: object
       properties:
-        node_filter_results:
+        nodes:
           description: List of node match results, one entry per node_filter in the request.
           type: array
           items:
-            $ref: "#/components/schemas/Query.Response.NodeFilterResult"
+            $ref: "#/components/schemas/Query.Response.NodeFilter"
           x-field-uid: 1
-        edge_filter_results:
+        edges:
           description: List of edge match results, one entry per edge_filter in the request.
           type: array
           items:
-            $ref: "#/components/schemas/Query.Response.EdgeFilterResult"
+            $ref: "#/components/schemas/Query.Response.EdgeFilter"
           x-field-uid: 2
         graph:
           description: List of matched graph attributes.
@@ -112,7 +112,7 @@ components:
             $ref: "#/components/schemas/Query.Attribute"
           x-field-uid: 3
     Query.Response:
-      description: Query response object - a query can respond with either matched filter results (nodes, edges, graph attributes) or a shortest path.
+      description: Query response object - a query can respond with either matched attribute query results (nodes, edges, graph attributes) or a shortest path.
       type: object
       properties:
         choice:
@@ -120,21 +120,27 @@ components:
           type: string
           x-field-uid: 1
           x-enum:
-            filter_query_response:
+            attribute_query:
               x-field-uid: 1
-            shortest_path_query_response:
+            shortest_path_query:
               x-field-uid: 2
-        filter_query_response:
-          description: Response data returned from a filter query.
+        attribute_query:
+          description: Response data returned from an attribute query.
           $ref: "#/components/schemas/Query.Response.Filter"
           x-field-uid: 2
-        shortest_path_query_response:
+        shortest_path_query:
           description: |-
             Add shortest path filters to retrieve the shortest path between source and destination nodes
           $ref: "#/components/schemas/Query.Response.ShortestPath"
           x-field-uid: 3
     Query.Request.Node:
-      description: Defines request for node match
+      description: |-
+        Defines request for node match. node_identifiers and attribute_filters are both optional, but at least one MUST be set or the filter returns no results:
+        - node_identifiers set, attribute_filters unset: returns all nodes matching the expanded node_identifiers, with all of their attributes.
+        - node_identifiers unset, attribute_filters set: returns nodes from the entire graph that match attribute_filters.
+        - both set: returns nodes matching the expanded node_identifiers that also match attribute_filters.
+        - both unset: returns no results.
+        attribute_filters is a single filter shared across every entry in node_identifiers - it cannot be set differently per node_identifiers entry. To apply different attribute_filters to different node identifiers, use separate node_filters entries.
       type: object
       required:
         - name
@@ -143,22 +149,30 @@ components:
           description: Name of this node_filter, used to identify its matched nodes in the response.
           type: string
           x-field-uid: 3
-        node_identifier:
+        node_identifiers:
           description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Node names that MUST exist or match nodes present in the graph. This supports slicing operator and expands to the fully qualified graph format:
             - server[0]xpu[0]
             - server[0:2]
             - switch
+            If omitted, the filter considers every node in the graph, provided attribute_filters is set; if both are omitted, the filter returns no results.
           type: array
           items:
             type: string
           x-field-uid: 1
         attribute_filters:
-          description: Attribute-based filter criteria.
+          description: |-
+            Attribute-based filter criteria, applied identically to every node matched via node_identifiers (or to every node in the graph if node_identifiers is omitted). It is not possible to apply a different attribute_filters to different node_identifiers within the same node_filter; use a separate node_filters entry for that. If omitted, matched nodes are returned with all of their attributes and no attribute-based narrowing is applied.
           $ref: "#/components/schemas/Query.Request.Attribute"
           x-field-uid: 2
     Query.Request.Edge:
-      description: Defines request for edge match
+      description: |-
+        Defines request for edge match. endpoints and attribute_filters are both optional, but at least one MUST be set or the filter returns no results:
+        - endpoints set, attribute_filters unset: returns all edges matching the expanded endpoints, with all of their attributes.
+        - endpoints unset, attribute_filters set: returns edges from the entire graph that match attribute_filters.
+        - both set: returns edges matching the expanded endpoints that also match attribute_filters.
+        - both unset: returns no results.
+        attribute_filters is a single filter shared across every entry in endpoints - it cannot be set differently per endpoints entry. To apply different attribute_filters to different endpoints, use separate edge_filters entries.
       type: object
       required:
         - name
@@ -169,13 +183,14 @@ components:
           x-field-uid: 3
         endpoints:
           description: |-
-            Array of edge endpoints where you want to filter
+            Array of edge endpoints where you want to filter. If omitted, the filter considers every edge in the graph, provided attribute_filters is set; if both are omitted, the filter returns no results.
           type: array
           items:
             $ref:  "#/components/schemas/Query.Request.Edge.Endpoints"
           x-field-uid: 1
         attribute_filters:
-          description: Attribute-based filter criteria.
+          description: |-
+            Attribute-based filter criteria, applied identically to every edge matched via endpoints (or to every edge in the graph if endpoints is omitted). It is not possible to apply a different attribute_filters to different endpoints within the same edge_filter; use a separate edge_filters entry for that. If omitted, matched edges are returned with all of their attributes and no attribute-based narrowing is applied.
           $ref: "#/components/schemas/Query.Request.Attribute"
           x-field-uid: 2
     Query.Request.Edge.Endpoints:
@@ -184,7 +199,7 @@ components:
       properties:
         ep1:
           description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the fully qualified graph format:
             - server[0]xpu[0]
             - server[0:2]
             - switch
@@ -192,7 +207,7 @@ components:
           x-field-uid: 1
         ep2:
           description: |-
-            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the networkx expanded format:
+            Endpoint name that MUST exist or match edges present in the graph. This supports slicing operator and expands to the fully qualified graph format:
             - server[0]xpu[0]
             - server[0:2]
             - switch
@@ -261,23 +276,23 @@ components:
           type: string
           x-field-uid: 3
     Query.Request:
-      description: A request object specifying filters to be used for querying nodes, graph attributes, or shortest paths.
+      description: A request object specifying the type of query to perform - an attribute query (matching nodes, edges, or graph attributes) or a shortest path query.
       type: object
       properties:
         choice:
-          description: Type of filters specified in this query request.
+          description: Type of query being performed by this query request.
           type: string
           x-field-uid: 1
           x-enum:
-            filters:
+            attribute_query:
               x-field-uid: 1
-            shortest_path:
+            shortest_path_query:
               x-field-uid: 2
-        filters:
-          description: filter to get data from graph.
+        attribute_query:
+          description: Node, edge, and graph filters to match against the graph.
           $ref: "#/components/schemas/Query.Request.Filter"
           x-field-uid: 2
-        shortest_path:
+        shortest_path_query:
           description: |-
             Add shortest path filters to retrieve the shortest path between source and destination nodes
           $ref: "#/components/schemas/Query.Request.ShortestPath"

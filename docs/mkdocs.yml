@@ -56,6 +56,7 @@ nav:
   - Blueprints: blueprints.md
   - CLI: cli.md
   - Extending The Graph: annotate.md
+  - Query The Graph: query.md
   - Examples: examples.md
   - Browse API Spec: openapi.html
 
