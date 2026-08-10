@@ -11,5 +11,4 @@ lstopo_xml_file = os.path.join(mock_data_path, "supermicro.xml")
 #%%
 lstopo_parser = LstopoParser(lstopo_xml_file)
 infra_obj = lstopo_parser.parse()
-print(infra_obj)
 

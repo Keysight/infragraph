@@ -45,7 +45,7 @@ async def test_2_tier_16_radix_with_dgx():
     # print_graph(g)
 
 @pytest.mark.asyncio
-async def test_2_tier_8_radix_with_server():
+async def test_two_tier_eight_radix_with_server():
     """
     Generate two tier clos fabric with generic server as hosts
     """
@@ -66,11 +66,12 @@ async def test_2_tier_8_radix_with_server():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
-async def test_3_tier_4_radix_with_server():
+async def test_three_tier_four_radix_with_server():
     """
     Generate three tier clos fabric with generic server as hosts
     """
@@ -94,11 +95,12 @@ async def test_3_tier_4_radix_with_server():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
-async def test_3_tier_no_oversub_4_radix_with_server():
+async def test_three_tier_no_oversub_four_radix_with_server():
     """
     Generate a 3 tier fabric with server as host
     """
@@ -122,11 +124,12 @@ async def test_3_tier_no_oversub_4_radix_with_server():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 @pytest.mark.asyncio
-async def test_3_tier_no_oversub_8_radix_with_server():
+async def test_three_tier_no_oversub_eight_radix_with_server():
     """
     Generate a 3 tier fabric switch radix 8 and server as host
     """
@@ -151,12 +154,13 @@ async def test_3_tier_no_oversub_8_radix_with_server():
 
     # validations
     g = service.get_networkx_graph()
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(networkx.write_network_text(g, vertical_chains=True))
     # print_graph(g)
 
 
 @pytest.mark.asyncio
-async def test_2_tier_32_radix_with_dgx():
+async def test_three_tier_thirty_two_radix_with_dgx():
     """
     Generate a 2 tier fabric with dgx hosts and switch radix as 32
     """
@@ -183,7 +187,7 @@ async def test_2_tier_32_radix_with_dgx():
     # print_graph(g)
 
 @pytest.mark.asyncio
-async def test_3_tier_32_radix_with_dgx():
+async def test_three_tier_thirty_two_radix_with_dgx():
     """
     Generate a 2 tier fabric with dgx hosts and switch radix as 32
     """

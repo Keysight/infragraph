@@ -27,7 +27,7 @@ async def test_debruijn_multi_host_fabric():
     service.set_graph(fabric)
 
     graph = service.get_networkx_graph()
-    print(networkx.write_network_text(graph, vertical_chains=True))
+    # print(networkx.write_network_text(graph, vertical_chains=True))
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dgx_profile", DGX_PROFILES)
@@ -44,7 +44,7 @@ async def test_debruijn_multi_host_fabric_with_dgx(dgx_profile):
     service.set_graph(fabric)
 
     graph = service.get_networkx_graph()
-    print(networkx.write_network_text(graph, vertical_chains=True))
+    # print(networkx.write_network_text(graph, vertical_chains=True))
 
 
 if __name__ == "__main__":

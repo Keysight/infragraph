@@ -33,8 +33,9 @@ async def test_dellxe9680L(count, xpu_type, nic_device):
     service.set_graph(infrastructure)
 
     g = service.get_networkx_graph()
-    print(f"\ndevice {device.name} xpu={xpu_type} nic={nic_device} count={count}")
-    print(networkx.write_network_text(g, vertical_chains=True))
+    assert g is not None
+    # print(f"\ndevice {device.name} xpu={xpu_type} nic={nic_device} count={count}")
+    # print(networkx.write_network_text(g, vertical_chains=True))
 
 
 if __name__ == "__main__":

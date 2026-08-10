@@ -596,14 +596,14 @@ message AnnotationLink {
 message AnnotationEdge {
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
   optional string ep1 = 1;
 
   // Endpoint name that MUST exist or match edges present in the graph. This supports
-  // slicing operator and expands to the networkx expanded format:
+  // slicing operator and expands to the fully qualified graph format:
   // - server[0]xpu[0]
   // - server[0:2]
   // - switch
@@ -630,80 +630,191 @@ message Annotation {
   repeated AnnotationAttribute graph = 4;
 }
 
-// Represents a generic name and value pair attribute.
-message NameValue {
+// Attribute and its value.
+message QueryAttribute {
 
-  // Name of the attribute or property.
-  optional string name = 1;
+  // The attribute key.
+  optional string attribute = 1;
 
-  // Value corresponding to the name.
+  // The attribute value.
   optional string value = 2;
 }
 
-// Represents a single item returned from a query, identified by an id and associated
-// attributes.
-message QueryResponseItem {
+// Matched node name and its attributes present in the graph.
+message QueryResponseNode {
 
-  // Unique identifier of the item.
-  optional string id = 1;
-
-  // List of name-value pairs describing item attributes.
-  repeated NameValue attributes = 2;
-}
-
-// Represents a shortest path result containing a name and an ordered list of nodes
-// on the path.
-message QueryShortestPathItem {
-
-  // Name of the shortest path filter
-  // required = true
+  // Matched node name present in the graph.
   optional string name = 1;
 
-  // An array of node ids that make up the shortest path
-  repeated string nodes = 2;
+  // An inventory of attributes and values of the current node.
+  repeated QueryAttribute attributes = 2;
 }
 
-// The content of a query response, indicating the type of match and containing corresponding
-// results.
-message QueryResponseContent {
+// Matched edges and their attributes present in the graph.
+message QueryResponseEdge {
+
+  // Matched endpoint one.
+  optional string ep1 = 1;
+
+  // Matched endpoint two.
+  optional string ep2 = 2;
+
+  // An inventory of attributes and values.
+  repeated QueryAttribute attributes = 3;
+}
+
+// Response object containing the ordered list of nodes forming the shortest path between
+// the requested source and destination.
+message QueryResponseShortestPath {
+
+  // List of matched nodes of the graph with attributes.
+  repeated QueryResponseNode nodes = 1;
+}
+
+// Matched nodes for a single named node_filter from the request.
+message QueryResponseNodeFilter {
+
+  // Name of the node_filter this result corresponds to.
+  optional string name = 1;
+
+  // List of matched nodes of the graph with attributes.
+  repeated QueryResponseNode nodes = 2;
+}
+
+// Matched edges for a single named edge_filter from the request.
+message QueryResponseEdgeFilter {
+
+  // Name of the edge_filter this result corresponds to.
+  optional string name = 1;
+
+  // List of matched edges of the graph with attributes.
+  repeated QueryResponseEdge edges = 2;
+}
+
+// Response object for a filter query, containing the matched nodes, edges, and graph
+// attributes, grouped by the filter that produced them.
+message QueryResponseFilter {
+
+  // List of node match results, one entry per node_filter in the request.
+  repeated QueryResponseNodeFilter nodes = 1;
+
+  // List of edge match results, one entry per edge_filter in the request.
+  repeated QueryResponseEdgeFilter edges = 2;
+
+  // List of matched graph attributes.
+  repeated QueryAttribute graph = 3;
+}
+
+// Query response object - a query can respond with either matched attribute query results
+// (nodes, edges, graph attributes) or a shortest path.
+message QueryResponse {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      node_matches = 1;
-      shortest_path_matches = 2;
+      attribute_query = 1;
+      shortest_path_query = 2;
     }
   }
-  // Indicates the type of results returned - node matches, shortest path matches, or
-  // graph attribute matches.
+  // Type of response returned for this query.
   optional Choice.Enum choice = 1;
 
-  // Array of nodes matching the query criteria.
-  repeated QueryResponseItem node_matches = 2;
+  // Response data returned from an attribute query.
+  QueryResponseFilter attribute_query = 2;
 
-  // Array of shortest path results matching the query criteria.
-  repeated QueryShortestPathItem shortest_path_matches = 3;
+  // Add shortest path filters to retrieve the shortest path between source and destination
+  // nodes
+  QueryResponseShortestPath shortest_path_query = 3;
 }
 
-// Criteria for filtering nodes based on attribute names, values, and operators.
-message QueryAttribute {
+// Defines request for node match. node_identifiers and attribute_filters are both optional,
+// but at least one MUST be set or the filter returns no results:
+// - node_identifiers set, attribute_filters unset: returns all nodes matching the expanded
+// node_identifiers, with all of their attributes.
+// - node_identifiers unset, attribute_filters set: returns nodes from the entire graph
+// that match attribute_filters.
+// - both set: returns nodes matching the expanded node_identifiers that also match
+// attribute_filters.
+// - both unset: returns no results.
+// attribute_filters is a single filter shared across every entry in node_identifiers
+// - it cannot be set differently per node_identifiers entry. To apply different attribute_filters
+// to different node identifiers, use separate node_filters entries.
+message QueryRequestNode {
 
-  // Attribute name to filter on.
-  optional string name = 1;
+  // Name of this node_filter, used to identify its matched nodes in the response.
+  // required = true
+  optional string name = 3;
 
-  message Operator {
-    enum Enum {
-      unspecified = 0;
-      eq = 1;
-      regex = 2;
-      contains = 3;
-    }
-  }
-  // Operator used for attribute filtering.
-  optional Operator.Enum operator = 2;
+  // Node names that MUST exist or match nodes present in the graph. This supports slicing
+  // operator and expands to the fully qualified graph format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  // If omitted, the filter considers every node in the graph, provided attribute_filters
+  // is set; if both are omitted, the filter returns no results.
+  repeated string node_identifiers = 1;
 
-  // Value to compare the attribute against.
-  optional string value = 3;
+  // Attribute-based filter criteria, applied identically to every node matched via node_identifiers
+  // (or to every node in the graph if node_identifiers is omitted). It is not possible
+  // to apply a different attribute_filters to different node_identifiers within the same
+  // node_filter; use a separate node_filters entry for that. If omitted, matched nodes
+  // are returned with all of their attributes and no attribute-based narrowing is applied.
+  QueryRequestAttribute attribute_filters = 2;
+}
+
+// Defines request for edge match. endpoints and attribute_filters are both optional,
+// but at least one MUST be set or the filter returns no results:
+// - endpoints set, attribute_filters unset: returns all edges matching the expanded
+// endpoints, with all of their attributes.
+// - endpoints unset, attribute_filters set: returns edges from the entire graph that
+// match attribute_filters.
+// - both set: returns edges matching the expanded endpoints that also match attribute_filters.
+// - both unset: returns no results.
+// attribute_filters is a single filter shared across every entry in endpoints - it
+// cannot be set differently per endpoints entry. To apply different attribute_filters
+// to different endpoints, use separate edge_filters entries.
+message QueryRequestEdge {
+
+  // Name of this edge_filter, used to identify its matched edges in the response.
+  // required = true
+  optional string name = 3;
+
+  // Array of edge endpoints where you want to filter. If omitted, the filter considers
+  // every edge in the graph, provided attribute_filters is set; if both are omitted,
+  // the filter returns no results.
+  repeated QueryRequestEdgeEndpoints endpoints = 1;
+
+  // Attribute-based filter criteria, applied identically to every edge matched via endpoints
+  // (or to every edge in the graph if endpoints is omitted). It is not possible to apply
+  // a different attribute_filters to different endpoints within the same edge_filter;
+  // use a separate edge_filters entry for that. If omitted, matched edges are returned
+  // with all of their attributes and no attribute-based narrowing is applied.
+  QueryRequestAttribute attribute_filters = 2;
+}
+
+// Defines request for edge match
+message QueryRequestEdgeEndpoints {
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the fully qualified graph format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep1 = 1;
+
+  // Endpoint name that MUST exist or match edges present in the graph. This supports
+  // slicing operator and expands to the fully qualified graph format:
+  // - server[0]xpu[0]
+  // - server[0:2]
+  // - switch
+  optional string ep2 = 2;
+}
+
+// Query request attributes with logical operation on all of the attributes.
+message QueryRequestAttribute {
+
+  // Attributes for filter
+  repeated QueryAttribute attributes = 1;
 
   message Logic {
     enum Enum {
@@ -712,99 +823,59 @@ message QueryAttribute {
       or = 2;
     }
   }
-  // Logical operation to combine this filter with others.
-  optional Logic.Enum logic = 4;
-}
-
-// Criteria for filtering node IDs using specified operators and logical combinations.
-message QueryNodeId {
-
-  message Operator {
-    enum Enum {
-      unspecified = 0;
-      eq = 1;
-      regex = 2;
-      contains = 3;
-    }
-  }
-  // Operator used to filter node IDs.
-  optional Operator.Enum operator = 1;
-
-  // Value pattern for filtering node IDs.
-  optional string value = 2;
-
-  message Logic {
-    enum Enum {
-      unspecified = 0;
-      and = 1;
-      or = 2;
-    }
-  }
-  // Logical operation to combine this ID filter with others.
-  optional Logic.Enum logic = 3;
+  // Logical operation to combine this filter with others. Default is and.
+  optional Logic.Enum logic = 2;
 }
 
 // Defines a filter on nodes, either by attributes or by node IDs.
-message QueryNodeFilter {
+message QueryRequestFilter {
 
-  // Name of this node filter.
-  optional string name = 1;
+  // Node name filter
+  repeated QueryRequestNode node_filters = 1;
 
-  message Choice {
-    enum Enum {
-      unspecified = 0;
-      attribute_filter = 1;
-      id_filter = 2;
-    }
-  }
-  // Type of node filter, either attribute or ID based.
-  optional Choice.Enum choice = 2;
+  // Edge filter.
+  repeated QueryRequestEdge edge_filters = 2;
 
-  // Attribute-based filter criteria.
-  QueryAttribute attribute_filter = 3;
-
-  // ID-based filter criteria.
-  QueryNodeId id_filter = 4;
+  // Graph filter.
+  QueryRequestAttribute graph_filter = 3;
 }
 
 // Filter specifying the shortest path constraints, with source and destination nodes.
-message QueryShortestPathFilter {
+message QueryRequestShortestPath {
 
   // Name of the shortest path filter.
   // required = true
   optional string name = 1;
 
-  // Node ID from which to start the shortest path.
+  // Node ID from which to start the shortest path. This should be an EXACT match.
   // required = true
   optional string source = 2;
 
-  // Node ID at which the shortest path ends.
+  // Node ID at which the shortest path ends. This should be an EXACT match.
   // required = true
   optional string destination = 3;
 }
 
-// A request object specifying filters to be used for querying nodes, graph attributes,
-// or shortest paths.
+// A request object specifying the type of query to perform - an attribute query (matching
+// nodes, edges, or graph attributes) or a shortest path query.
 message QueryRequest {
 
   message Choice {
     enum Enum {
       unspecified = 0;
-      node_filters = 1;
-      shortest_path_filters = 2;
+      attribute_query = 1;
+      shortest_path_query = 2;
     }
   }
-  // Type of filters specified in this query request.
+  // Type of query being performed by this query request.
   optional Choice.Enum choice = 1;
 
-  // List of filters to match nodes.
-  repeated QueryNodeFilter node_filters = 2;
+  // Node, edge, and graph filters to match against the graph.
+  QueryRequestFilter attribute_query = 2;
 
-  // Under Review: Proposal to abstract the shortest path interface to the graph.
-  // 
-  // Add shortest path filters to retrive the shortest path between source and destination
+  // Add shortest path filters to retrieve the shortest path between source and destination
   // nodes
-  repeated QueryShortestPathFilter shortest_path_filters = 3;
+  QueryRequestShortestPath shortest_path_query = 3;
 }
 
 // Version details
@@ -840,8 +911,8 @@ message GraphResponse {
 }
 
 // Answer to the query request.
-message QueryResponse {
-  QueryResponseContent query_response_content = 1;
+message QueryResponseContent {
+  QueryResponse query_response = 1;
 }
 
 // Data that needs to be streamed
@@ -870,7 +941,7 @@ message QueryGraphRequest {
   QueryRequest query_request = 1;
 }
 message QueryGraphResponse {
-  QueryResponseContent query_response_content = 1;
+  QueryResponse query_response = 1;
 }
 
 
