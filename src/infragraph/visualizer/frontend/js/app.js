@@ -53,11 +53,7 @@ function render(data, options) {
 
     net.once('stabilizationIterationsDone', function () {
         net.setOptions({ physics: { enabled: false } });
-        var pos = net.getPositions();
-        net.body.data.nodes.forEach(function (node) {
-            var p = pos[node.id];
-            if (p) net.body.data.nodes.update({ id: node.id, x: p.x, y: p.y, fixed: false });
-        });
+        unpinNodes(net);
         net.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
     });
 
