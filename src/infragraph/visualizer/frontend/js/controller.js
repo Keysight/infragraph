@@ -30,59 +30,38 @@ document.getElementById('nodeslider').addEventListener('input', function () {
     net.body.data.nodes.update(updates);
 });
 
+// Re-runs the hierarchical layout with new spacing, then hands the graph back
+// to the user: physics off, and nodes unpinned so they stay draggable on both
+// axes (the layout engine re-fixes them on the level axis every time it runs).
+function respaceLayout(hierarchical, repulsion) {
+    net.off('stabilizationIterationsDone');
+
+    net.setOptions({
+        layout: { hierarchical: Object.assign({ enabled: true }, hierarchical) },
+        physics: {
+            enabled: true,
+            hierarchicalRepulsion: Object.assign({
+                centralGravity: 0.0, springLength: 150, springConstant: 0.02, damping: 0.5
+            }, repulsion),
+            stabilization: { iterations: 150, fit: true }
+        },
+        interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true }
+    });
+
+    net.stabilize(1000);
+    net.once('stabilizationIterationsDone', function () {
+        net.setOptions({ physics: { enabled: false } });
+        unpinNodes(net);
+        net.fit({ animation: { duration: 10, easingFunction: 'easeInOutQuart' } });
+    });
+}
+
 document.getElementById('spaceslider').addEventListener('input', function () {
     var spacing = parseInt(this.value);
-
-    net.setOptions({layout: {
-        hierarchical: {
-        enabled: true,}}})
-        
-        net.setOptions({
-                physics: { enabled: true,
-        hierarchicalRepulsion: {
-        centralGravity: 0.0, springLength: 150, springConstant:0.02,
-        nodeDistance: spacing, damping: 0.5
-        },
-        stabilization: { iterations: 150, fit: true }
-        },
-        interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true }, }
-    );
-
-    net.setOptions({layout: {
-        hierarchical: {
-        enabled: true,}}})
-        
-
-        net.stabilize(1000);
-        net.once('stabilizationIterationsDone', function () {
-            net.setOptions({ physics: { enabled: false } });
-            net.fit({ animation: { duration: 10, easingFunction: 'easeInOutQuart' } });
-        });
-    }),
-
+    respaceLayout({}, { nodeDistance: spacing });
+});
 
 document.getElementById('levelslider').addEventListener('input', function () {
     var spacing = parseInt(this.value);
-
-    net.off('stabilizationIterationsDone');
-    net.setOptions({layout: {
-    hierarchical: {
-      enabled: true, levelSeparation: spacing}}})
-
-    net.setOptions({
-            physics: { enabled: true,
-    hierarchicalRepulsion: {
-      centralGravity: 0.0, springLength: 150, springConstant:0.02,
-      damping: 0.5
-    },
-        stabilization: { iterations: 150, fit: true }
-        },
-        interaction: { hover: true, dragNodes: true, dragView: true, zoomView: true }, }
-            );
-
-  net.stabilize(1000);
-        net.once('stabilizationIterationsDone', function () {
-            net.setOptions({ physics: { enabled: false } });
-            net.fit({ animation: { duration: 10, easingFunction: 'easeInOutQuart' } });
-        });
+    respaceLayout({ levelSeparation: spacing }, {});
 });
