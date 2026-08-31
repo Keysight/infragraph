@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import tempfile
 import shutil
@@ -20,10 +21,9 @@ XPU_PCI_CLASS = {
 }
 
 XPU_VENDOR_CLASS = {
-    "102b": "Matrox card/controller",
+    "102b": "Matrox card controller",
     "10de": "Nvidia GPU"
 }
-
 NIC_PCI_CLASS = {
     "0200": "Ethernet NIC",
     "0207": "InfiniBand NIC",
@@ -37,6 +37,20 @@ NIC_VENDOR_CLASS = {
     "14e4": "Broadcom Nic",
 }
 
+
+# Characters permitted by the `name` pattern in schema/common.yaml.
+_INVALID_NAME_CHARS = re.compile(r"[^\sa-zA-Z0-9\-_()><\[\]]+")
+
+
+def sanitize_name(value: str) -> str:
+    """Strip characters that the schema's name pattern rejects.
+
+    Vendor strings taken from lstopo XML routinely contain characters such as
+    '/', '.', ':' and ',' that are not valid in a component name.
+    """
+    if not value:
+        return ""
+    return " ".join(_INVALID_NAME_CHARS.sub(" ", value).split())
 
 class LstopoParser:
     """Parser for lstopo XML files to generate device topology graphs."""
@@ -104,20 +118,30 @@ class LstopoParser:
                 "Please provide it explicitly via the --device-name option."
             )
     
+    def _find_info(self, name: str) -> str | None:
+        """Return the value of the first matching hwloc info element, if any."""
+        elem = self.root.find(f".//info[@name='{name}']")
+        return elem.get("value") if elem is not None else None
+
     def _parse_cpu_info(self):
         """Parse CPU information and create CPU components."""
-        cpu_model_elem = self.root.find(".//info[@name='CPUModel']")
-        cpu_vendor_elem = self.root.find(".//info[@name='CPUVendor']")
-        
-        if cpu_model_elem is None or cpu_vendor_elem is None:
-            raise ValueError("Missing required CPU information in XML.")
-        
-        self.cpu_model = cpu_model_elem.get("value")
-        self.cpu_vendor = cpu_vendor_elem.get("value")
-        
+        # Both values are descriptive only: cpu_model is the component description
+        # and cpu_vendor merely selects an inter-socket fabric name on multi-socket
+        # systems, so a non-x86 topology that omits them is still usable.
+        self.cpu_vendor = self._find_info("CPUVendor")
+        # hwloc reads CPUModel out of the x86 CPUID instruction, so it is absent on
+        # aarch64, POWER, RISC-V and s390x. Those platforms have no self-describing
+        # CPU name, so fall back to the architecture hwloc does report.
+        arch = self._find_info("Architecture")
+        self.cpu_model = (
+            self._find_info("CPUModel") or (f"{arch} CPU" if arch else "Unknown CPU")
+        )
+
         # Count CPU packages and map to root bridges
         machine = self.root.find("object[@type='Machine']")
-        packages = machine.findall(".//object[@type='Package']")
+        # Some topologies expose no Package object; treat the Machine itself as a
+        # single package so the CPU count is never zero.
+        packages = machine.findall(".//object[@type='Package']") or [machine]
         self.cpu_count = len(packages)
         
         for idx, pkg in enumerate(packages):
@@ -186,12 +210,12 @@ class LstopoParser:
             for osdev in osdevs:
                 for info in osdev.findall("info"):
                     if info.get("name") == "GPUModel":
-                        self.gpu_models.append(info.get("value"))
+                        self.gpu_models.append(sanitize_name(info.get("value")))
                         return
         # Fallback to PCIDevice info
         pci_device_elem = obj.find("info[@name='PCIDevice']")
         if pci_device_elem is not None:
-            self.gpu_models.append(pci_device_elem.get("value"))
+            self.gpu_models.append(sanitize_name(pci_device_elem.get("value")))
         else:
             if pci_vendor in XPU_VENDOR_CLASS:
                 self.gpu_models.append(XPU_VENDOR_CLASS[pci_vendor])
@@ -201,7 +225,8 @@ class LstopoParser:
         if pci_vendor in NIC_VENDOR_CLASS:
             pci_device_elem = obj.find("./info[@name='PCIDevice']")
             if pci_device_elem is not None:
-                self.nics.append(pci_device_elem.get("value").replace("+", ""))
+                self.nics.append(sanitize_name(pci_device_elem.get("value").replace("+", "")))
+
             else:
                 self.nics.append(NIC_VENDOR_CLASS[pci_vendor])
     
@@ -278,6 +303,12 @@ class LstopoParser:
                 )
                 edge.ep1.component = self.cpu.name
                 edge.ep2.component = self.cpu.name
+            else:
+                print(
+                    f"Warning: no known CPU fabric for vendor "
+                    f"'{self.cpu_vendor or 'unknown'}'; the interconnect between "
+                    f"the {self.cpu.count} CPUs was not modelled."
+                )
     
     def _build_pci_bridge_dict(self) -> Tuple[Dict, int, int]:
         """Build PCI bridge hierarchy dictionary."""
@@ -378,14 +409,17 @@ class LstopoParser:
         # Check immediate PCIDevice info
         pci_device_elem = obj.find("info[@name='PCIDevice']")
         if pci_device_elem is not None:
-            name = pci_device_elem.get("value").replace("[", "").replace("]", "")
+            name = sanitize_name(
+                pci_device_elem.get("value").replace("[", "").replace("]", "")
+            )
             if name in set(self.gpu_models) or name in set(self.nics):
                 return name
         
         # Check for GPUModel in nested info
         for info in obj.findall(".//info"):
             if info.get("name") == "GPUModel":
-                return info.get("value")
+                return sanitize_name(info.get("value"))
+            
 
         # Check for NIC by OSDev/Address
         if obj.find(".//object[@type='OSDev']/info[@name='Address']") is not None:
