@@ -123,26 +123,19 @@ class LstopoParser:
         elem = self.root.find(f".//info[@name='{name}']")
         return elem.get("value") if elem is not None else None
 
-    def _describe_generic_cpu(self) -> str:
-        """Build a CPU description for architectures that do not report CPUModel.
-
-        hwloc reads CPUModel and CPUVendor out of the x86 CPUID instruction, so
-        neither exists on aarch64, POWER, RISC-V or s390x. Those platforms have no
-        self-describing CPU name at all, so fall back to what the firmware does
-        expose: the system vendor from DMI plus the architecture.
-        """
-        vendor = self._find_info("DMISysVendor") or self._find_info("DMIBoardVendor")
-        arch = self._find_info("Architecture")
-        known = [value for value in (vendor, arch) if value]
-        return f"{' '.join(known)} CPU" if known else "Unknown CPU"
-
     def _parse_cpu_info(self):
         """Parse CPU information and create CPU components."""
         # Both values are descriptive only: cpu_model is the component description
         # and cpu_vendor merely selects an inter-socket fabric name on multi-socket
         # systems, so a non-x86 topology that omits them is still usable.
         self.cpu_vendor = self._find_info("CPUVendor")
-        self.cpu_model = self._find_info("CPUModel") or self._describe_generic_cpu()
+        # hwloc reads CPUModel out of the x86 CPUID instruction, so it is absent on
+        # aarch64, POWER, RISC-V and s390x. Those platforms have no self-describing
+        # CPU name, so fall back to the architecture hwloc does report.
+        arch = self._find_info("Architecture")
+        self.cpu_model = (
+            self._find_info("CPUModel") or (f"{arch} CPU" if arch else "Unknown CPU")
+        )
 
         # Count CPU packages and map to root bridges
         machine = self.root.find("object[@type='Machine']")
