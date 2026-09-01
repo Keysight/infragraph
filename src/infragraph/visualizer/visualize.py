@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import yaml
 import json
 from json import JSONDecodeError
@@ -318,17 +319,24 @@ class Visualizer:
     def _load_infrastructure(input_file):
         """load the yaml/json file
         Params:
-                input_file: given yaml/json file
+                input_file: given yaml/json file, or '-' to read from stdin
                 infrastructure: infrastructure object"""
         if not input_file:
             raise ValueError("Either input_file or infrastructure must be provided")
         try:
-            with open(input_file, "r", encoding="utf-8") as f:
+            if input_file == "-":
+                raw = sys.stdin.read()
                 try:
-                    data = json.load(f)
+                    data = json.loads(raw)
                 except (JSONDecodeError, ValueError):
-                    f.seek(0)
-                    data = yaml.safe_load(f)
+                    data = yaml.safe_load(raw)
+            else:
+                with open(input_file, "r", encoding="utf-8") as f:
+                    try:
+                        data = json.load(f)
+                    except (JSONDecodeError, ValueError):
+                        f.seek(0)
+                        data = yaml.safe_load(f)
         except FileNotFoundError:
             raise FileNotFoundError(f"Input file not found: '{input_file}'")
         except YAMLError as e:

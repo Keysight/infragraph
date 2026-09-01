@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import shutil
 import xml.etree.ElementTree as ET
@@ -627,17 +628,20 @@ def run_lstopo_parser(
 
         input_file = str(tmp_xml)
 
-    # If output points to a directory, write a default file (devices.<format>) inside it.
-    if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
-        output_file = os.path.join(output_file, f"devices.{dump_format.lower()}")
+    to_stdout = output_file == "-"
 
-    _, ext = os.path.splitext(output_file)
-    ext = ext.lstrip(".").lower()
+    if not to_stdout:
+        # If output points to a directory, write a default file (devices.<format>) inside it.
+        if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
+            output_file = os.path.join(output_file, f"devices.{dump_format.lower()}")
 
-    if ext != dump_format.lower():
-        raise ValueError(
-            f"Output extension '.{ext}' does not match format '{dump_format}'."
-        )
+        _, ext = os.path.splitext(output_file)
+        ext = ext.lstrip(".").lower()
+
+        if ext != dump_format.lower():
+            raise ValueError(
+                f"Output extension '.{ext}' does not match format '{dump_format}'."
+            )
 
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
@@ -647,15 +651,18 @@ def run_lstopo_parser(
 
     serialized_data = device_model.serialize(dump_format)
 
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(serialized_data)
-        print("translated output file", output_file)
+    if to_stdout:
+        sys.stdout.write(serialized_data)
+    else:
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(serialized_data)
+        print("translated output file", output_file, file=sys.stderr)
 
     # delete temp file if created
     if tmp_xml and tmp_xml.exists():
         tmp_xml.unlink()
-        print("removed /tmp/lstopo_output.xml")
+        print("removed /tmp/lstopo_output.xml", file=sys.stderr)
     
 
 

@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import ctypes
@@ -570,16 +571,19 @@ def run_nccl_parser(
         NcclHelper.generate_nccl_topology()
         input_file = str(tmp_xml)
 
-    if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
-        output_file = os.path.join(output_file, f"device.{dump_format.lower()}")
+    to_stdout = output_file == "-"
 
-    _, ext = os.path.splitext(output_file)
-    ext = ext.lstrip(".").lower()
+    if not to_stdout:
+        if os.path.isdir(output_file) or output_file.endswith(("/", os.sep)):
+            output_file = os.path.join(output_file, f"device.{dump_format.lower()}")
 
-    if ext != dump_format.lower():
-        raise ValueError(
-            f"Output extension '.{ext}' does not match format '{dump_format}'."
-        )
+        _, ext = os.path.splitext(output_file)
+        ext = ext.lstrip(".").lower()
+
+        if ext != dump_format.lower():
+            raise ValueError(
+                f"Output extension '.{ext}' does not match format '{dump_format}'."
+            )
 
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Input file not found: {input_file}")
@@ -589,16 +593,23 @@ def run_nccl_parser(
 
     serialized_data = device_model.serialize(dump_format)
 
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(serialized_data)
-        print(f"Translated output written to: {output_file}")
-    req = GraphRequest()
-    req.infragraph.annotations.choice = "full"
-    annotation_output = parser.get_annotations().get_graph(req)
-    annotation_file = str(Path(output_file).parent / "annotated_infragraph.json")
-    with open(annotation_file, "w", encoding="utf-8") as f:
-        f.write(annotation_output)
-        print(f"Annotated infragraph (infrastructure + annotations) written to: {annotation_file}")
+    if to_stdout:
+        sys.stdout.write(serialized_data)
+        print(
+            "Note: annotated_infragraph.json was not written because output is stdout.",
+            file=sys.stderr,
+        )
+    else:
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(serialized_data)
+        print(f"Translated output written to: {output_file}", file=sys.stderr)
+        req = GraphRequest()
+        req.infragraph.annotations.choice = "full"
+        annotation_output = parser.get_annotations().get_graph(req)
+        annotation_file = str(Path(output_file).parent / "annotated_infragraph.json")
+        with open(annotation_file, "w", encoding="utf-8") as f:
+            f.write(annotation_output)
+        print(f"Annotated infragraph (infrastructure + annotations) written to: {annotation_file}", file=sys.stderr)
     return serialized_data
 
