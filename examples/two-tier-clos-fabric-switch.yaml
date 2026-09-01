@@ -1,0 +1,33 @@
+infrastructure:
+  devices:
+    - name: generic-switch
+      description: Generic Switch
+      components:
+        - name: asic
+          description: Generic ASIC
+          type: custom
+        - name: port
+          description: Generic Port
+          type: nic
+          external: true
+      links:
+        - name: ic
+          description: Integrated Circuit
+      connections:
+        - asic.0.ic.port.0
+        - asic.0.ic.port.1
+        - asic.0.ic.port.2
+        - asic.0.ic.port.3
+        - asic.0.ic.port.4
+        - asic.0.ic.port.5
+        - asic.0.ic.port.6
+        - asic.0.ic.port.7
+        - asic.0.ic.port.8
+        - asic.0.ic.port.9
+        - asic.0.ic.port.10
+        - asic.0.ic.port.11
+        - asic.0.ic.port.12
+        - asic.0.ic.port.13
+        - asic.0.ic.port.14
+        - asic.0.ic.port.15
+
