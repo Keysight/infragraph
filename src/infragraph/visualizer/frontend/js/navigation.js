@@ -24,13 +24,12 @@ function navigateTo(file, label) {
         updateBreadcrumb();
         updateBackButton();
 
-        var isInfra = navigationStack.length === 1;
-        var options = isInfra ? fabricOptions : internalOptions;
-
+        largeGraphOverride = null;   // each view decides its own render mode
         currentData = prepareData(data);
-        render(currentData, options);
+        render(currentData, optionsForData(currentData));
 
         if (typeof populateFilters === 'function') populateFilters(currentData);
+        if (typeof syncLargeGraphToggle === 'function') syncLargeGraphToggle();
 
         hideLoading();
     }).catch(function (err) {

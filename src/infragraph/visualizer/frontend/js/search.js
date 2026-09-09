@@ -106,7 +106,7 @@ function renderPickedTags() {
 
   countEl.textContent = '(' + pickedNodeIds.size + ' selected)';
   container.innerHTML = Array.from(pickedNodeIds).map(function (id) {
-    const node = currentData ? currentData.nodes.find(function (n) { return n.id === id; }) : null;
+    const node = currentData && currentData.byId ? currentData.byId.get(id) : null;
     return '<span class="picked-tag">' + (node ? node.label || id : id) +
       '<span class="remove-tag" onclick="unpickNode(\'' + id.replace(/'/g, "\\'") + '\')">&#10005;</span></span>';
   }).join('');

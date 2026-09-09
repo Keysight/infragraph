@@ -122,6 +122,7 @@ class Visualizer:
             count = val["count"]
             e["label"] = f"×{count} {e.get('link', '')}" if count > 1 else e.get("link","")
             e["width"] = min(1 + count, 6) if count > 1 else 1
+            e["count"] = count
             result.append(e)
         return result
 
@@ -158,6 +159,90 @@ class Visualizer:
             if k not in immutable and k not in exclude
         ]
         return "\n".join(lines)
+
+    # Layout constants for the precomputed infrastructure view (canvas units).
+    LAYOUT_NODE_SPACING = 120
+    LAYOUT_MIN_LEVEL_SEP = 150
+    LAYOUT_MAX_LEVEL_SEP = 6000
+    LAYOUT_ASPECT = 4.0   # target width / height of the whole drawing
+
+    def _compute_layout(self, nodes, edges, group_of):
+        """Assign a hierarchy level and x/y position to every instance node so
+        the browser can draw the graph without running a layout engine.
+
+        Levels are BFS distance from the hosts (or, without a --hosts hint, from
+        the largest instance group). Within a level nodes are ordered by the mean
+        position of their neighbours one level down (barycenter heuristic), then
+        pushed apart to respect the node spacing. Level 0 sits at y = 0 and
+        higher levels go up (negative y), matching the DU hierarchical view.
+        Params:
+            nodes: list of node dicts (need "id" and "type").
+            edges: list of edge dicts (need "from" and "to").
+            group_of: dict id -> instance name.
+        Returns:
+            dict id -> {"level": int, "x": int, "y": int}"""
+        adj = {n["id"]: set() for n in nodes}
+        for e in edges:
+            if e["from"] in adj and e["to"] in adj:
+                adj[e["from"]].add(e["to"])
+                adj[e["to"]].add(e["from"])
+
+        roots = [n["id"] for n in nodes if n["type"] == "host"]
+        if not roots:
+            counts = {}
+            for n in nodes:
+                counts[group_of[n["id"]]] = counts.get(group_of[n["id"]], 0) + 1
+            largest = max(counts, key=counts.get) if counts else None
+            roots = [n["id"] for n in nodes if group_of[n["id"]] == largest]
+
+        level = {r: 0 for r in roots}
+        queue = list(roots)
+        while queue:
+            cur = queue.pop(0)
+            for nb in adj[cur]:
+                if nb not in level:
+                    level[nb] = level[cur] + 1
+                    queue.append(nb)
+        for n in nodes:                       # disconnected nodes go to the bottom row
+            level.setdefault(n["id"], 0)
+
+        order = {n["id"]: i for i, n in enumerate(nodes)}
+        by_level = {}
+        for nid, lv in level.items():
+            by_level.setdefault(lv, []).append(nid)
+
+        spacing = self.LAYOUT_NODE_SPACING
+        x = {}
+        for lv in sorted(by_level):
+            ids = by_level[lv]
+            if lv == 0:
+                ids.sort(key=order.get)
+                bary = {nid: (i - (len(ids) - 1) / 2.0) * spacing for i, nid in enumerate(ids)}
+            else:
+                bary = {}
+                for nid in ids:
+                    below = [x[m] for m in adj[nid] if level[m] < lv and m in x]
+                    bary[nid] = sum(below) / len(below) if below else 0.0
+                ids.sort(key=lambda nid: (bary[nid], order[nid]))
+            # push overlapping nodes apart, then re-centre on the barycenter mean
+            pos = []
+            for nid in ids:
+                px = bary[nid]
+                if pos and px < pos[-1] + spacing:
+                    px = pos[-1] + spacing
+                pos.append(px)
+            shift = (sum(bary.values()) / len(ids)) - (sum(pos) / len(pos))
+            for nid, px in zip(ids, pos):
+                x[nid] = px + shift
+
+        widest = max(len(ids) for ids in by_level.values())
+        width = max(widest - 1, 1) * spacing
+        n_levels = max(len(by_level) - 1, 1)
+        level_sep = int(min(max(width / (self.LAYOUT_ASPECT * n_levels), self.LAYOUT_MIN_LEVEL_SEP),
+                            self.LAYOUT_MAX_LEVEL_SEP))
+
+        return {nid: {"level": level[nid], "x": int(round(x[nid])), "y": -level[nid] * level_sep}
+                for nid in level}
 
     def _generate_component_json(self, device_name, device_data):
         """Generate a device component view JSON from a DeviceData object.
@@ -254,6 +339,7 @@ class Visualizer:
 
         # Instance nodes
         nodes = []
+        group_of = {}
         for instance in self.service.infrastructure.instances:
             device_name = instance.device
             for idx in range(instance.count):
@@ -279,6 +365,7 @@ class Visualizer:
                     "drillable": drillable,
                     "drillTarget": f"{device_name}.json" if drillable else None,
                 })
+                group_of[f"{instance.name}_{idx}"] = instance.name
 
         # Infrastructure edges from NetworkX graph
         raw_edges = []
@@ -310,9 +397,18 @@ class Visualizer:
                 "color": self._get_link_color(link), "title": title,"label":link,
             })
 
+        edges = self._collapse_parallel_edges(raw_edges)
+
+        # Precomputed positions: the browser draws these directly instead of
+        # running vis.js's hierarchical layout and physics, which is what makes
+        # large fabrics slow to open.
+        layout = self._compute_layout(nodes, edges, group_of)
+        for n in nodes:
+            n.update(layout[n["id"]])
+
         return {
             "nodes": nodes,
-            "edges": self._collapse_parallel_edges(raw_edges),
+            "edges": edges,
         }
 
     @staticmethod

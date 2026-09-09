@@ -729,3 +729,7 @@ div.vis-tooltip {
     background: var(--accent-hover);
     transform: scale(1.15);
 }
+.controller-items label.checkbox-row input[type="checkbox"] {
+    flex: 0 0 auto;
+    accent-color: var(--accent-orange);
+}
