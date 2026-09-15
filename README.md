@@ -53,8 +53,6 @@ For large topologies the visualizer can compress the infrastructure view. A **Co
 
 Clicking a rack or pod opens it rather than jumping straight into a device template. You see its actual member servers together with the switches they uplink to, and a hop slider controls how much surrounding fabric comes with them. Clicking a server there drills into that device's internals as usual, so the trail reads Infrastructure, then rack, then device. Switch groups behave differently and go straight to the device template, because every switch in a group is an instance of the same device. At the highest compression rungs a single node can stand for every server in the fabric, and those are left closed since expanding one would build thousands of nodes; lower the compression to reach a group you can open. Passing `--hosts` helps the visualizer identify the bottom tier.
 
-For a full walkthrough of how the layout, the simplified drawing mode and the compression logic work, with worked examples, see [the visualizer notes](src/infragraph/visualizer/README.md).
-
 
 > **Note:** More converters and tools are _work-in-progress_. See the [Ecosystem documentation](docs/src/ecosystem.md) for the full roadmap and we invite contributions from the community.
 
