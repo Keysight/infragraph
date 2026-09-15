@@ -712,5 +712,3 @@ def run_visualizer(input_file=None, infrastructure=None, annotations=None, outpu
         service.annotate_graph(annotations)
     Visualizer(service, output=output, hosts=hosts, switches=switches)
 
-
-run_visualizer("512_ranks.yaml")
