@@ -63,7 +63,8 @@ function applyFilters() {
     return visIds.has(e.from) && visIds.has(e.to) && selLinks.has(e.linkType || e.title || 'unknown');
   });
 
-  var filtered = { nodes: fNodes, edges: fEdges, large: currentData.large };
+  var filtered = { nodes: fNodes, edges: fEdges, large: currentData.large,
+                   rackView: currentData.rackView };
   render(filtered, optionsForData(filtered));
 }
 

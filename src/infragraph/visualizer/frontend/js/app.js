@@ -44,6 +44,27 @@ function initApp() {
 });
 }
 
+// A rack or pod that is too large to expand is not clickable, so say so with the
+// cursor rather than letting the click quietly do nothing.
+function cursorFor(node) {
+    if (typeof isRackGroup === 'function' && isRackGroup(node)) {
+        return canOpenRack(node) ? 'pointer' : 'not-allowed';
+    }
+    return node.drillable ? 'pointer' : 'default';
+}
+
+// Brief message at the bottom of the canvas. Used for actions that are refused
+// or silently adjusted, which would otherwise look like nothing happened.
+var toastTimer = null;
+function showToast(message) {
+    var el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3600);
+}
+
 // Re-prepares the current view from its raw data (theme or render-mode change)
 // and redraws it with the full dataset.
 function rerenderCurrent() {
@@ -73,7 +94,10 @@ function render(data, options) {
     }, options);
 
     if (options.physics && options.physics.enabled === false) {
-        // Precomputed positions: nothing to stabilize, just frame the graph.
+        // Nothing to stabilize. A hierarchical layout still pins every node on
+        // the level axis, so release them or they cannot be dragged freely.
+        var h = options.layout && options.layout.hierarchical;
+        if (h && h.enabled) unpinNodes(net);
         net.fit({ animation: false });
     } else {
         net.once('stabilizationIterationsDone', function () {
@@ -97,7 +121,10 @@ function render(data, options) {
             clickTimer = setTimeout(function () {
                 var nodeId = params.nodes[0];
                 var nodeData = nodeById.get(nodeId);
-                if (nodeData && nodeData.drillable && nodeData.drillTarget) {
+                if (!nodeData) return;
+                if (typeof isRackGroup === 'function' && isRackGroup(nodeData)) {
+                    openRack(nodeData);            // rack or pod: show its servers in context
+                } else if (nodeData.drillable && nodeData.drillTarget) {
                     navigateTo(nodeData.drillTarget, nodeData.label);
                 }
             }, 300);
@@ -107,7 +134,7 @@ function render(data, options) {
     net.on('hoverNode', function (params) {
         var nodeData = nodeById.get(params.node);
         if (nodeData) {
-            container.style.cursor = nodeData.drillable ? 'pointer' : 'default';
+            container.style.cursor = cursorFor(nodeData);
         }
     });
 

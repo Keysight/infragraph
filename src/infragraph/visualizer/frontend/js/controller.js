@@ -98,7 +98,8 @@ document.getElementById('levelslider').addEventListener('input', rescaleLive);
 
 document.getElementById('spaceslider').addEventListener('change', function () {
     if (!net || isPrecomputedView()) return;
-    respaceLayout({}, { nodeDistance: parseInt(this.value) });
+    var v = parseInt(this.value);
+    respaceLayout({ nodeSpacing: v }, { nodeDistance: v });
 });
 
 document.getElementById('levelslider').addEventListener('change', function () {

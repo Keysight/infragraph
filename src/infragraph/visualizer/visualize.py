@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections import deque
 import sys
 import yaml
 import json
@@ -74,6 +75,12 @@ class Visualizer:
         infra_json = self._generate_instance_json()
         all_views["infrastructure.json"] = infra_json
         print(f"  Generated: infrastructure.json ({len(infra_json['nodes'])} nodes, {len(infra_json['edges'])} edges)")
+
+        # compressed infrastructure views (large fabrics only), chosen with the UI slider
+        for name, view in self._generate_compressed_views(infra_json).items():
+            all_views[name] = view
+            print(f"  Generated: {name} ({len(view['nodes'])} nodes, {len(view['edges'])} edges; "
+                  f"×{view['ratio']}{', default' if view['default'] else ''})")
 
         #device view
         for device_name, device_data in self.service._device_data.items():
@@ -162,11 +169,244 @@ class Visualizer:
 
     # Layout constants for the precomputed infrastructure view (canvas units).
     LAYOUT_NODE_SPACING = 120
+    LAYOUT_GROUP_SPACING = 320   # compressed views: bigger (and wide switch) icons, longer labels
     LAYOUT_MIN_LEVEL_SEP = 150
-    LAYOUT_MAX_LEVEL_SEP = 6000
+    LAYOUT_MAX_LEVEL_SEP = 1000
     LAYOUT_ASPECT = 4.0   # target width / height of the whole drawing
 
-    def _compute_layout(self, nodes, edges, group_of):
+    # A compressed infrastructure view is generated when the fabric has more
+    # hosts than this; smaller fabrics are readable as they are.
+    COMPRESS_MIN_HOSTS = 128
+
+    @staticmethod
+    def _leaf_ids(nodes, group_of):
+        """Ids of the nodes that form the bottom of the hierarchy: the hosts, or
+        without a --hosts hint the largest instance group."""
+        leaves = [n["id"] for n in nodes if n["type"] == "host"]
+        if leaves:
+            return leaves
+        counts = {}
+        for n in nodes:
+            counts[group_of[n["id"]]] = counts.get(group_of[n["id"]], 0) + 1
+        largest = max(counts, key=counts.get) if counts else None
+        return [n["id"] for n in nodes if group_of[n["id"]] == largest]
+
+    def _compute_levels(self, nodes, edges, group_of):
+        """Hierarchy level of every node: BFS distance from the leaves.
+        Returns:
+            (level dict id -> int, adjacency dict id -> set of neighbour ids)"""
+        adj = {n["id"]: set() for n in nodes}
+        for e in edges:
+            if e["from"] in adj and e["to"] in adj:
+                adj[e["from"]].add(e["to"])
+                adj[e["to"]].add(e["from"])
+
+        roots = self._leaf_ids(nodes, group_of)
+        level = {r: 0 for r in roots}
+        queue = deque(roots)
+        while queue:
+            cur = queue.popleft()
+            for nb in adj[cur]:
+                if nb not in level:
+                    level[nb] = level[cur] + 1
+                    queue.append(nb)
+        for n in nodes:                       # disconnected nodes go to the bottom row
+            level.setdefault(n["id"], 0)
+        return level, adj
+
+    def _compress_view(self, nodes, edges, group_of, base_labels, tag, coarse=False):
+        """Merge equivalent nodes of a view into group nodes.
+
+        Two nodes are merged when they belong to the same instance group, sit at
+        the same level and attach to the same set of neighbours one level up
+        (e.g. the servers behind one leaf switch, or the leaf switches of one
+        pod that share the same spines). Top-level nodes, which have nothing
+        above them, are grouped by the groups they attach to below. With
+        coarse=True everything in the same instance group and level is merged
+        into a single node instead. Edges are remapped onto the group nodes and
+        parallel ones merged into one edge labelled with the total link count.
+
+        The input may itself be a compressed view: group nodes carry a
+        "members" list of original instance ids, which is flattened into the
+        new groups so tooltips and search keep working.
+        Params:
+            nodes, edges: view lists (layout keys are ignored).
+            group_of: dict id -> instance name.
+            base_labels: dict original instance id -> label.
+            tag: string making the new group ids unique across levels.
+            coarse: merge per instance group and level instead of by connectivity.
+        Returns:
+            (nodes, edges, group_of) for the compressed view."""
+        level, adj = self._compute_levels(nodes, edges, group_of)
+        by_id = {n["id"]: n for n in nodes}
+        order = {n["id"]: i for i, n in enumerate(nodes)}
+        assign = {}          # node id -> group node id
+        groups = []          # (group node id, [node ids])
+
+        for lv in sorted(set(level.values())):
+            buckets = {}
+            for n in nodes:
+                nid = n["id"]
+                if level[nid] != lv:
+                    continue
+                if coarse:
+                    key = (group_of[nid],)
+                else:
+                    up = frozenset(m for m in adj[nid] if level[m] > lv)
+                    if up:
+                        key = (group_of[nid], "up", up)
+                    else:
+                        key = (group_of[nid], "down",
+                               frozenset(assign.get(m, m) for m in adj[nid] if level[m] < lv))
+                buckets.setdefault(key, []).append(nid)
+            for key, ids in buckets.items():
+                if len(ids) < 2:
+                    continue
+                ids.sort(key=order.get)
+                gid = f"{key[0]}_{tag}g{len(groups)}"
+                for m in ids:
+                    assign[m] = gid
+                groups.append((gid, ids))
+
+        def members_of(n):
+            return n.get("members", [n["id"]])
+
+        out_nodes, new_group_of, sort_key = [], {}, {}
+        for n in nodes:
+            if n["id"] not in assign:
+                out_nodes.append(dict(n))
+                new_group_of[n["id"]] = group_of[n["id"]]
+                sort_key[n["id"]] = order[n["id"]]
+        for gid, ids in groups:
+            sort_key[gid] = min(order[i] for i in ids)
+            first = by_id[ids[0]]
+            grp = group_of[ids[0]]
+            members = [m for nid in ids for m in members_of(by_id[nid])]
+            idxs = sorted(int(m.rsplit("_", 1)[1]) for m in members)
+            contiguous = idxs == list(range(idxs[0], idxs[0] + len(idxs)))
+            label = f"{grp}[{idxs[0]}..{idxs[-1]}]" if contiguous else f"{grp} ×{len(members)}"
+            shown = ", ".join(base_labels.get(m, m) for m in members[:12])
+            if len(members) > 12:
+                shown += f", … +{len(members) - 12} more"
+            # What kind of thing this group is, derived from the data rather than
+            # assumed: a bottom-tier group whose members all uplink to exactly one
+            # switch is a rack, and several such racks merged is a pod. Groups on
+            # higher tiers are neither, so they stay plain groups.
+            kind, uplink, rack_count = "group", None, 0
+            if level[ids[0]] == 0:
+                uplinks = set()
+                for nid in ids:
+                    for m in adj[nid]:
+                        if level[m] > level[nid]:
+                            uplinks.update(members_of(by_id[m]))
+                rack_count = len(uplinks)
+                if rack_count == 1:
+                    kind = "rack"
+                    uplink = base_labels.get(next(iter(uplinks)))
+                elif rack_count > 1:
+                    kind = "pod"
+
+            if kind == "rack":
+                title = (f"Rack: {len(members)} × {grp}\nUplink: {uplink}"
+                         f"\nDevice: {first['device']}\nMembers: {shown}")
+            elif kind == "pod":
+                title = (f"Pod: {len(members)} × {grp} across {rack_count} racks"
+                         f"\nDevice: {first['device']}\nMembers: {shown}")
+            else:
+                title = (f"Group: {len(members)} × {grp}\nDevice: {first['device']}"
+                         f"\nType: {first['type']}\nMembers: {shown}")
+
+            node = dict(first)
+            node.update({
+                "id": gid,
+                "label": label,
+                "title": title,
+                "size": min(int(first.get("size", 16) * 1.4), 60),
+                "members": members,
+                "kind": kind,
+                "rackCount": rack_count,
+            })
+            out_nodes.append(node)
+            new_group_of[gid] = grp
+        # keep the leaf ordering of the original view so the layout stays comparable
+        out_nodes.sort(key=lambda n: sort_key[n["id"]])
+
+        merged = {}
+        for e in edges:
+            a = assign.get(e["from"], e["from"])
+            b = assign.get(e["to"], e["to"])
+            if a == b:
+                continue                       # internal to a group
+            key = (min(a, b), max(a, b), e["link"])
+            if key not in merged:
+                merged[key] = dict(e, **{"from": a, "to": b, "count": 0, "_merged": 0})
+            merged[key]["count"] += e.get("count", 1)
+            merged[key]["_merged"] += 1
+        out_edges = []
+        for e in merged.values():
+            n_merged = e.pop("_merged")
+            if n_merged > 1:
+                e["label"] = f"×{e['count']} {e['link']}"
+                e["width"] = min(1 + e["count"], 6)
+                e["title"] = f"{e['title'].splitlines()[0]}\n×{e['count']} links merged"
+            out_edges.append(e)
+
+        return out_nodes, out_edges, new_group_of
+
+    def _generate_compressed_views(self, infra_json):
+        """Ladder of increasingly compressed variants of the infrastructure view.
+
+        Level 1 merges nodes with identical connectivity; each further level
+        applies the same rule to the previous result (groups whose groups are
+        equivalent merge again) until nothing changes. A final level collapses
+        every instance group and tier into a single node. The frontend exposes
+        the ladder as a compression slider.
+        Returns:
+            dict "infrastructure_compressed_<k>.json" -> view JSON, empty when
+            the fabric has <= COMPRESS_MIN_HOSTS hosts."""
+        nodes = [{k: v for k, v in n.items() if k not in ("x", "y", "level")} for n in infra_json["nodes"]]
+        edges = infra_json["edges"]
+        group_of = self._instance_group_of
+        host_count = len(self._leaf_ids(nodes, group_of))
+        if host_count <= self.COMPRESS_MIN_HOSTS:
+            return {}
+        base_labels = {n["id"]: n["label"] for n in nodes}
+        total = len(nodes)
+
+        ladder = []
+        cur_nodes, cur_edges, cur_group_of = nodes, edges, group_of
+        while True:
+            c_nodes, c_edges, c_group_of = self._compress_view(
+                cur_nodes, cur_edges, cur_group_of, base_labels, tag=f"L{len(ladder) + 1}")
+            if len(c_nodes) >= len(cur_nodes):
+                break
+            ladder.append((c_nodes, c_edges, c_group_of))
+            cur_nodes, cur_edges, cur_group_of = c_nodes, c_edges, c_group_of
+        # Default rung shown when the toggle is switched on: one step past plain
+        # connectivity merging, which keeps the tiers recognisable.
+        default_level = min(2, len(ladder))
+
+        t_nodes, t_edges, t_group_of = self._compress_view(
+            nodes, edges, group_of, base_labels, tag="T", coarse=True)
+        if len(t_nodes) < len(cur_nodes):
+            ladder.append((t_nodes, t_edges, t_group_of))
+        if not ladder:
+            return {}
+
+        views = {}
+        for k, (c_nodes, c_edges, c_group_of) in enumerate(ladder, start=1):
+            layout = self._compute_layout(c_nodes, c_edges, c_group_of, spacing=self.LAYOUT_GROUP_SPACING)
+            for n in c_nodes:
+                n.update(layout[n["id"]])
+            views[f"infrastructure_compressed_{k}.json"] = {
+                "nodes": c_nodes, "edges": c_edges,
+                "hostCount": host_count, "level": k, "levels": len(ladder),
+                "ratio": round(total / len(c_nodes), 1),
+                "default": k == max(default_level, 1),
+            }
+        return views
+
+    def _compute_layout(self, nodes, edges, group_of, spacing=None):
         """Assign a hierarchy level and x/y position to every instance node so
         the browser can draw the graph without running a layout engine.
 
@@ -181,37 +421,13 @@ class Visualizer:
             group_of: dict id -> instance name.
         Returns:
             dict id -> {"level": int, "x": int, "y": int}"""
-        adj = {n["id"]: set() for n in nodes}
-        for e in edges:
-            if e["from"] in adj and e["to"] in adj:
-                adj[e["from"]].add(e["to"])
-                adj[e["to"]].add(e["from"])
-
-        roots = [n["id"] for n in nodes if n["type"] == "host"]
-        if not roots:
-            counts = {}
-            for n in nodes:
-                counts[group_of[n["id"]]] = counts.get(group_of[n["id"]], 0) + 1
-            largest = max(counts, key=counts.get) if counts else None
-            roots = [n["id"] for n in nodes if group_of[n["id"]] == largest]
-
-        level = {r: 0 for r in roots}
-        queue = list(roots)
-        while queue:
-            cur = queue.pop(0)
-            for nb in adj[cur]:
-                if nb not in level:
-                    level[nb] = level[cur] + 1
-                    queue.append(nb)
-        for n in nodes:                       # disconnected nodes go to the bottom row
-            level.setdefault(n["id"], 0)
-
+        level, adj = self._compute_levels(nodes, edges, group_of)
         order = {n["id"]: i for i, n in enumerate(nodes)}
+        spacing = spacing or self.LAYOUT_NODE_SPACING
         by_level = {}
         for nid, lv in level.items():
             by_level.setdefault(lv, []).append(nid)
 
-        spacing = self.LAYOUT_NODE_SPACING
         x = {}
         for lv in sorted(by_level):
             ids = by_level[lv]
@@ -405,6 +621,7 @@ class Visualizer:
         layout = self._compute_layout(nodes, edges, group_of)
         for n in nodes:
             n.update(layout[n["id"]])
+        self._instance_group_of = group_of
 
         return {
             "nodes": nodes,
@@ -494,3 +711,6 @@ def run_visualizer(input_file=None, infrastructure=None, annotations=None, outpu
     if annotations is not None:
         service.annotate_graph(annotations)
     Visualizer(service, output=output, hosts=hosts, switches=switches)
+
+
+run_visualizer("512_ranks.yaml")

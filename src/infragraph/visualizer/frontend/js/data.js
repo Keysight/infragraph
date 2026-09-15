@@ -1,6 +1,13 @@
 // Data fetching and preparation for vis.js
 
 function fetchGraphData(file) {
+    // Rack views are synthesised from infrastructure.json on demand rather than
+    // shipped, so there is one entry per rack without growing graph_data.js.
+    if (typeof isRackFile === 'function' && isRackFile(file)) {
+        var view = buildRackView(file, rackHops);
+        return view ? Promise.resolve(view)
+                    : Promise.reject(new Error('Rack view unavailable: ' + file));
+    }
     if (typeof GRAPH_DATA !== 'undefined' && GRAPH_DATA[file]) {
         return Promise.resolve(GRAPH_DATA[file]);
     }
@@ -47,6 +54,30 @@ function prepareData(rawData) {
             drillTarget: n.drillTarget,
             device: n.device
         };
+        // Group nodes of the compressed view: dashed accent border, member list
+        // kept for search/tooltips.
+        if (n.members) {
+            node.members = n.members;
+            node.kind = n.kind || 'group';
+            node.rackCount = n.rackCount || 0;
+            if (typeof canOpenRack === 'function' && isRackGroup(node) && !canOpenRack(node)) {
+                node.title += '\n\nToo large to open. Lower the compression to reach a smaller group.';
+            }
+            node.borderWidth = 3;
+            node.shapeProperties = { useBorderWithImage: true, borderDashes: [6, 4] };
+            node.color = Object.assign({}, node.color, {
+                border: '#4a90d9',
+                highlight: Object.assign({}, node.color.highlight, { border: '#e67e22' }),
+                hover: Object.assign({}, node.color.hover, { border: '#6aa8e8' })
+            });
+        }
+        // Rack view context: the switches a rack uplinks to are shown faded so
+        // the rack's own members read as the subject of the view.
+        if (typeof n.inRack === 'boolean') node.inRack = n.inRack;
+        if (n.inRack === false) {
+            node.opacity = 0.5;
+            node.font = Object.assign({}, node.font, { color: isDark ? '#8b949e' : '#8c959f' });
+        }
         // Positions precomputed by the generator (infrastructure view). The
         // originals are kept so the spacing sliders can rescale them cheaply.
         if (typeof n.x === 'number' && typeof n.y === 'number') {
@@ -88,5 +119,8 @@ function prepareData(rawData) {
     nodes.forEach(function (n) { byId.set(n.id, n); });
 
     // Store raw data for re-rendering on theme change
-    return { nodes: nodes, edges: edges, byId: byId, large: large, _rawData: rawData };
+    return {
+        nodes: nodes, edges: edges, byId: byId, large: large,
+        rackView: !!rawData.rackView, _rawData: rawData
+    };
 }
