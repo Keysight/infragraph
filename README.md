@@ -49,6 +49,10 @@ infragraph visualize -i my_infrastructure.yaml -o ./viz --hosts "dgx_a100" --swi
 ```
 
 The visualizer produces a multi-level view: a top-level graph of instances and inter-device connectivity, with drill-down into each device's internal components (xPUs, NICs, CPUs, memory, PCIe topology, etc.).
+For large topologies the visualizer can compress the infrastructure view. A **Compressed** button appears in the header for fabrics with more than 128 hosts. It merges nodes that have identical connectivity into a single node, and a slider next to it chooses how aggressively, from merging equivalent neighbours up to one node per tier. Groups are named from the data: a bottom-tier group whose members all uplink to one switch is shown as a rack, and several such racks merged is shown as a pod.
+
+Clicking a rack or pod opens it rather than jumping straight into a device template. You see its actual member servers together with the switches they uplink to, and a hop slider controls how much surrounding fabric comes with them. Clicking a server there drills into that device's internals as usual, so the trail reads Infrastructure, then rack, then device. Switch groups behave differently and go straight to the device template, because every switch in a group is an instance of the same device. At the highest compression rungs a single node can stand for every server in the fabric, and those are left closed since expanding one would build thousands of nodes; lower the compression to reach a group you can open. Passing `--hosts` helps the visualizer identify the bottom tier.
+
 
 > **Note:** More converters and tools are _work-in-progress_. See the [Ecosystem documentation](docs/src/ecosystem.md) for the full roadmap and we invite contributions from the community.
 

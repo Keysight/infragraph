@@ -63,12 +63,14 @@ function applyFilters() {
     return visIds.has(e.from) && visIds.has(e.to) && selLinks.has(e.linkType || e.title || 'unknown');
   });
 
-  render({ nodes: fNodes, edges: fEdges }, navigationStack.length === 0 ? fabricOptions : internalOptions);
+  var filtered = { nodes: fNodes, edges: fEdges, large: currentData.large,
+                   rackView: currentData.rackView };
+  render(filtered, optionsForData(filtered));
 }
 
 // Resets all filters and re-renders the full current dataset
 function resetFilters() {
   if (!currentData) return;
   populateFilters(currentData);
-  render(currentData, navigationStack.length === 0 ? fabricOptions : internalOptions); // re-render with full dataset after resetting filters
+  render(currentData, optionsForData(currentData)); // re-render with full dataset after resetting filters
 }

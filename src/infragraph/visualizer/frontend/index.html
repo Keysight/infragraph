@@ -27,6 +27,23 @@
             </nav>
         </div>
         <div class="header-right">
+            <button id="btn-compress" title="Compressed view: merge servers and switches that share the same connections (available for fabrics with more than 128 hosts)" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 14 10 14 10 20"/>
+                    <polyline points="20 10 14 10 14 4"/>
+                    <line x1="14" y1="10" x2="21" y2="3"/>
+                    <line x1="3" y1="21" x2="10" y2="14"/>
+                </svg>
+                Compressed
+            </button>
+            <div id="rackControls" style="display:none;" title="How much surrounding fabric to show around the rack">
+                <input type="range" id="rackHops" min="1" max="3" value="1" step="1">
+                <span id="rackHopsLabel">1 hop</span>
+            </div>
+            <div id="compressControls" style="display:none;" title="Compression level: drag right to merge more nodes">
+                <input type="range" id="compressSlider" min="1" max="1" value="1" step="1">
+                <span id="compressRatio"></span>
+            </div>
             <button id="btn-fit" title="Fit to view">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
@@ -78,7 +95,12 @@
         <div class="legend-hint">Hover node/edge → view attributes</div>
         <div class="legend-hint">Scroll → zoom in/out</div>
         <div class="legend-hint">Hold a node → see connected nodes</div>
+        <div class="legend-hint">Compressed → merge equivalent nodes (large fabrics)</div>
+        <div class="legend-hint">Click a rack/pod node → see its servers and uplinks</div>
     </div>
+
+    <!-- Transient message, e.g. an action that was refused -->
+    <div id="toast"></div>
 
     <!-- Loading overlay -->
     <div id="loading" class="hidden">
@@ -154,6 +176,7 @@
                 <label>Node spacing <input type ="range" id="spaceslider" min="100" max="500" value="200"></label>
                 <label>Level seperation <input type ="range" id="levelslider" min="100" max="500" value="150"></label>
                 <label>Node Size <input type ="range" id="nodeslider" min="10" max="100" value="30"></label>
+                <label class="checkbox-row" title="Straight edges, no edge labels, no shadows or hover effects. Turns on automatically for large graphs.">Simplified rendering <input type="checkbox" id="largeGraphToggle"></label>
             </div>
         </div>
     </div>

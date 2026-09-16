@@ -21,9 +21,9 @@ function onNodeSearch() {
 
   results.innerHTML = matches.slice(0, 12).map(function (m) {
     return '<div style="padding:2px 0;cursor:pointer;" onclick="focusNode(\'' + m.id.replace(/'/g, "\\'") + '\')">' +
-      '<span style="color:#2c3e50">' + m.label + '</span></div>';
+      '<span style="color:var(--filter-text)">' + m.label + '</span></div>';
   }).join('') + (matches.length > 12
-    ? '<div style="color:#95a5a6">... and ' + (matches.length - 12) + ' more</div>'
+    ? '<div style="color:var(--filter-badge)">... and ' + (matches.length - 12) + ' more</div>'
     : ''); // show up to 12 matches, and if more, indicate how many additional matches there are
 
   if (net) net.selectNodes(matches.map(function (m) { return m.id; }), false);
@@ -50,7 +50,7 @@ function onPickerSearch() {
   }); // find nodes that are not already picked and where ID or label includes the search query (case-insensitive)
 
   if (!matches.length) {
-    dd.innerHTML = '<div style="padding:6px 10px;color:#95a5a6;font-size:12px;">No results</div>';
+    dd.innerHTML = '<div style="padding:6px 10px;color:var(--filter-badge);font-size:12px;">No results</div>';
     dd.classList.add('open');
     return;
   }
@@ -59,7 +59,7 @@ function onPickerSearch() {
     return '<div class="node-dropdown-item" onmousedown="pickNode(\'' + m.id.replace(/'/g, "\\'") + '\')">' +
       '<span>' + (m.label || m.id) + '</span><span class="dtype">' + (m.id) + '</span></div>';
   }).join('') + (matches.length > 30
-    ? '<div style="padding:4px 10px;color:#95a5a6;font-size:11px;">... ' + (matches.length - 30) + ' more - keep typing</div>'
+    ? '<div style="padding:4px 10px;color:var(--filter-badge);font-size:11px;">... ' + (matches.length - 30) + ' more - keep typing</div>'
     : '');
 
   dd.classList.add('open');
@@ -106,7 +106,7 @@ function renderPickedTags() {
 
   countEl.textContent = '(' + pickedNodeIds.size + ' selected)';
   container.innerHTML = Array.from(pickedNodeIds).map(function (id) {
-    const node = currentData ? currentData.nodes.find(function (n) { return n.id === id; }) : null;
+    const node = currentData && currentData.byId ? currentData.byId.get(id) : null;
     return '<span class="picked-tag">' + (node ? node.label || id : id) +
       '<span class="remove-tag" onclick="unpickNode(\'' + id.replace(/'/g, "\\'") + '\')">&#10005;</span></span>';
   }).join('');
