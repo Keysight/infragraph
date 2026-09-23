@@ -1,0 +1,82 @@
+devices:
+  - name: VendorA-Server
+    description: Generic server supplied by VendorA
+    components:
+      - name: xpu
+        description: Generic Neural Processing Unit
+        count: 1
+        type: xpu
+      - name: nic
+        description: Generic Ethernet based network interface card
+        count: 4
+        type: nic
+        external: true
+    links:
+      - name: pcie3
+        bandwidth:
+          choice: giga_transfers_per_second
+          giga_transfers_per_second: 8
+    connections:
+      - xpu.0.pcie3.nic.0
+      - xpu.0.pcie3.nic.1
+      - xpu.0.pcie3.nic.2
+      - xpu.0.pcie3.nic.3
+  - name: VendorB-Switch
+    description: Generic switch supplied by VendorB
+    components:
+      - name: asic
+        description: Generic switch asic
+        count: 1
+        type: custom
+      - name: port
+        description: Generic switch port
+        count: 8
+        type: nic
+        external: true
+    links:
+      - name: ic
+        description: Integrated circuitry
+        bandwidth:
+          choice: giga_bytes_per_second
+          giga_bytes_per_second: 800
+    connections:
+      - asic.0.ic.port.0
+      - asic.0.ic.port.1
+      - asic.0.ic.port.2
+      - asic.0.ic.port.3
+      - asic.0.ic.port.4
+      - asic.0.ic.port.5
+      - asic.0.ic.port.6
+      - asic.0.ic.port.7
+instances:
+  - name: host
+    count: 8
+    device: VendorA-Server
+  - name: susw
+    description: Scaleout Switch
+    count: 1
+    device: VendorB-Switch
+  - name: sosw
+    description: Scaleup Switch
+    count: 1
+    device: VendorC-Router
+links:
+  - name: su_eth
+    description: Scaleup ethernet link
+    bandwidth:
+      choice: giga_bytes_per_second
+      giga_bytes_per_second: 400
+  - name: so_eth
+    description: Scaleout ethernet link
+    bandwidth:
+      choice: giga_bytes_per_second
+      giga_bytes_per_second: 800
+connections:
+  - host.0.nic.0.su_eth.susw.0.port.0
+  - host.1.nic.0.su_eth.susw.0.port.1
+  - host.2.nic.0.su_eth.susw.0.port.2
+  - host.3.nic.0.su_eth.susw.0.port.3
+  - host.4.nic.0.su_eth.susw.0.port.4
+  - host.5.nic.0.su_eth.susw.0.port.5
+  - host.6.nic.0.su_eth.susw.0.port.6
+  - host.7.nic.0.su_eth.susw.0.port.7

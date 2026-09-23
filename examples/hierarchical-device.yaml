@@ -1,0 +1,38 @@
+device:
+  - name: gh200-nvl2
+    components:
+      - name: xpu
+        description: Grace Hopper Superchip
+        type: xpu
+        count: 2
+        components:
+          - name: grace
+            description: Grace CPU
+            type: cpu
+            count: 1
+          - name: hopper
+            description: Hopper GPU
+            type: xpu
+            count: 1
+      - name: pcie-ec
+        description: Pcie 5.0 x16 Edge Connector
+        type: custom
+        count: 2
+      - name: cx7
+        description: Mellanox ConnectX-7
+        type: nic
+        count: 2
+        external: true
+    links:
+      - name: c2c
+        description: Chip to Chip Nvlink
+      - name: pcie
+        description: PCIe 5.0 x16
+    connections:
+      - grace.0.c2c.hopper.0
+      - cx7.0.pcie.xpu.0
+      - cx7.0.pcie.grace.0
+      - cx7.1.pcie.xpu.1
+      - cx7.1.pcie.grace.1
+
+

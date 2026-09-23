@@ -1,0 +1,37 @@
+components:
+- choice: custom
+  count: 1
+  custom:
+    type: pcie_endpoint
+  description: PCI Express GEN3 x16 endpoint
+  name: pcie_endpoint
+- choice: cpu
+  count: 1
+  description: ConnectX-5 network processing ASIC
+  name: asic
+- choice: port
+  count: 2
+  description: Ethernet port (100GbE)
+  name: port
+description: Mellanox ConnectX-5 100GbE NIC
+edges:
+- ep1:
+    component: pcie_endpoint
+  ep2:
+    component: asic
+  link: pcie_internal
+  scheme: one2one
+- ep1:
+    component: asic
+  ep2:
+    component: port
+  link: serdes
+  scheme: many2many
+links:
+- description: Internal PCIe GEN3 fabric
+  name: pcie_internal
+- description: High-speed SerDes lanes
+  name: serdes
+- description: Electrical interface to transceiver
+  name: electrical
+name: cx5_100gbe
