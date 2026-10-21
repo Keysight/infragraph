@@ -29,7 +29,7 @@ except ImportError:
 _MatchBase = _jsonpath_functions.Match
 _SearchBase = _jsonpath_functions.Search
 
-MAX_DEFINITION_BYTES = 32 * 1024 * 1024
+MAX_DEFINITION_BYTES = 8 * 1024 * 1024
 MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_DOCUMENT_NODES = 200_000
 MAX_PATH_CHARS = 1024
@@ -104,14 +104,34 @@ def _jsonpath_environment() -> JSONPathEnvironment:
 _JSONPATH = _jsonpath_environment()
 
 
+def _reject_constant(name: str) -> Any:
+    raise ValueError(f"non finite number {name}")
+
+
+def _load_json(text: str) -> Any:
+    """Strict JSON, raises ValueError on duplicate keys or constants."""
+
+    def no_duplicates(pairs):
+        keys = [k for k, _ in pairs]
+        if len(keys) != len(set(keys)):
+            raise ValueError("duplicate key")
+        return dict(pairs)
+
+    return json.loads(text, object_pairs_hook=no_duplicates, parse_constant=_reject_constant)
+
+
 def decode_text(text: str, what: str, max_bytes: int) -> Any:
     """Decode JSON or YAML text containing only JSON data types."""
     if len(text.encode("utf-8")) > max_bytes:
         raise SchemaAnnotationError(f"{what} exceeds {max_bytes} bytes")
     try:
-        data = YAML(typ="safe", pure=True).load(text)
-    except Exception as e:
-        raise SchemaAnnotationError(f"{what} does not decode as JSON or YAML: {e}")
+        # the C JSON parser is much faster, YAML is the fallback
+        data = _load_json(text)
+    except ValueError:
+        try:
+            data = YAML(typ="safe", pure=True).load(text)
+        except Exception as e:
+            raise SchemaAnnotationError(f"{what} does not decode as JSON or YAML: {e}")
     _check_json_types(data, what)
     return data
 
@@ -141,7 +161,11 @@ def _check_json_types(data: Any, what: str) -> None:
 
 def canonical_json(data: Any) -> str:
     """Canonical JSON text with sorted keys and no whitespace."""
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    try:
+        return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    except ValueError as e:
+        # for example an integer beyond the interpreter digit limit
+        raise SchemaAnnotationError(f"value cannot be serialized: {e}")
 
 
 def resolve_pointer(document: Any, pointer: Optional[str]) -> Any:
@@ -192,12 +216,17 @@ def compile_validator(schema: Any) -> Callable[[Any], None]:
     return validate
 
 
+@lru_cache(maxsize=1024)
 def _compile_schema_re2(pattern: str) -> Any:
     """Compile a schema pattern with RE2, which has no backtracking."""
     try:
         return re2.compile(pattern)
     except Exception as e:
         raise SchemaAnnotationError(f"schema pattern {pattern!r} is not supported by RE2: {e}")
+
+
+# keywords whose values are data, not schemas
+_DATA_KEYWORDS = frozenset({"enum", "const", "default", "example", "examples"})
 
 
 def _check_schema_patterns(node: Any) -> None:
@@ -212,7 +241,21 @@ def _check_schema_patterns(node: Any) -> None:
             if isinstance(properties, dict):
                 for key in properties:
                     _compile_schema_re2(key)
-            stack.extend(item.values())
+            stack.extend(v for k, v in item.items() if k not in _DATA_KEYWORDS)
+        elif isinstance(item, list):
+            stack.extend(item)
+
+
+def _check_local_refs(node: Any, namespace: str) -> None:
+    """Reject any $ref that does not point inside the document."""
+    stack = [node]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            ref = item.get("$ref")
+            if isinstance(ref, str) and not ref.startswith("#"):
+                raise SchemaAnnotationError(f"schema {namespace} has a non local $ref {ref!r}")
+            stack.extend(v for k, v in item.items() if k not in _DATA_KEYWORDS)
         elif isinstance(item, list):
             stack.extend(item)
 
@@ -245,6 +288,7 @@ def _compile_jsonschema(definition: str, namespace: str) -> Any:
     except Exception as e:
         raise SchemaAnnotationError(f"schema {namespace} is not a valid JSON Schema: {e}")
     _check_schema_patterns(body)
+    _check_local_refs(body, namespace)
     # an empty registry resolves no remote reference
     return _hardened(cls)(body, registry=Registry())
 
@@ -264,6 +308,7 @@ def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
     if root not in (components.get("schemas") or {}):
         raise SchemaAnnotationError(f"schema {namespace} has no root {root} under components/schemas")
     _check_schema_patterns(components)
+    _check_local_refs(components, namespace)
     body = {"$ref": f"#/components/schemas/{root}", "components": components}
     try:
         # an empty registry resolves no remote reference
@@ -274,7 +319,14 @@ def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
 
 def jsonpath_selects(path: str, element: Any) -> bool:
     """True if the RFC 9535 JSONPath selects at least one node of element."""
-    return len(_JSONPATH.find(path, element)) > 0
+    try:
+        finditer = getattr(_JSONPATH, "finditer", None)
+        if finditer is not None:
+            # stop at the first match
+            return next(iter(finditer(path, element)), None) is not None
+        return len(_JSONPATH.find(path, element)) > 0
+    except Exception as e:
+        raise SchemaAnnotationError(f"path {path!r} cannot be evaluated: {e}")
 
 
 def validate_jsonpath(path: str) -> None:

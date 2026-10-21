@@ -835,14 +835,12 @@ class InfraGraphService(Api):
 
         # documents are user annotations and are returned for full and partial
         annotation_schemas = []
+        documents_by_namespace: Dict[str, List[Dict[str, str]]] = {}
+        for name, (ns, _, canonical) in sorted(self._documents.items()):
+            documents_by_namespace.setdefault(ns, []).append({"name": name, "value": canonical})
         for namespace in self._schema_validators:
-            documents = [
-                {"name": name, "value": canonical}
-                for name, (ns, _, canonical) in sorted(self._documents.items())
-                if ns == namespace
-            ]
-            if documents:
-                annotation_schemas.append({"namespace": namespace, "documents": documents})
+            if namespace in documents_by_namespace:
+                annotation_schemas.append({"namespace": namespace, "documents": documents_by_namespace[namespace]})
 
         annotation_edges = []
         seen_links = {}
@@ -965,30 +963,41 @@ class InfraGraphService(Api):
         else:
             annotate_request: Annotation = payload
 
-        previous = self._snapshot_graph_state()
+        # every lookup is validated before the graph is mutated, so only the
+        # annotation documents and references need a snapshot
+        documents = dict(self._documents)
+        node_references = {n: list(r) for n, r in self._node_references.items()}
         try:
             self._annotate_graph(annotate_request)
         except BaseException:
-            self._restore_graph_state(previous)
+            self._documents = documents
+            self._node_references = node_references
             raise
+
+    def _resolve_graph_nodes(self, name: str) -> List[str]:
+        """Graph nodes that a node string expands to, ValueError if absent."""
+        matched: List[str] = []
+        for node in self.expand_node_string(name):
+            prefixed = self._graph_node_prefix_map.get(node, [])
+            if not prefixed:
+                raise ValueError(f"{node} not present in networkx graph")
+            matched.extend(prefixed)
+        return matched
 
     def _annotate_graph(self, annotate_request: Annotation) -> None:
         new_documents, new_references = self._validate_schema_annotations(annotate_request)
+        # resolve every node and edge endpoint before the first mutation
+        resolved_nodes = [self._resolve_graph_nodes(n.name) for n in annotate_request.nodes]
+        resolved_edges = [
+            (self._resolve_graph_nodes(e.ep1), self._resolve_graph_nodes(e.ep2))
+            for e in annotate_request.edges
+        ]
         self._documents.update(new_documents)
         for node, references in new_references.items():
             stored = self._node_references.setdefault(node, [])
             stored.extend(r for r in references if r not in stored)
 
-        for annotation_node in annotate_request.nodes:
-            # expand the nodes
-            nodes = self.expand_node_string(annotation_node.name)
-            matched = set()
-            for node in nodes:
-                list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
-                if list_from_prefix_map: 
-                    matched.update(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph")
+        for annotation_node, matched in zip(annotate_request.nodes, resolved_nodes):
             for attribute_kvp in annotation_node.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
                     networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
@@ -996,28 +1005,7 @@ class InfraGraphService(Api):
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for {annotation_node.name}")
             
         # edges
-        for annotation_edge in annotate_request.edges:
-            # expand the nodes
-            expanded_source_edges = self.expand_node_string(annotation_edge.ep1)
-            expanded_destination_edges = self.expand_node_string(annotation_edge.ep2)
-            # expand it further
-            # get the expanded source edges
-            source_edges= []
-            for edge_node in expanded_source_edges:
-                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
-                if list_from_prefix_map: 
-                    source_edges.extend(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph") 
-            # get the expanded destination edges
-            destination_edges = []
-            for edge_node in expanded_destination_edges:
-                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
-                if list_from_prefix_map: 
-                    destination_edges.extend(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph")    
-                        
+        for annotation_edge, (source_edges, destination_edges) in zip(annotate_request.edges, resolved_edges):
             matched_edges = [
                 edge
                 for a, b in iterproduct(source_edges, destination_edges)
@@ -1069,12 +1057,7 @@ class InfraGraphService(Api):
         for annotation_node in annotate_request.nodes:
             if len(annotation_node.references) == 0:
                 continue
-            matched = set()
-            for node in self.expand_node_string(annotation_node.name):
-                prefixed = self._graph_node_prefix_map.get(node, [])
-                if not prefixed:
-                    raise ValueError(f"{node} not present in networx graph")
-                matched.update(prefixed)
+            matched = set(self._resolve_graph_nodes(annotation_node.name))
             for reference in annotation_node.references:
                 entry = self._documents.get(reference.document) or new_documents.get(reference.document)
                 if entry is None:

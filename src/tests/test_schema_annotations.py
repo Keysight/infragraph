@@ -374,10 +374,9 @@ def test_remote_reference_is_not_retrieved():
         infra = _infrastructure(with_schema=False)
         schema = infra.schemas.add(namespace="remote.v1")
         schema.jsonschema.definition = f"$ref: http://127.0.0.1:{server.server_port}/schema.json\n"
-        service = InfraGraphService()
-        service.set_graph(infra)
+        # a non local reference is refused before any retrieval
         with pytest.raises(ERRORS):
-            _annotate(service, {"a": "role: leaf\n"}, namespace="remote.v1")
+            InfraGraphService().set_graph(infra)
     finally:
         server.shutdown()
 
@@ -422,3 +421,44 @@ def test_overlong_jsonpath_is_rejected():
 
     with pytest.raises(ERRORS):
         _query(service, "$[?$.mtu == 9100" + " || $.mtu == 1" * 200 + "]")
+
+
+def _set_schema(definition: str) -> None:
+    infra = _infrastructure(with_schema=False)
+    infra.schemas.add(namespace=SWITCH_NS).jsonschema.definition = definition
+    InfraGraphService().set_graph(infra)
+
+
+def test_non_local_ref_is_refused_at_set_graph():
+    definition = json.dumps({"type": "object", "properties": {"a": {"$ref": "https://example.com/s.json"}}})
+    with pytest.raises(ERRORS, match="non local"):
+        _set_schema(definition)
+
+
+def test_example_with_pattern_key_is_not_a_schema_pattern():
+    definition = json.dumps({"type": "object", "example": {"pattern": "(?=x)"}})
+    _set_schema(definition)
+
+
+def test_json_with_tab_indentation_and_duplicate_keys():
+    service = _service()
+    _annotate(service, {"tabbed": '{\n\t"role": "leaf"\n}'})
+    with pytest.raises(ERRORS):
+        _annotate(service, {"dup": '{"role": "leaf", "role": "spine"}'})
+
+
+def test_oversized_integer_is_rejected():
+    with pytest.raises(ERRORS):
+        _annotate(_service(), {"big": '{"role": "leaf", "mtu": ' + "9" * 5000 + "}"})
+
+
+def test_failed_annotate_with_missing_edge_node_leaves_graph_untouched():
+    service = _service()
+    before = dict(service._graph.nodes(data=True))
+    annotation = Annotation()
+    annotation.nodes.add(name="leafsw.0").attributes.add(attribute="a", value="b")
+    edge = annotation.edges.add(ep1="leafsw.0", ep2="missing.0")
+    edge.attributes.add(attribute="c", value="d")
+    with pytest.raises(ERRORS):
+        service.annotate_graph(annotation)
+    assert dict(service._graph.nodes(data=True)) == before
