@@ -350,3 +350,75 @@ def test_failed_set_graph_reverts_to_prior_state():
     assert service._documents == before_documents
     assert set(service._graph.nodes) == before_nodes
     assert SWITCH_NS in service._schema_validators
+
+
+def test_remote_reference_is_not_retrieved():
+    import http.server
+    import threading
+
+    requests = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            requests.append(self.path)
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        infra = _infrastructure(with_schema=False)
+        schema = infra.schemas.add(namespace="remote.v1")
+        schema.jsonschema.definition = f"$ref: http://127.0.0.1:{server.server_port}/schema.json\n"
+        service = InfraGraphService()
+        service.set_graph(infra)
+        with pytest.raises(ERRORS):
+            _annotate(service, {"a": "role: leaf\n"}, namespace="remote.v1")
+    finally:
+        server.shutdown()
+
+    assert requests == []
+
+
+def test_schema_pattern_is_evaluated_with_re2():
+    def service_with(pattern):
+        infra = _infrastructure(with_schema=False)
+        schema = infra.schemas.add(namespace="p.v1")
+        schema.jsonschema.definition = f"type: object\nproperties:\n  nos: {{ type: string, pattern: '{pattern}' }}\n"
+        service = InfraGraphService()
+        service.set_graph(infra)
+        return service
+
+    service = service_with("^so")
+    _annotate(service, {"ok": "nos: sonic\n"}, namespace="p.v1")
+    with pytest.raises(ERRORS):
+        _annotate(service, {"bad": "nos: eos\n"}, namespace="p.v1")
+    # lookahead cannot run in RE2 and is rejected with the schema
+    with pytest.raises(ERRORS):
+        service_with("(?=a)a")
+    # a catastrophic pattern is linear in RE2
+    service = service_with("^(a+)+b$")
+    with pytest.raises(ERRORS):
+        _annotate(service, {"bad": "nos: " + "a" * 40 + "\n"}, namespace="p.v1")
+
+
+def test_openapi_pattern_that_re2_rejects_is_refused():
+    infra = _infrastructure(with_schema=False)
+    schema = infra.schemas.add(namespace="otg.config.v1")
+    schema.openapi.root = "Config"
+    schema.openapi.definition = OTG_OPENAPI.replace("location: { type: string }", "location: { type: string, pattern: '(?=a)a' }")
+
+    with pytest.raises(ERRORS):
+        InfraGraphService().set_graph(infra)
+
+
+def test_overlong_jsonpath_is_rejected():
+    service = _service()
+    _lab(service)
+
+    with pytest.raises(ERRORS):
+        _query(service, "$[?$.mtu == 9100" + " || $.mtu == 1" * 200 + "]")

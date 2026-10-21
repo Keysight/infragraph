@@ -9,6 +9,10 @@ from typing import Any, Callable, Dict, Optional
 import re2
 from iregexp_check import check
 from jsonpath_rfc9535 import JSONPathEnvironment
+from jsonschema import validators
+from jsonschema.exceptions import ValidationError
+from openapi_schema_validator import OAS30Validator, OAS31Validator
+from referencing import Registry
 from ruamel.yaml import YAML
 
 try:
@@ -28,6 +32,7 @@ _SearchBase = _jsonpath_functions.Search
 MAX_DEFINITION_BYTES = 32 * 1024 * 1024
 MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_DOCUMENT_NODES = 200_000
+MAX_PATH_CHARS = 1024
 
 
 class SchemaAnnotationError(ValueError):
@@ -175,7 +180,10 @@ def compile_validator(schema: Any) -> Callable[[Any], None]:
         raise SchemaAnnotationError(f"schema {namespace} has no choice")
 
     def validate(document: Any) -> None:
-        errors = sorted(validator.iter_errors(document), key=lambda e: list(map(str, e.path)))
+        try:
+            errors = sorted(validator.iter_errors(document), key=lambda e: list(map(str, e.path)))
+        except Exception as e:
+            raise SchemaAnnotationError(f"schema {namespace} cannot be evaluated: {e}")
         if errors:
             first = errors[0]
             where = "/" + "/".join(str(p) for p in first.path)
@@ -184,21 +192,64 @@ def compile_validator(schema: Any) -> Callable[[Any], None]:
     return validate
 
 
-def _compile_jsonschema(definition: str, namespace: str) -> Any:
-    from jsonschema.validators import validator_for
+def _compile_schema_re2(pattern: str) -> Any:
+    """Compile a schema pattern with RE2, which has no backtracking."""
+    try:
+        return re2.compile(pattern)
+    except Exception as e:
+        raise SchemaAnnotationError(f"schema pattern {pattern!r} is not supported by RE2: {e}")
 
+
+def _check_schema_patterns(node: Any) -> None:
+    """Compile every pattern and patternProperties key with RE2."""
+    stack = [node]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            if isinstance(item.get("pattern"), str):
+                _compile_schema_re2(item["pattern"])
+            properties = item.get("patternProperties")
+            if isinstance(properties, dict):
+                for key in properties:
+                    _compile_schema_re2(key)
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+
+
+def _re2_pattern(validator, pattern, instance, schema):
+    if validator.is_type(instance, "string") and _compile_schema_re2(pattern).search(instance) is None:
+        yield ValidationError(f"{instance!r} does not match {pattern!r}")
+
+
+def _re2_pattern_properties(validator, patterns, instance, schema):
+    if not validator.is_type(instance, "object"):
+        return
+    for pattern, subschema in patterns.items():
+        compiled = _compile_schema_re2(pattern)
+        for key, value in instance.items():
+            if compiled.search(key) is not None:
+                yield from validator.descend(value, subschema, path=key, schema_path=pattern)
+
+
+def _hardened(cls: Any) -> Any:
+    """Extend a validator class to evaluate patterns with RE2."""
+    return validators.extend(cls, {"pattern": _re2_pattern, "patternProperties": _re2_pattern_properties})
+
+
+def _compile_jsonschema(definition: str, namespace: str) -> Any:
     body = decode_text(definition, f"schema {namespace} definition", MAX_DEFINITION_BYTES)
-    cls = validator_for(body)
+    cls = validators.validator_for(body)
     try:
         cls.check_schema(body)
     except Exception as e:
         raise SchemaAnnotationError(f"schema {namespace} is not a valid JSON Schema: {e}")
-    return cls(body)
+    _check_schema_patterns(body)
+    # an empty registry resolves no remote reference
+    return _hardened(cls)(body, registry=Registry())
 
 
 def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
-    from openapi_schema_validator import OAS30Validator, OAS31Validator
-
     doc = decode_text(definition, f"schema {namespace} definition", MAX_DEFINITION_BYTES)
     if not isinstance(doc, dict):
         raise SchemaAnnotationError(f"schema {namespace} is not an OpenAPI document")
@@ -212,9 +263,11 @@ def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
     components = doc.get("components", {})
     if root not in (components.get("schemas") or {}):
         raise SchemaAnnotationError(f"schema {namespace} has no root {root} under components/schemas")
+    _check_schema_patterns(components)
     body = {"$ref": f"#/components/schemas/{root}", "components": components}
     try:
-        return cls(body)
+        # an empty registry resolves no remote reference
+        return _hardened(cls)(body, registry=Registry())
     except Exception as e:
         raise SchemaAnnotationError(f"schema {namespace} is not a valid OpenAPI document: {e}")
 
@@ -228,6 +281,8 @@ def validate_jsonpath(path: str) -> None:
     """Raise SchemaAnnotationError if path is not a valid JSONPath."""
     if not path or not path.startswith("$"):
         raise SchemaAnnotationError(f"path {path!r} must be a JSONPath that starts with $")
+    if len(path) > MAX_PATH_CHARS:
+        raise SchemaAnnotationError(f"path exceeds {MAX_PATH_CHARS} characters")
     try:
         _JSONPATH.compile(path)
     except Exception as e:

@@ -1,7 +1,7 @@
 [project]
 name = "infragraph"
 description = "Infrastructure as a Graph"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "networkx",
     "semantic_version",
@@ -11,9 +11,11 @@ dependencies = [
     "protobuf",
     "typer",
     "ruamel.yaml",
-    "jsonschema",
-    "openapi-schema-validator",
+    "jsonschema>=4.18",
+    "referencing",
+    "openapi-schema-validator>=0.6",
     "jsonpath-rfc9535",
+    "iregexp-check",
     "google-re2",
 ]
 authors = [
@@ -24,6 +26,7 @@ readme = "README.md"
 keywords = ["infrastructure", "graph", "chakra", "astrasim"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
