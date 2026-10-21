@@ -10,6 +10,11 @@ dependencies = [
     "grpcio",
     "protobuf",
     "typer",
+    "ruamel.yaml",
+    "jsonschema",
+    "openapi-schema-validator",
+    "jsonpath-rfc9535",
+    "google-re2",
 ]
 authors = [
     {name = "TBD", email = "tbd@infragraph.org"}

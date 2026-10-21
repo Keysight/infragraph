@@ -14,6 +14,74 @@ components:
             The attribute value that will be added to the endpoint.
           type: string
           x-field-uid: 2
+    Annotation.Schema.Document:
+      description: |-
+        A named document of a schema, opaque serialized JSON or YAML.
+      type: object
+      required: [name, value]
+      properties:
+        name:
+          description: |-
+            Globally unique name of the document. No two documents in the
+            graph share a name, whichever schema they are under. Names are
+            compared case-sensitively, so A and a are different names. A node
+            reference names the document with it.
+          type: string
+          pattern: ^[a-zA-Z0-9._/-]+$
+          x-unique: global
+          x-field-uid: 1
+        value:
+          description: |-
+            The document, as JSON or YAML text containing only JSON
+            data types. It MUST validate against the root of the schema.
+            It is stored as canonical JSON text (RFC 8785), so in a
+            get_graph response the value is canonical JSON with the keys
+            sorted, whichever form it was annotated in.
+          type: string
+          x-field-uid: 2
+    Annotation.Schema:
+      description: |-
+        The documents annotated under a declared schema. A schema can have
+        many documents, for example one config per switch.
+      type: object
+      required: [namespace, documents]
+      properties:
+        namespace:
+          description: |-
+            The namespace of an Infrastructure.Schema declared in
+            Infrastructure.schemas of the current graph. An unknown schema
+            is an error.
+          type: string
+          x-field-uid: 1
+        documents:
+          description: |-
+            The documents of the schema.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Schema.Document'
+          x-field-uid: 2
+    Annotation.Reference:
+      description: |-
+        A reference from a node to a document, or to an element of it,
+        and to everything below that element.
+      type: object
+      required: [document]
+      properties:
+        document:
+          description: |-
+            The name of a document annotated under a schema of the current
+            graph. An unknown document is an error.
+          type: string
+          x-field-uid: 1
+        pointer:
+          description: |-
+            A JSON Pointer (RFC 6901) from the root of the document, e.g.
+            /ports/0. It MUST resolve to an existing element of the stored
+            document. An array index addresses a position, not a key, so
+            it is only as stable as the stored document, which never
+            changes after it is annotated. An absent or empty pointer is the whole document.
+          type: string
+          x-field-uid: 2
     Annotation.Node:
       description: Defines an annotation to be applied to a graph node.
       type: object
@@ -33,6 +101,18 @@ components:
           items:
             $ref: "#/components/schemas/Annotation.Attribute"
           x-field-uid: 2
+        references:
+          description: |-
+            References from the node to elements of documents. A node holds
+            a set of references, and a reference that is already
+            present is a no-op.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Reference'
+          x-status:
+            status: under_review
+            information: Schema annotations are a proposal under review
+          x-field-uid: 3
     Annotation.Link:
       description: Defines an annotation to be applied to a graph link.
       type: object
@@ -105,3 +185,16 @@ components:
           items:
             $ref: "#/components/schemas/Annotation.Attribute"
           x-field-uid: 4
+        schemas:
+          description: |-
+            Documents of declared schemas, annotated at graph level under
+            their schema. They are applied before the node references of the
+            same request, so a document and the references to it can be
+            annotated together.
+          type: array
+          items:
+            $ref: '#/components/schemas/Annotation.Schema'
+          x-status:
+            status: under_review
+            information: Schema annotations are a proposal under review
+          x-field-uid: 5
