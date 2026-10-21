@@ -3,13 +3,27 @@ JSON Pointer resolution and JSONPath evaluation."""
 
 import json
 import math
+from functools import lru_cache
 from typing import Any, Callable, Dict, Optional
 
 import re2
 from iregexp_check import check
 from jsonpath_rfc9535 import JSONPathEnvironment
-from jsonpath_rfc9535 import functions as jsonpath_functions
 from ruamel.yaml import YAML
+
+try:
+    # jsonpath-rfc9535 2.x, which requires Python 3.12
+    from jsonpath_rfc9535 import functions as _jsonpath_functions
+
+    _FUNCTION_REGISTRY = "functions"
+except ImportError:
+    # jsonpath-rfc9535 1.x, the last release for Python before 3.12
+    from jsonpath_rfc9535 import function_extensions as _jsonpath_functions
+
+    _FUNCTION_REGISTRY = "function_extensions"
+
+_MatchBase = _jsonpath_functions.Match
+_SearchBase = _jsonpath_functions.Search
 
 MAX_DEFINITION_BYTES = 32 * 1024 * 1024
 MAX_DOCUMENT_BYTES = 1024 * 1024
@@ -41,41 +55,44 @@ def _map_dot(pattern: str) -> str:
     return "".join(parts)
 
 
+@lru_cache(maxsize=1024)
+def _compile_re2(pattern: str) -> Optional[Any]:
+    """Compile an I-Regexp pattern with RE2, None if it is invalid."""
+    try:
+        if not check(pattern):
+            return None
+        return re2.compile(_map_dot(pattern))
+    except Exception:
+        return None
+
+
 class _Re2Mixin:
     """Evaluates the pattern of match() and search() with RE2."""
 
     def __call__(self, string: object, pattern: object) -> bool:
         if not isinstance(pattern, str) or not isinstance(string, str):
             return False
-        compiled = self.cache.get(pattern)
-        if compiled == self.INVALID_PATTERN:
-            return False
+        compiled = _compile_re2(pattern)
         if compiled is None:
-            try:
-                if not check(pattern):
-                    raise ValueError(pattern)
-                compiled = re2.compile(_map_dot(pattern))
-            except Exception:
-                self.cache[pattern] = self.INVALID_PATTERN
-                return False
-            self.cache[pattern] = compiled
+            return False
         return self.go(compiled, string)
 
 
-class _Re2Match(_Re2Mixin, jsonpath_functions.Match):
+class _Re2Match(_Re2Mixin, _MatchBase):
     def go(self, pattern, string: str) -> bool:
         return pattern.fullmatch(string) is not None
 
 
-class _Re2Search(_Re2Mixin, jsonpath_functions.Search):
+class _Re2Search(_Re2Mixin, _SearchBase):
     def go(self, pattern, string: str) -> bool:
         return pattern.search(string) is not None
 
 
 def _jsonpath_environment() -> JSONPathEnvironment:
     env = JSONPathEnvironment()
-    env.functions["match"] = _Re2Match()
-    env.functions["search"] = _Re2Search()
+    registry = getattr(env, _FUNCTION_REGISTRY)
+    registry["match"] = _Re2Match()
+    registry["search"] = _Re2Search()
     return env
 
 
