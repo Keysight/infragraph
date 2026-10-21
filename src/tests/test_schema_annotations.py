@@ -312,3 +312,41 @@ def test_get_graph_round_trip():
     restored.annotate_graph(json.dumps(result["annotations"]))
     assert restored._documents.keys() == service._documents.keys()
     assert restored._node_references == service._node_references
+
+
+def test_failed_annotate_graph_reverts_to_prior_state():
+    service = _service()
+    _lab(service)
+    before_documents = dict(service._documents)
+    before_references = {n: list(r) for n, r in service._node_references.items()}
+    before_attributes = dict(service._graph.nodes["leafsw.0.asic.0"])
+
+    annotation = Annotation()
+    schema = annotation.schemas.add(namespace=SWITCH_NS)
+    schema.documents.add(name="fresh", value=SPINE0)
+    annotation.nodes.add(name="leafsw[2]").references.add(document="fresh")
+    annotation.nodes.add(name="leafsw[0]").attributes.add(attribute="rack", value="r12")
+    annotation.nodes.add(name="missing[0]").attributes.add(attribute="rack", value="r13")
+    with pytest.raises(ERRORS):
+        service.annotate_graph(annotation)
+
+    assert service._documents == before_documents
+    assert service._node_references == before_references
+    assert dict(service._graph.nodes["leafsw.0.asic.0"]) == before_attributes
+
+
+def test_failed_set_graph_reverts_to_prior_state():
+    service = _service()
+    _lab(service)
+    before_documents = dict(service._documents)
+    before_nodes = set(service._graph.nodes)
+
+    bad = _infrastructure(with_schema=False)
+    schema = bad.schemas.add(namespace="bad.v1")
+    schema.jsonschema.definition = "type: 12\n"
+    with pytest.raises(ERRORS):
+        service.set_graph(bad)
+
+    assert service._documents == before_documents
+    assert set(service._graph.nodes) == before_nodes
+    assert SWITCH_NS in service._schema_validators

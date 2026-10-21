@@ -688,11 +688,37 @@ class InfraGraphService(Api):
         - adds annotations as node attributes if applicable
             - if an annotation has an endpoint, the data is added to the node as attributes
         """
+        previous = self._snapshot_graph_state()
+        try:
+            self._set_graph(payload)
+        except BaseException:
+            self._restore_graph_state(previous)
+            raise
+
+    def _snapshot_graph_state(self) -> Dict[str, Any]:
+        """Capture the mutable graph state so a failed call can be reverted."""
+        return {
+            "_graph": self._graph.copy(),
+            "_device_data": dict(self._device_data),
+            "_instance_data": dict(self._instance_data),
+            "_graph_node_prefix_map": dict(self._graph_node_prefix_map),
+            "_link_to_edges_map": dict(self._link_to_edges_map),
+            "_infrastructure": self._infrastructure,
+            "_schema_validators": dict(self._schema_validators),
+            "_documents": dict(self._documents),
+            "_node_references": {n: list(r) for n, r in self._node_references.items()},
+        }
+
+    def _restore_graph_state(self, snapshot: Dict[str, Any]) -> None:
+        for name, value in snapshot.items():
+            setattr(self, name, value)
+
+    def _set_graph(self, payload: Union[str, Infrastructure]) -> None:
         if isinstance(payload, str):
             self._infrastructure = Infrastructure().deserialize(payload)
         else:
             self._infrastructure = payload
-        # compile the schemas first, a failure leaves the previous graph as is
+        # compile the schemas first
         validators = self._compile_schemas(self._infrastructure)
         self._schema_validators = validators
         self._documents = {}
@@ -939,6 +965,14 @@ class InfraGraphService(Api):
         else:
             annotate_request: Annotation = payload
 
+        previous = self._snapshot_graph_state()
+        try:
+            self._annotate_graph(annotate_request)
+        except BaseException:
+            self._restore_graph_state(previous)
+            raise
+
+    def _annotate_graph(self, annotate_request: Annotation) -> None:
         new_documents, new_references = self._validate_schema_annotations(annotate_request)
         self._documents.update(new_documents)
         for node, references in new_references.items():
@@ -1012,7 +1046,7 @@ class InfraGraphService(Api):
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
                 continue
             self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
-    
+
     def _validate_schema_annotations(self, annotate_request: Annotation):
         """Validate documents and node references without applying them."""
         new_documents: Dict[str, Tuple[str, Any, str]] = {}
