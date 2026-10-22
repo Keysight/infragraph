@@ -14,6 +14,58 @@ components:
             The attribute value.
           type: string
           x-field-uid: 2
+    Query.SchemaFilter:
+      description: |-
+        Matches a node by the elements of documents that it references.
+        The node matches if, for some reference to a document of the
+        schema, the path selects at least one node.
+      type: object
+      required: [schema, path]
+      properties:
+        schema:
+          description: |-
+            The name of an Infrastructure.Schema declared in
+            Infrastructure.schemas of the current graph. An unknown schema
+            is an error.
+          type: string
+          x-field-uid: 1
+        path:
+          description: |-
+            MUST be an RFC 9535 JSONPath expression. Despite its name it
+            is not a file path, a JSON Pointer or a field name; only
+            JSONPath content is accepted. It is evaluated against the element that each
+            reference to a document of the schema points to. $ is that
+            element, so $ alone matches every node that references a
+            document of the schema, $.location
+            selects a field if it exists, and a comparison is written with
+            the filter expressions and functions of RFC 9535, e.g.
+            $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. It MUST
+            start with $. A value that is not valid JSONPath, or an empty
+            value, is an error. A path with more than 2 descendant
+            segments (..) or more than 1024 characters is an error.
+          type: string
+          x-field-uid: 2
+    Query.Reference:
+      description: |-
+        A reference from a node to an element of a document, as stored.
+        In a query response, it is a reference for which at least one
+        schema filter of the request selected a node. When several schema
+        filters apply, every reference that satisfied any of them is
+        returned.
+      type: object
+      properties:
+        schema:
+          description: The namespace of the schema the document is under.
+          type: string
+          x-field-uid: 1
+        document:
+          description: The name of the referenced document.
+          type: string
+          x-field-uid: 2
+        pointer:
+          description: The JSON Pointer of the referenced element.
+          type: string
+          x-field-uid: 3
     Query.Response.Node:
       description: Matched node name and its attributes present in the graph.
       type: object
@@ -30,6 +82,16 @@ components:
           items:
             $ref: "#/components/schemas/Query.Attribute"
           x-field-uid: 2
+        references:
+          description: |-
+            The references of the node that matched a schema filter.
+          type: array
+          items:
+            $ref: '#/components/schemas/Query.Reference'
+          x-status:
+            status: under_review
+            information: Schema annotations are a proposal under review
+          x-field-uid: 3
     Query.Response.Edge:
       description: Matched edges and their attributes present in the graph.
       type: object
@@ -135,12 +197,12 @@ components:
           x-field-uid: 3
     Query.Request.Node:
       description: |-
-        Defines request for node match. node_identifiers and attribute_filters are both optional, but at least one MUST be set or the filter returns no results:
-        - node_identifiers set, attribute_filters unset: returns all nodes matching the expanded node_identifiers, with all of their attributes.
-        - node_identifiers unset, attribute_filters set: returns nodes from the entire graph that match attribute_filters.
-        - both set: returns nodes matching the expanded node_identifiers that also match attribute_filters.
-        - both unset: returns no results.
-        attribute_filters is a single filter shared across every entry in node_identifiers - it cannot be set differently per node_identifiers entry. To apply different attribute_filters to different node identifiers, use separate node_filters entries.
+        Defines request for node match. node_identifiers, attribute_filters and schema_filters are all optional, but at least one MUST be set or the filter returns no results:
+        - node_identifiers set, no filters set: returns all nodes matching the expanded node_identifiers, with all of their attributes.
+        - node_identifiers unset, filters set: returns nodes from the entire graph that match every filter that is set.
+        - node_identifiers and filters set: returns nodes matching the expanded node_identifiers that also match every filter that is set.
+        - all unset: returns no results.
+        attribute_filters and schema_filters are shared across every entry in node_identifiers - they cannot be set differently per node_identifiers entry. To apply different filters to different node identifiers, use separate node_filters entries.
       type: object
       required:
         - name
@@ -155,7 +217,7 @@ components:
             - server[0]xpu[0]
             - server[0:2]
             - switch
-            If omitted, the filter considers every node in the graph, provided attribute_filters is set; if both are omitted, the filter returns no results.
+            If omitted, the filter considers every node in the graph, provided attribute_filters or schema_filters is set; if all three are omitted, the filter returns no results.
           type: array
           items:
             type: string
@@ -165,6 +227,23 @@ components:
             Attribute-based filter criteria, applied identically to every node matched via node_identifiers (or to every node in the graph if node_identifiers is omitted). It is not possible to apply a different attribute_filters to different node_identifiers within the same node_filter; use a separate node_filters entry for that. If omitted, matched nodes are returned with all of their attributes and no attribute-based narrowing is applied.
           $ref: "#/components/schemas/Query.Request.Attribute"
           x-field-uid: 2
+        schema_filters:
+          description: |-
+            Filters on the elements of documents that nodes reference.
+            If node_identifiers is set, the filters are evaluated only
+            against those nodes. Otherwise they are evaluated against every
+            node that references a document of the schema. A node with no
+            reference to a document of the schema never matches. Every schema filter MUST hold, and
+            when attribute_filters is also set, a node matches only if both
+            hold. If node_identifiers, attribute_filters and schema_filters
+            are all unset, the filter returns no results.
+          type: array
+          items:
+            $ref: '#/components/schemas/Query.SchemaFilter'
+          x-status:
+            status: under_review
+            information: Schema annotations are a proposal under review
+          x-field-uid: 4
     Query.Request.Edge:
       description: |-
         Defines request for edge match. endpoints and attribute_filters are both optional, but at least one MUST be set or the filter returns no results:

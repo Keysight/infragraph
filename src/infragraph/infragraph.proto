@@ -62,6 +62,89 @@ message Infrastructure {
   // devices and components. These edge objects are used to form a fully qualified qualified
   // graph.
   repeated InfrastructureEdge edges = 6;
+
+  // Under Review: Schema annotations are a proposal under review
+  // 
+  // An inventory of schemas that annotations can reference.
+  // A document of a schema is annotated once at graph level, and
+  // nodes reference elements of it. A schema MUST be declared here
+  // before an annotation or a query can name it.
+  repeated InfrastructureSchema schemas = 7;
+}
+
+// A schema with a namespace used to validate opaque serialized documents.
+// The choice selects the validator that is used.
+message InfrastructureSchema {
+
+  // Globally unique namespace of the schema. Annotated documents and
+  // schema filters name the schema with it.
+  // Including a version in the namespace is recommended, e.g. fabricgym.switch.v1
+  // required = true
+  optional string namespace = 1;
+
+  message Choice {
+    enum Enum {
+      unspecified = 0;
+      jsonschema = 1;
+      openapi = 2;
+    }
+  }
+  // The schema language, which determines the validator.
+  // In every case an annotated document MUST be JSON or YAML.
+  // - jsonschema: the decoded document is validated against a JSON Schema.
+  // - openapi: the decoded document is validated against a schema
+  // object in an OpenAPI 3.0 or 3.1 document.
+  // required = true
+  optional Choice.Enum choice = 2;
+
+  // A JSON Schema definition.
+  InfrastructureSchemaJsonSchema jsonschema = 3;
+
+  // An OpenAPI document definition.
+  InfrastructureSchemaOpenApi openapi = 4;
+}
+
+// A JSON Schema used to validate a document.
+// The root of the document is the root of the schema.
+message InfrastructureSchemaJsonSchema {
+
+  // The JSON Schema document as a JSON or YAML string.
+  // Only a local $ref, one that starts with #, is supported. A
+  // remote $ref is an error when set_graph compiles the schema, and
+  // no remote document is fetched.
+  // Patterns are evaluated with RE2, so a pattern that uses
+  // lookahead or a backreference is an error. A schema that
+  // combines unevaluatedProperties with patternProperties is an
+  // error. The size of the definition is bounded.
+  // Without a $schema keyword, the validator uses JSON Schema
+  // draft 2020-12.
+  // required = true
+  optional string definition = 1;
+}
+
+// A complete OpenAPI 3.0 or 3.1 document used to validate an annotated document.
+// The document conforms to the schema object named by root.
+message InfrastructureSchemaOpenApi {
+
+  // The full OpenAPI document as a JSON or YAML string.
+  // The document MUST be bundled: every $ref MUST resolve within
+  // the document, and no external files are fetched. Tool-specific
+  // extensions such as openapiart's x-include are not processed,
+  // so an openapiart model MUST be supplied in its bundled form.
+  // Vendor extension keywords (x-...) are ignored. An unknown
+  // format is ignored and does not fail validation. A $ref of the
+  // form #/components/schemas/... is resolved against this
+  // document, also when validating against the root object.
+  // Patterns are evaluated with RE2, so a pattern that uses
+  // lookahead or a backreference is an error.
+  // required = true
+  optional string definition = 1;
+
+  // The name of the schema object under components/schemas that
+  // the document as a whole conforms to, written exactly as the
+  // component is named, e.g. Config
+  // required = true
+  optional string root = 2;
 }
 
 // A subgraph container for a device and its components, links and edges.
@@ -567,6 +650,59 @@ message AnnotationAttribute {
   optional string value = 2;
 }
 
+// A named document of a schema, opaque serialized JSON or YAML.
+message AnnotationSchemaDocument {
+
+  // Globally unique name of the document. No two documents in the
+  // graph share a name, whichever schema they are under. Names are
+  // compared case-sensitively, so A and a are different names. A node
+  // reference names the document with it.
+  // required = true
+  optional string name = 1;
+
+  // The document, as JSON or YAML text containing only JSON
+  // data types. It MUST validate against the root of the schema.
+  // It is stored as canonical JSON text with the keys sorted and no
+  // whitespace. This is not RFC 8785: numbers are written in the
+  // shortest form that round trips, for example 1.0, 1e-07 and
+  // 1e+21, and keys are sorted by code point. In a
+  // get_graph response the value is this canonical JSON,
+  // whichever form it was annotated in.
+  // required = true
+  optional string value = 2;
+}
+
+// The documents annotated under a declared schema. A schema can have
+// many documents, for example one config per switch.
+message AnnotationSchema {
+
+  // The namespace of an Infrastructure.Schema declared in
+  // Infrastructure.schemas of the current graph. An unknown schema
+  // is an error.
+  // required = true
+  optional string namespace = 1;
+
+  // The documents of the schema.
+  repeated AnnotationSchemaDocument documents = 2;
+}
+
+// A reference from a node to a document, or to an element of it,
+// and to everything below that element.
+message AnnotationReference {
+
+  // The name of a document annotated under a schema of the current
+  // graph. An unknown document is an error.
+  // required = true
+  optional string document = 1;
+
+  // A JSON Pointer (RFC 6901) from the root of the document, e.g.
+  // /ports/0. It MUST resolve to an existing element of the stored
+  // document. An array index addresses a position, not a key, so
+  // it is only as stable as the stored document, which never
+  // changes after it is annotated. An absent or empty pointer is the whole document.
+  optional string pointer = 2;
+}
+
 // Defines an annotation to be applied to a graph node.
 message AnnotationNode {
 
@@ -579,6 +715,13 @@ message AnnotationNode {
 
   // An inventory of attributes and values.
   repeated AnnotationAttribute attributes = 2;
+
+  // Under Review: Schema annotations are a proposal under review
+  // 
+  // References from the node to elements of documents. A node holds
+  // a set of references, and a reference that is already
+  // present is a no-op.
+  repeated AnnotationReference references = 3;
 }
 
 // Defines an annotation to be applied to a graph link.
@@ -628,6 +771,14 @@ message Annotation {
 
   // List of attributes to apply to the whole graph.
   repeated AnnotationAttribute graph = 4;
+
+  // Under Review: Schema annotations are a proposal under review
+  // 
+  // Documents of declared schemas, annotated at graph level under
+  // their schema. They are applied before the node references of the
+  // same request, so a document and the references to it can be
+  // annotated together.
+  repeated AnnotationSchema schemas = 5;
 }
 
 // Attribute and its value.
@@ -640,6 +791,50 @@ message QueryAttribute {
   optional string value = 2;
 }
 
+// Matches a node by the elements of documents that it references.
+// The node matches if, for some reference to a document of the
+// schema, the path selects at least one node.
+message QuerySchemaFilter {
+
+  // The name of an Infrastructure.Schema declared in
+  // Infrastructure.schemas of the current graph. An unknown schema
+  // is an error.
+  // required = true
+  optional string schema = 1;
+
+  // MUST be an RFC 9535 JSONPath expression. Despite its name it
+  // is not a file path, a JSON Pointer or a field name; only
+  // JSONPath content is accepted. It is evaluated against the element that each
+  // reference to a document of the schema points to. $ is that
+  // element, so $ alone matches every node that references a
+  // document of the schema, $.location
+  // selects a field if it exists, and a comparison is written with
+  // the filter expressions and functions of RFC 9535, e.g.
+  // $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. It MUST
+  // start with $. A value that is not valid JSONPath, or an empty
+  // value, is an error. A path with more than 2 descendant
+  // segments (..) or more than 1024 characters is an error.
+  // required = true
+  optional string path = 2;
+}
+
+// A reference from a node to an element of a document, as stored.
+// In a query response, it is a reference for which at least one
+// schema filter of the request selected a node. When several schema
+// filters apply, every reference that satisfied any of them is
+// returned.
+message QueryReference {
+
+  // The namespace of the schema the document is under.
+  optional string schema = 1;
+
+  // The name of the referenced document.
+  optional string document = 2;
+
+  // The JSON Pointer of the referenced element.
+  optional string pointer = 3;
+}
+
 // Matched node name and its attributes present in the graph.
 message QueryResponseNode {
 
@@ -648,6 +843,11 @@ message QueryResponseNode {
 
   // An inventory of attributes and values of the current node.
   repeated QueryAttribute attributes = 2;
+
+  // Under Review: Schema annotations are a proposal under review
+  // 
+  // The references of the node that matched a schema filter.
+  repeated QueryReference references = 3;
 }
 
 // Matched edges and their attributes present in the graph.
@@ -727,17 +927,17 @@ message QueryResponse {
   QueryResponseShortestPath shortest_path_query = 3;
 }
 
-// Defines request for node match. node_identifiers and attribute_filters are both optional,
-// but at least one MUST be set or the filter returns no results:
-// - node_identifiers set, attribute_filters unset: returns all nodes matching the expanded
-// node_identifiers, with all of their attributes.
-// - node_identifiers unset, attribute_filters set: returns nodes from the entire graph
-// that match attribute_filters.
-// - both set: returns nodes matching the expanded node_identifiers that also match
-// attribute_filters.
-// - both unset: returns no results.
-// attribute_filters is a single filter shared across every entry in node_identifiers
-// - it cannot be set differently per node_identifiers entry. To apply different attribute_filters
+// Defines request for node match. node_identifiers, attribute_filters and schema_filters
+// are all optional, but at least one MUST be set or the filter returns no results:
+// - node_identifiers set, no filters set: returns all nodes matching the expanded node_identifiers,
+// with all of their attributes.
+// - node_identifiers unset, filters set: returns nodes from the entire graph that match
+// every filter that is set.
+// - node_identifiers and filters set: returns nodes matching the expanded node_identifiers
+// that also match every filter that is set.
+// - all unset: returns no results.
+// attribute_filters and schema_filters are shared across every entry in node_identifiers
+// - they cannot be set differently per node_identifiers entry. To apply different filters
 // to different node identifiers, use separate node_filters entries.
 message QueryRequestNode {
 
@@ -751,7 +951,7 @@ message QueryRequestNode {
   // - server[0:2]
   // - switch
   // If omitted, the filter considers every node in the graph, provided attribute_filters
-  // is set; if both are omitted, the filter returns no results.
+  // or schema_filters is set; if all three are omitted, the filter returns no results.
   repeated string node_identifiers = 1;
 
   // Attribute-based filter criteria, applied identically to every node matched via node_identifiers
@@ -760,6 +960,19 @@ message QueryRequestNode {
   // node_filter; use a separate node_filters entry for that. If omitted, matched nodes
   // are returned with all of their attributes and no attribute-based narrowing is applied.
   QueryRequestAttribute attribute_filters = 2;
+
+  // Under Review: Schema annotations are a proposal under review
+  // 
+  // Filters on the elements of documents that nodes reference.
+  // If node_identifiers is set, the filters are evaluated only
+  // against those nodes. Otherwise they are evaluated against every
+  // node that references a document of the schema. A node with no
+  // reference to a document of the schema never matches. Every schema filter MUST hold,
+  // and
+  // when attribute_filters is also set, a node matches only if both
+  // hold. If node_identifiers, attribute_filters and schema_filters
+  // are all unset, the filter returns no results.
+  repeated QuerySchemaFilter schema_filters = 4;
 }
 
 // Defines request for edge match. endpoints and attribute_filters are both optional,
