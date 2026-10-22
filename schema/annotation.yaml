@@ -34,9 +34,12 @@ components:
           description: |-
             The document, as JSON or YAML text containing only JSON
             data types. It MUST validate against the root of the schema.
-            It is stored as canonical JSON text (RFC 8785), so in a
-            get_graph response the value is canonical JSON with the keys
-            sorted, whichever form it was annotated in.
+            It is stored as canonical JSON text with the keys sorted and no
+            whitespace. This is not RFC 8785: numbers are written in the
+            shortest form that round trips, for example 1.0, 1e-07 and
+            1e+21, and keys are sorted by code point. In a
+            get_graph response the value is this canonical JSON,
+            whichever form it was annotated in.
           type: string
           x-field-uid: 2
     Annotation.Schema:

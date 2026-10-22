@@ -3,6 +3,7 @@ JSON Pointer resolution and JSONPath evaluation."""
 
 import json
 import math
+import re
 from functools import lru_cache
 from typing import Any, Callable, Dict, Optional
 
@@ -33,6 +34,7 @@ MAX_DEFINITION_BYTES = 8 * 1024 * 1024
 MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_DOCUMENT_NODES = 200_000
 MAX_PATH_CHARS = 1024
+MAX_DESCENDANT_SEGMENTS = 2
 
 
 class SchemaAnnotationError(ValueError):
@@ -104,8 +106,12 @@ def _jsonpath_environment() -> JSONPathEnvironment:
 _JSONPATH = _jsonpath_environment()
 
 
+class _StrictJsonError(ValueError):
+    """JSON that is well formed but not accepted, YAML must not reparse it."""
+
+
 def _reject_constant(name: str) -> Any:
-    raise ValueError(f"non finite number {name}")
+    raise _StrictJsonError(f"non finite number {name}")
 
 
 def _load_json(text: str) -> Any:
@@ -114,7 +120,7 @@ def _load_json(text: str) -> Any:
     def no_duplicates(pairs):
         keys = [k for k, _ in pairs]
         if len(keys) != len(set(keys)):
-            raise ValueError("duplicate key")
+            raise _StrictJsonError("duplicate key")
         return dict(pairs)
 
     return json.loads(text, object_pairs_hook=no_duplicates, parse_constant=_reject_constant)
@@ -127,6 +133,8 @@ def decode_text(text: str, what: str, max_bytes: int) -> Any:
     try:
         # the C JSON parser is much faster, YAML is the fallback
         data = _load_json(text)
+    except _StrictJsonError as e:
+        raise SchemaAnnotationError(f"{what} is not accepted: {e}")
     except ValueError:
         try:
             data = YAML(typ="safe", pure=True).load(text)
@@ -227,37 +235,55 @@ def _compile_schema_re2(pattern: str) -> Any:
 
 # keywords whose values are data, not schemas
 _DATA_KEYWORDS = frozenset({"enum", "const", "default", "example", "examples"})
+# keywords whose values map arbitrary names to schemas
+_NAME_MAP_KEYWORDS = frozenset(
+    {"properties", "patternProperties", "$defs", "definitions", "dependentSchemas", "dependencies", "schemas"}
+)
+
+
+def _iter_schema_dicts(node: Any):
+    """Yield every dict that is a schema, skipping data keyword values and
+    treating the keys of a name map as names rather than keywords."""
+    stack = [(node, False)]
+    while stack:
+        item, is_name_map = stack.pop()
+        if isinstance(item, dict):
+            if is_name_map:
+                stack.extend((v, False) for v in item.values())
+                continue
+            yield item
+            stack.extend((v, k in _NAME_MAP_KEYWORDS) for k, v in item.items() if k not in _DATA_KEYWORDS)
+        elif isinstance(item, list):
+            stack.extend((v, False) for v in item)
 
 
 def _check_schema_patterns(node: Any) -> None:
     """Compile every pattern and patternProperties key with RE2."""
-    stack = [node]
-    while stack:
-        item = stack.pop()
-        if isinstance(item, dict):
-            if isinstance(item.get("pattern"), str):
-                _compile_schema_re2(item["pattern"])
-            properties = item.get("patternProperties")
-            if isinstance(properties, dict):
-                for key in properties:
-                    _compile_schema_re2(key)
-            stack.extend(v for k, v in item.items() if k not in _DATA_KEYWORDS)
-        elif isinstance(item, list):
-            stack.extend(item)
+    for item in _iter_schema_dicts(node):
+        if isinstance(item.get("pattern"), str):
+            _compile_schema_re2(item["pattern"])
+        properties = item.get("patternProperties")
+        if isinstance(properties, dict):
+            for key in properties:
+                _compile_schema_re2(key)
 
 
 def _check_local_refs(node: Any, namespace: str) -> None:
     """Reject any $ref that does not point inside the document."""
-    stack = [node]
-    while stack:
-        item = stack.pop()
-        if isinstance(item, dict):
-            ref = item.get("$ref")
-            if isinstance(ref, str) and not ref.startswith("#"):
-                raise SchemaAnnotationError(f"schema {namespace} has a non local $ref {ref!r}")
-            stack.extend(v for k, v in item.items() if k not in _DATA_KEYWORDS)
-        elif isinstance(item, list):
-            stack.extend(item)
+    for item in _iter_schema_dicts(node):
+        ref = item.get("$ref")
+        if isinstance(ref, str) and not ref.startswith("#"):
+            raise SchemaAnnotationError(f"schema {namespace} has a non local $ref {ref!r}")
+
+
+def _check_unevaluated_properties(node: Any, namespace: str) -> None:
+    """Reject unevaluatedProperties combined with patternProperties, the
+    jsonschema evaluation of that pair uses backtracking regular expressions."""
+    schemas = list(_iter_schema_dicts(node))
+    if any("unevaluatedProperties" in s for s in schemas) and any(
+        isinstance(s.get("patternProperties"), dict) for s in schemas
+    ):
+        raise SchemaAnnotationError(f"schema {namespace} combines unevaluatedProperties and patternProperties")
 
 
 def _re2_pattern(validator, pattern, instance, schema):
@@ -275,9 +301,40 @@ def _re2_pattern_properties(validator, patterns, instance, schema):
                 yield from validator.descend(value, subschema, path=key, schema_path=pattern)
 
 
+def _re2_additional_properties(validator, additional, instance, schema):
+    """additionalProperties with patternProperties evaluated by RE2, the
+    jsonschema implementation joins the patterns for the re module."""
+    if not validator.is_type(instance, "object"):
+        return
+    properties = schema.get("properties", {})
+    patterns = [_compile_schema_re2(p) for p in schema.get("patternProperties", {})]
+    extras = [k for k in instance if k not in properties and not any(p.search(k) for p in patterns)]
+    if validator.is_type(additional, "object"):
+        for extra in extras:
+            yield from validator.descend(instance[extra], additional, path=extra)
+    elif not additional and extras:
+        # same wording as jsonschema
+        extras = sorted(extras, key=str)
+        joined = ", ".join(repr(e) for e in extras)
+        if "patternProperties" in schema:
+            verb = "does" if len(extras) == 1 else "do"
+            regexes = ", ".join(repr(p) for p in sorted(schema["patternProperties"]))
+            yield ValidationError(f"{joined} {verb} not match any of the regexes: {regexes}")
+        else:
+            verb = "was" if len(extras) == 1 else "were"
+            yield ValidationError(f"Additional properties are not allowed ({joined} {verb} unexpected)")
+
+
 def _hardened(cls: Any) -> Any:
     """Extend a validator class to evaluate patterns with RE2."""
-    return validators.extend(cls, {"pattern": _re2_pattern, "patternProperties": _re2_pattern_properties})
+    return validators.extend(
+        cls,
+        {
+            "pattern": _re2_pattern,
+            "patternProperties": _re2_pattern_properties,
+            "additionalProperties": _re2_additional_properties,
+        },
+    )
 
 
 def _compile_jsonschema(definition: str, namespace: str) -> Any:
@@ -289,6 +346,7 @@ def _compile_jsonschema(definition: str, namespace: str) -> Any:
         raise SchemaAnnotationError(f"schema {namespace} is not a valid JSON Schema: {e}")
     _check_schema_patterns(body)
     _check_local_refs(body, namespace)
+    _check_unevaluated_properties(body, namespace)
     # an empty registry resolves no remote reference
     return _hardened(cls)(body, registry=Registry())
 
@@ -309,6 +367,7 @@ def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
         raise SchemaAnnotationError(f"schema {namespace} has no root {root} under components/schemas")
     _check_schema_patterns(components)
     _check_local_refs(components, namespace)
+    _check_unevaluated_properties(components, namespace)
     body = {"$ref": f"#/components/schemas/{root}", "components": components}
     try:
         # an empty registry resolves no remote reference
@@ -317,25 +376,38 @@ def _compile_openapi(definition: str, root: str, namespace: str) -> Any:
         raise SchemaAnnotationError(f"schema {namespace} is not a valid OpenAPI document: {e}")
 
 
+_QUOTED = re.compile(r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"")
+
+
+@lru_cache(maxsize=1024)
+def _compile_path(path: str) -> Any:
+    """Compile and bound a JSONPath, raises SchemaAnnotationError."""
+    if not path or not path.startswith("$"):
+        raise SchemaAnnotationError(f"path {path!r} must be a JSONPath that starts with $")
+    if len(path) > MAX_PATH_CHARS:
+        raise SchemaAnnotationError(f"path exceeds {MAX_PATH_CHARS} characters")
+    # descendant segments are polynomial in the document size
+    if _QUOTED.sub("", path).count("..") > MAX_DESCENDANT_SEGMENTS:
+        raise SchemaAnnotationError(f"path has more than {MAX_DESCENDANT_SEGMENTS} descendant segments")
+    try:
+        return _JSONPATH.compile(path)
+    except Exception as e:
+        raise SchemaAnnotationError(f"path {path!r} is not valid JSONPath: {e}")
+
+
 def jsonpath_selects(path: str, element: Any) -> bool:
     """True if the RFC 9535 JSONPath selects at least one node of element."""
+    query = _compile_path(path)
     try:
-        finditer = getattr(_JSONPATH, "finditer", None)
+        finditer = getattr(query, "finditer", None)
         if finditer is not None:
             # stop at the first match
-            return next(iter(finditer(path, element)), None) is not None
-        return len(_JSONPATH.find(path, element)) > 0
+            return next(iter(finditer(element)), None) is not None
+        return len(query.find(element)) > 0
     except Exception as e:
         raise SchemaAnnotationError(f"path {path!r} cannot be evaluated: {e}")
 
 
 def validate_jsonpath(path: str) -> None:
     """Raise SchemaAnnotationError if path is not a valid JSONPath."""
-    if not path or not path.startswith("$"):
-        raise SchemaAnnotationError(f"path {path!r} must be a JSONPath that starts with $")
-    if len(path) > MAX_PATH_CHARS:
-        raise SchemaAnnotationError(f"path exceeds {MAX_PATH_CHARS} characters")
-    try:
-        _JSONPATH.compile(path)
-    except Exception as e:
-        raise SchemaAnnotationError(f"path {path!r} is not valid JSONPath: {e}")
+    _compile_path(path)

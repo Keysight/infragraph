@@ -106,17 +106,15 @@ components:
         definition:
           description: |-
             The JSON Schema document as a JSON or YAML string.
-            A $ref within the document is always resolved. A $ref to a
-            remote document is supported only if infragraph has access to
-            it: it is fetched once, when set_graph compiles the schema. A
-            remote $ref that cannot be fetched is an error.
-            Remote fetching MUST be restricted: an implementation SHOULD
-            allow only configured hosts, use https, apply connect and total
-            timeouts, a response size limit and a redirect limit, and
-            refuse private, loopback and link-local addresses. It MUST
-            also bound the size of the definition and the depth of $ref
-            resolution. Without a $schema keyword, the validator uses
-            JSON Schema draft 2020-12.
+            Only a local $ref, one that starts with #, is supported. A
+            remote $ref is an error when set_graph compiles the schema, and
+            no remote document is fetched.
+            Patterns are evaluated with RE2, so a pattern that uses
+            lookahead or a backreference is an error. A schema that
+            combines unevaluatedProperties with patternProperties is an
+            error. The size of the definition is bounded.
+            Without a $schema keyword, the validator uses JSON Schema
+            draft 2020-12.
           type: string
           x-field-uid: 1
     Infrastructure.Schema.OpenApi:
@@ -137,6 +135,8 @@ components:
             format is ignored and does not fail validation. A $ref of the
             form #/components/schemas/... is resolved against this
             document, also when validating against the root object.
+            Patterns are evaluated with RE2, so a pattern that uses
+            lookahead or a backreference is an error.
           type: string
           x-field-uid: 1
         root:

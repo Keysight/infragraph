@@ -1,4 +1,6 @@
+import copy
 import json
+import time
 import pytest
 import yaml
 from infragraph import *
@@ -462,3 +464,139 @@ def test_failed_annotate_with_missing_edge_node_leaves_graph_untouched():
     with pytest.raises(ERRORS):
         service.annotate_graph(annotation)
     assert dict(service._graph.nodes(data=True)) == before
+
+
+def _service_with_schema(definition: str) -> InfraGraphService:
+    infra = _infrastructure(with_schema=False)
+    infra.schemas.add(namespace=SWITCH_NS).jsonschema.definition = definition
+    service = InfraGraphService()
+    service.set_graph(infra)
+    return service
+
+
+def _openapi_definition(version: str, schema: dict) -> str:
+    return json.dumps(
+        {
+            "openapi": version,
+            "info": {"title": "t", "version": "1"},
+            "paths": {},
+            "components": {"schemas": {"Config": schema}},
+        }
+    )
+
+
+@pytest.mark.parametrize("kind", ["jsonschema", "openapi-3.0.3", "openapi-3.1.0"])
+def test_additional_properties_does_not_use_python_re(monkeypatch, kind):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("jsonschema evaluated patternProperties with re")
+
+    schema = {
+        "type": "object",
+        "patternProperties": {"^(a+)+$": {"type": "string"}},
+        "additionalProperties": False,
+    }
+    infra = _infrastructure(with_schema=False)
+    entry = infra.schemas.add(namespace=SWITCH_NS)
+    if kind == "jsonschema":
+        entry.jsonschema.definition = json.dumps(schema)
+    else:
+        entry.openapi.definition = _openapi_definition(kind.split("-")[1], schema)
+        entry.openapi.root = "Config"
+    service = InfraGraphService()
+    service.set_graph(infra)
+    # a private jsonschema attribute, the test fails loudly if it moves
+    monkeypatch.setattr("jsonschema._keywords.find_additional_properties", forbidden)
+    monkeypatch.setattr("openapi_schema_validator._keywords.find_additional_properties", forbidden)
+    _annotate(service, {"ok": json.dumps({"aaa": "x"})})
+    with pytest.raises(ERRORS, match="does not match any of the regexes"):
+        _annotate(service, {"bad": json.dumps({"a" * 30 + "!": "x"})})
+
+
+def test_additional_properties_message_matches_jsonschema():
+    definition = json.dumps({"type": "object", "properties": {"a": {}}, "additionalProperties": False})
+    service = _service_with_schema(definition)
+    with pytest.raises(ERRORS, match=r"\('b', 'c' were unexpected\)"):
+        _annotate(service, {"d": json.dumps({"a": 1, "c": 2, "b": 3})})
+
+
+def test_dependency_named_default_is_still_checked():
+    definition = json.dumps(
+        {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "dependencies": {"default": {"properties": {"x": {"pattern": "(?=y)"}}}},
+        }
+    )
+    with pytest.raises(ERRORS):
+        _service_with_schema(definition)
+
+
+def test_unevaluated_properties_with_pattern_properties_is_refused():
+    definition = json.dumps(
+        {
+            "type": "object",
+            "patternProperties": {"^x": {"type": "string"}},
+            "unevaluatedProperties": False,
+        }
+    )
+    with pytest.raises(ERRORS):
+        _service_with_schema(definition)
+
+
+def test_nan_in_json_is_not_reparsed_as_yaml_string():
+    with pytest.raises(ERRORS):
+        _annotate(_service(), {"d": '{"role": "leaf", "mtu": NaN}'})
+
+
+def test_property_named_default_is_still_checked():
+    definition = json.dumps({"type": "object", "properties": {"default": {"pattern": "(?=x)"}}})
+    with pytest.raises(ERRORS):
+        _service_with_schema(definition)
+
+
+def test_descendant_heavy_jsonpath_is_rejected():
+    service = _service()
+    _annotate(service, {"leaf0": LEAF0}, [("leafsw.0", "leaf0", "")])
+    with pytest.raises(InfrastructureError):
+        _query(service, "$..*..*..*..*")
+
+
+def test_late_failure_in_annotate_restores_graph_state(monkeypatch):
+    service = _service()
+    seed = Annotation()
+    seed.schemas.add(namespace=SWITCH_NS).documents.add(name="seed", value=SPINE0)
+    seed_node = seed.nodes.add(name="leafsw.0")
+    seed_node.attributes.add(attribute="k", value="old")
+    seed_node.references.add(document="seed")
+    service.annotate_graph(seed)
+    before = copy.deepcopy(dict(service._graph.nodes(data=True)))
+    graph_before = dict(service._graph.graph)
+    documents_before = dict(service._documents)
+    references_before = {n: list(r) for n, r in service._node_references.items()}
+
+    original = InfraGraphService._write_attribute
+    calls = []
+
+    def fail_on_graph(attributes, key, value, journal):
+        calls.append(key)
+        if key == "g":
+            raise RuntimeError("late failure")
+        original(attributes, key, value, journal)
+
+    monkeypatch.setattr(InfraGraphService, "_write_attribute", staticmethod(fail_on_graph))
+    annotation = Annotation()
+    annotation.schemas.add(namespace=SWITCH_NS).documents.add(name="leaf0", value=LEAF0)
+    node = annotation.nodes.add(name="leafsw.0")
+    node.attributes.add(attribute="k", value="new")
+    node.attributes.add(attribute="fresh", value="v")
+    node.references.add(document="leaf0")
+    other = annotation.nodes.add(name="spine.0")
+    other.references.add(document="leaf0")
+    annotation.graph.add(attribute="g", value="v")
+    with pytest.raises(RuntimeError):
+        service.annotate_graph(annotation)
+    assert list(dict.fromkeys(calls)) == ["k", "fresh", "g"]
+    assert dict(service._graph.nodes(data=True)) == before
+    assert dict(service._graph.graph) == graph_before
+    assert service._documents == documents_before
+    assert service._node_references == references_before

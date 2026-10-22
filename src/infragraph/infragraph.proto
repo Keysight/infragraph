@@ -109,17 +109,15 @@ message InfrastructureSchema {
 message InfrastructureSchemaJsonSchema {
 
   // The JSON Schema document as a JSON or YAML string.
-  // A $ref within the document is always resolved. A $ref to a
-  // remote document is supported only if infragraph has access to
-  // it: it is fetched once, when set_graph compiles the schema. A
-  // remote $ref that cannot be fetched is an error.
-  // Remote fetching MUST be restricted: an implementation SHOULD
-  // allow only configured hosts, use https, apply connect and total
-  // timeouts, a response size limit and a redirect limit, and
-  // refuse private, loopback and link-local addresses. It MUST
-  // also bound the size of the definition and the depth of $ref
-  // resolution. Without a $schema keyword, the validator uses
-  // JSON Schema draft 2020-12.
+  // Only a local $ref, one that starts with #, is supported. A
+  // remote $ref is an error when set_graph compiles the schema, and
+  // no remote document is fetched.
+  // Patterns are evaluated with RE2, so a pattern that uses
+  // lookahead or a backreference is an error. A schema that
+  // combines unevaluatedProperties with patternProperties is an
+  // error. The size of the definition is bounded.
+  // Without a $schema keyword, the validator uses JSON Schema
+  // draft 2020-12.
   // required = true
   optional string definition = 1;
 }
@@ -137,6 +135,8 @@ message InfrastructureSchemaOpenApi {
   // format is ignored and does not fail validation. A $ref of the
   // form #/components/schemas/... is resolved against this
   // document, also when validating against the root object.
+  // Patterns are evaluated with RE2, so a pattern that uses
+  // lookahead or a backreference is an error.
   // required = true
   optional string definition = 1;
 
@@ -662,9 +662,12 @@ message AnnotationSchemaDocument {
 
   // The document, as JSON or YAML text containing only JSON
   // data types. It MUST validate against the root of the schema.
-  // It is stored as canonical JSON text (RFC 8785), so in a
-  // get_graph response the value is canonical JSON with the keys
-  // sorted, whichever form it was annotated in.
+  // It is stored as canonical JSON text with the keys sorted and no
+  // whitespace. This is not RFC 8785: numbers are written in the
+  // shortest form that round trips, for example 1.0, 1e-07 and
+  // 1e+21, and keys are sorted by code point. In a
+  // get_graph response the value is this canonical JSON,
+  // whichever form it was annotated in.
   // required = true
   optional string value = 2;
 }
@@ -809,7 +812,8 @@ message QuerySchemaFilter {
   // the filter expressions and functions of RFC 9535, e.g.
   // $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. It MUST
   // start with $. A value that is not valid JSONPath, or an empty
-  // value, is an error.
+  // value, is an error. A path with more than 2 descendant
+  // segments (..) or more than 1024 characters is an error.
   // required = true
   optional string path = 2;
 }

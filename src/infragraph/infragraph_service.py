@@ -14,7 +14,8 @@ import warnings
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 from itertools import product as iterproduct
 from infragraph import *
 from infragraph import schema_annotations
@@ -27,6 +28,20 @@ class GraphError(Exception):
 class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
     pass
+
+@contextmanager
+def _schema_errors() -> Iterator[None]:
+    """Report schema annotation failures as infrastructure errors."""
+    try:
+        yield
+    except schema_annotations.SchemaAnnotationError as e:
+        raise InfrastructureError(str(e)) from e
+
+
+# undo actions of an annotate_graph call, each a function and its arguments,
+# run in reverse order on failure
+_UndoJournal = List[Tuple[Callable[..., None], Tuple[Any, ...]]]
+
 
 class InstanceData:
     def __init__(self, device_name: str, count: int):
@@ -743,7 +758,8 @@ class InfraGraphService(Api):
         for schema in infrastructure.schemas:
             if schema.namespace in validators:
                 raise InfrastructureError(f"Duplicate schema namespace: {schema.namespace}")
-            validators[schema.namespace] = schema_annotations.compile_validator(schema)
+            with _schema_errors():
+                validators[schema.namespace] = schema_annotations.compile_validator(schema)
         return validators
 
     def _validate_device_edges(self):
@@ -963,16 +979,45 @@ class InfraGraphService(Api):
         else:
             annotate_request: Annotation = payload
 
-        # every lookup is validated before the graph is mutated, so only the
-        # annotation documents and references need a snapshot
-        documents = dict(self._documents)
-        node_references = {n: list(r) for n, r in self._node_references.items()}
+        journal: _UndoJournal = []
         try:
-            self._annotate_graph(annotate_request)
+            self._annotate_graph(annotate_request, journal)
         except BaseException:
-            self._documents = documents
-            self._node_references = node_references
+            for undo, args in reversed(journal):
+                undo(*args)
             raise
+
+    @staticmethod
+    def _write_attribute(attributes: Dict[str, Any], key: str, value: Any, journal: _UndoJournal) -> None:
+        """Set an attribute and record how to restore it."""
+        journal.append((InfraGraphService._restore_attribute, (attributes, key, key in attributes, attributes.get(key))))
+        attributes[key] = value
+
+    @staticmethod
+    def _restore_attribute(attributes: Dict[str, Any], key: str, present: bool, old: Any) -> None:
+        if present:
+            attributes[key] = old
+        else:
+            attributes.pop(key, None)
+
+    def _add_document(self, name: str, entry: Tuple[str, Any, str], journal: _UndoJournal) -> None:
+        self._documents[name] = entry
+        journal.append((self._documents.pop, (name, None)))
+
+    def _add_references(self, node: str, references: List[Tuple[str, str]], journal: _UndoJournal) -> None:
+        """Add the references that the node does not hold yet."""
+        created = node not in self._node_references
+        stored = self._node_references.setdefault(node, [])
+        added = [r for r in references if r not in stored]
+        stored.extend(added)
+        journal.append((self._remove_references, (node, added, created)))
+
+    def _remove_references(self, node: str, added: List[Tuple[str, str]], created: bool) -> None:
+        stored = self._node_references[node]
+        for reference in added:
+            stored.remove(reference)
+        if created and not stored:
+            del self._node_references[node]
 
     def _resolve_graph_nodes(self, name: str) -> List[str]:
         """Graph nodes that a node string expands to, ValueError if absent."""
@@ -984,23 +1029,25 @@ class InfraGraphService(Api):
             matched.extend(prefixed)
         return matched
 
-    def _annotate_graph(self, annotate_request: Annotation) -> None:
-        new_documents, new_references = self._validate_schema_annotations(annotate_request)
+    def _annotate_graph(self, annotate_request: Annotation, journal: _UndoJournal) -> None:
+        with _schema_errors():
+            new_documents, new_references = self._validate_schema_annotations(annotate_request)
         # resolve every node and edge endpoint before the first mutation
         resolved_nodes = [self._resolve_graph_nodes(n.name) for n in annotate_request.nodes]
         resolved_edges = [
             (self._resolve_graph_nodes(e.ep1), self._resolve_graph_nodes(e.ep2))
             for e in annotate_request.edges
         ]
-        self._documents.update(new_documents)
+        for name, entry in new_documents.items():
+            self._add_document(name, entry, journal)
         for node, references in new_references.items():
-            stored = self._node_references.setdefault(node, [])
-            stored.extend(r for r in references if r not in stored)
+            self._add_references(node, references, journal)
 
         for annotation_node, matched in zip(annotate_request.nodes, resolved_nodes):
             for attribute_kvp in annotation_node.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
-                    networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
+                    for n in matched:
+                        self._write_attribute(self._graph.nodes[n], attribute_kvp.attribute, attribute_kvp.value, journal)
                 else:
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for {annotation_node.name}")
             
@@ -1015,7 +1062,8 @@ class InfraGraphService(Api):
 
             for attribute_kvp in annotation_edge.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
-                    networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
+                    for u, v in matched_edges:
+                        self._write_attribute(self._graph[u][v], attribute_kvp.attribute, attribute_kvp.value, journal)
                 else:
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for edge")
         # links
@@ -1026,14 +1074,14 @@ class InfraGraphService(Api):
                     warnings.warn(f"Skipping immutable attribute {link_annotation.attribute} for {annotation_link.name}")
                     continue
                 for ep1, ep2 in edges_for_link:
-                    self._graph[ep1][ep2][link_annotation.attribute] = link_annotation.value
+                    self._write_attribute(self._graph[ep1][ep2], link_annotation.attribute, link_annotation.value, journal)
 
         # graph
         for attribute_kvp in annotate_request.graph:
             if attribute_kvp.attribute in self._IMMUTABLE_ATTRIBUTES:
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
                 continue
-            self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
+            self._write_attribute(self._graph.graph, attribute_kvp.attribute, attribute_kvp.value, journal)
 
     def _validate_schema_annotations(self, annotate_request: Annotation):
         """Validate documents and node references without applying them."""
@@ -1080,7 +1128,8 @@ class InfraGraphService(Api):
         for schema_filter in node_filter.schema_filters:
             if schema_filter.schema not in self._schema_validators:
                 raise InfrastructureError(f"Unknown schema: {schema_filter.schema}")
-            schema_annotations.validate_jsonpath(schema_filter.path)
+            with _schema_errors():
+                schema_annotations.validate_jsonpath(schema_filter.path)
 
         node_filter_result = query_response.nodes.add(name=node_filter.name)
 
@@ -1101,11 +1150,12 @@ class InfraGraphService(Api):
         # nodes that matched a schema filter and the references that matched
         matched_references: Dict[str, List[Tuple[str, str, str]]] = {}
         if has_schema_filters:
-            request_node_identifiers = [
-                node
-                for node in dict.fromkeys(request_node_identifiers)
-                if self._match_schema_filters(node, node_filter.schema_filters, matched_references)
-            ]
+            with _schema_errors():
+                request_node_identifiers = [
+                    node
+                    for node in dict.fromkeys(request_node_identifiers)
+                    if self._match_schema_filters(node, node_filter.schema_filters, matched_references)
+                ]
 
         # check for attributes here
         if len(node_filter.attribute_filters.attributes) == 0:

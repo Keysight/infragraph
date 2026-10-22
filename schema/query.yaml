@@ -41,7 +41,8 @@ components:
             the filter expressions and functions of RFC 9535, e.g.
             $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. It MUST
             start with $. A value that is not valid JSONPath, or an empty
-            value, is an error.
+            value, is an error. A path with more than 2 descendant
+            segments (..) or more than 1024 characters is an error.
           type: string
           x-field-uid: 2
     Query.Reference:
