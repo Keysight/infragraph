@@ -595,8 +595,70 @@ def test_late_failure_in_annotate_restores_graph_state(monkeypatch):
     annotation.graph.add(attribute="g", value="v")
     with pytest.raises(RuntimeError):
         service.annotate_graph(annotation)
-    assert list(dict.fromkeys(calls)) == ["k", "fresh", "g"]
+    user_calls = [c for c in calls if c not in InfraGraphService._SCHEMA_ATTRIBUTES]
+    assert list(dict.fromkeys(user_calls)) == ["k", "fresh", "g"]
     assert dict(service._graph.nodes(data=True)) == before
     assert dict(service._graph.graph) == graph_before
     assert service._documents == documents_before
     assert service._node_references == references_before
+
+
+@pytest.mark.parametrize("choice", [AnnotationType.FULL, AnnotationType.PARTIAL])
+def test_networkx_graph_carries_schemas_documents_and_references(choice):
+    service = _service()
+    _lab(service)
+    _annotate(service, None, [("leafsw[0]", "leafsw0-config", "/interfaces/eth0")])
+
+    request = GraphRequest()
+    request.choice = GraphRequest.NETWORKX
+    request.networkx.annotations.choice = choice
+    result = yaml.safe_load(service.get_graph(request))
+
+    assert [s["namespace"] for s in result["graph"]["schemas"]] == [SWITCH_NS]
+    assert [d["name"] for d in result["graph"]["documents"]] == ["leafsw0-config", "leafsw1-config", "spine0-config"]
+    node = next(n for n in result["nodes"] if n["id"] == "leafsw.0.asic.0")
+    assert node["references"] == [{"document": "leafsw0-config"}, {"document": "leafsw0-config", "pointer": "/interfaces/eth0"}]
+
+
+def test_live_networkx_graph_carries_schema_data():
+    service = _service()
+    graph = service.get_networkx_graph()
+    assert [s["namespace"] for s in graph.graph["schemas"]] == [SWITCH_NS]
+    assert "documents" not in graph.graph
+    _lab(service)
+    assert len(graph.graph["documents"]) == 3
+    assert graph.nodes["leafsw.0.asic.0"]["references"] == [{"document": "leafsw0-config"}]
+
+
+def test_reserved_attributes_are_skipped_and_not_duplicated_in_infragraph_export():
+    service = _service()
+    _lab(service)
+    annotation = Annotation()
+    annotation.nodes.add(name="leafsw[0]").attributes.add(attribute="references", value="x")
+    annotation.graph.add(attribute="documents", value="x")
+    with pytest.warns(UserWarning, match="reserved"):
+        service.annotate_graph(annotation)
+    graph = service.get_networkx_graph()
+    assert graph.graph["documents"] != "x"
+    assert graph.nodes["leafsw.0.asic.0"]["references"] != "x"
+
+    request = GraphRequest()
+    request.choice = GraphRequest.INFRAGRAPH
+    request.infragraph.annotations.choice = AnnotationType.FULL
+    result = json.loads(service.get_graph(request))
+    assert all(a["attribute"] not in ("schemas", "documents") for a in result["annotations"]["graph"])
+    for node in result["annotations"]["nodes"]:
+        assert all(a["attribute"] != "references" for a in node["attributes"])
+
+
+def test_failed_annotate_reverts_published_schema_data():
+    service = _service()
+    _lab(service)
+    before = copy.deepcopy(dict(service.get_networkx_graph().graph))
+    annotation = Annotation()
+    schema = annotation.schemas.add(namespace=SWITCH_NS)
+    schema.documents.add(name="new", value=SPINE0)
+    annotation.nodes.add(name="nonexistent[0]").references.add(document="new")
+    with pytest.raises(Exception):
+        service.annotate_graph(annotation)
+    assert dict(service.get_networkx_graph().graph) == before

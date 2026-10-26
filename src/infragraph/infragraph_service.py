@@ -15,7 +15,7 @@ import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 from itertools import product as iterproduct
 from infragraph import *
 from infragraph import schema_annotations
@@ -67,6 +67,9 @@ class InfraGraphService(Api):
     _IMMUTABLE_ATTRIBUTES: frozenset[str] = frozenset(
         {"type", "instance", "instance_idx", "device", "composed_device", "link"}
     )
+
+    # Node and graph attributes that carry schema data, set by the service.
+    _SCHEMA_ATTRIBUTES: frozenset[str] = frozenset({"schemas", "documents", "references"})
 
     # Short forms for physical link unit choices used in edge attribute strings.
     _UNIT_ABBREVIATIONS: Dict[str, str] = {
@@ -751,6 +754,7 @@ class InfraGraphService(Api):
         self._validate_graph()
         self._build_prefix_map()
         self._build_link_map()
+        self._publish_schema_data([])
 
     @staticmethod
     def _compile_schemas(infrastructure: Infrastructure) -> Dict[str, Any]:
@@ -806,6 +810,41 @@ class InfraGraphService(Api):
         graph = self._graph if is_full else self._build_partial_graph()
         return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
 
+    def _publish_schema_data(self, nodes: Iterable[str], journal: Optional[_UndoJournal] = None) -> None:
+        """Expose schema data in the networkx graph.
+
+        - graph attribute schemas: declared schema definitions
+        - graph attribute documents: annotated documents, canonical JSON
+        - node attribute references: documents and pointers the node holds
+        """
+        def write(attributes: Dict[str, Any], key: str, value: Any) -> None:
+            if journal is None:
+                attributes[key] = value
+            else:
+                self._write_attribute(attributes, key, value, journal)
+
+        schemas = [s.serialize("dict") for s in self._infrastructure.schemas]
+        if schemas:
+            write(self._graph.graph, "schemas", schemas)
+        if self._documents:
+            write(
+                self._graph.graph,
+                "documents",
+                [
+                    {"name": name, "namespace": ns, "value": canonical}
+                    for name, (ns, _, canonical) in sorted(self._documents.items())
+                ],
+            )
+        for node in nodes:
+            write(
+                self._graph.nodes[node],
+                "references",
+                [
+                    {"document": document, "pointer": pointer} if pointer else {"document": document}
+                    for document, pointer in self._node_references[node]
+                ],
+            )
+
     @staticmethod
     def _stringify(v):
         return v if isinstance(v, str) else str(v)
@@ -819,9 +858,11 @@ class InfraGraphService(Api):
         is_full = attr_type == "full"
 
         def node_attrs_filter(attrs):
-            return attrs.items() if is_full else (
+            # schema data is exported structurally under annotations.schemas
+            return (
                 (k, v) for k, v in attrs.items()
-                if k not in self._IMMUTABLE_ATTRIBUTES
+                if k not in self._SCHEMA_ATTRIBUTES
+                and (is_full or k not in self._IMMUTABLE_ATTRIBUTES)
             )
 
         def edge_attrs_filter(attrs):
@@ -833,7 +874,7 @@ class InfraGraphService(Api):
         annotation_nodes = []
         for node_name, node_attrs in source_graph.nodes(data=True):
             references = self._node_references.get(node_name, [])
-            if not node_attrs and not references:
+            if not any(k not in self._SCHEMA_ATTRIBUTES for k in node_attrs) and not references:
                 continue
             annotation_node = {
                 "name": node_name,
@@ -880,7 +921,8 @@ class InfraGraphService(Api):
         annotation_graph = [
             {"attribute": k, "value": InfraGraphService._stringify(v)}
             for k, v in graph_attrs.items()
-            if is_full or k not in self._IMMUTABLE_ATTRIBUTES
+            if k not in self._SCHEMA_ATTRIBUTES
+            and (is_full or k not in self._IMMUTABLE_ATTRIBUTES)
         ]
 
         infragraph_dict["annotations"] = {
@@ -1042,10 +1084,13 @@ class InfraGraphService(Api):
             self._add_document(name, entry, journal)
         for node, references in new_references.items():
             self._add_references(node, references, journal)
+        self._publish_schema_data(new_references, journal)
 
         for annotation_node, matched in zip(annotate_request.nodes, resolved_nodes):
             for attribute_kvp in annotation_node.attributes:
-                if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
+                if attribute_kvp.attribute in self._SCHEMA_ATTRIBUTES:
+                    warnings.warn(f"Skipping reserved attribute {attribute_kvp.attribute} for {annotation_node.name}")
+                elif attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
                     for n in matched:
                         self._write_attribute(self._graph.nodes[n], attribute_kvp.attribute, attribute_kvp.value, journal)
                 else:
@@ -1080,6 +1125,9 @@ class InfraGraphService(Api):
         for attribute_kvp in annotate_request.graph:
             if attribute_kvp.attribute in self._IMMUTABLE_ATTRIBUTES:
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
+                continue
+            if attribute_kvp.attribute in self._SCHEMA_ATTRIBUTES:
+                warnings.warn(f"Skipping reserved attribute {attribute_kvp.attribute} for graph")
                 continue
             self._write_attribute(self._graph.graph, attribute_kvp.attribute, attribute_kvp.value, journal)
 
