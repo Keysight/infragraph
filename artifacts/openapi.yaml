@@ -1244,7 +1244,12 @@ components:
             document of the schema, $.location
             selects a field if it exists, and a comparison is written with
             the filter expressions and functions of RFC 9535, e.g.
-            $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. It MUST
+            $[?$.mtu == 9100] or $[?match($.role, 'leaf|spine')]. A filter
+            expression selects among the children of the element, so $
+            inside it is the element and @ is a child. $[?@.mtu == 9100]
+            therefore matches nothing, it tests the mtu of each child
+            rather than of the element. A filter on an element that is a
+            scalar or an empty object also matches nothing. It MUST
             start with $. A value that is not valid JSONPath, or an empty
             value, is an error. A path with more than 2 descendant
             segments (..) or more than 1024 characters is an error.
