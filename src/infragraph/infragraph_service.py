@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 from itertools import product as iterproduct
 from infragraph import *
-from infragraph import schema_annotations
+from infragraph.schema_errors import SchemaAnnotationError
 
 
 class GraphError(Exception):
@@ -29,12 +29,23 @@ class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
     pass
 
+def _schema_support() -> Any:
+    """Load schema_annotations on first use, its dependencies are optional."""
+    try:
+        from infragraph import schema_annotations
+    except ImportError as e:
+        raise InfrastructureError(
+            f"Schema support is not installed ({e}), install infragraph[schemas]"
+        ) from e
+    return schema_annotations
+
+
 @contextmanager
 def _schema_errors() -> Iterator[None]:
     """Report schema annotation failures as infrastructure errors."""
     try:
         yield
-    except schema_annotations.SchemaAnnotationError as e:
+    except SchemaAnnotationError as e:
         raise InfrastructureError(str(e)) from e
 
 
@@ -716,7 +727,8 @@ class InfraGraphService(Api):
     def _snapshot_graph_state(self) -> Dict[str, Any]:
         """Capture the mutable graph state so a failed call can be reverted."""
         return {
-            "_graph": self._graph.copy(),
+            # _set_graph builds a new graph, the old one is never modified
+            "_graph": self._graph,
             "_device_data": dict(self._device_data),
             "_instance_data": dict(self._instance_data),
             "_graph_node_prefix_map": dict(self._graph_node_prefix_map),
@@ -724,7 +736,7 @@ class InfraGraphService(Api):
             "_infrastructure": self._infrastructure,
             "_schema_validators": dict(self._schema_validators),
             "_documents": dict(self._documents),
-            "_node_references": {n: list(r) for n, r in self._node_references.items()},
+            "_node_references": self._node_references,
         }
 
     def _restore_graph_state(self, snapshot: Dict[str, Any]) -> None:
@@ -759,6 +771,9 @@ class InfraGraphService(Api):
     @staticmethod
     def _compile_schemas(infrastructure: Infrastructure) -> Dict[str, Any]:
         validators = {}
+        if not infrastructure.schemas:
+            return validators
+        schema_annotations = _schema_support()
         for schema in infrastructure.schemas:
             if schema.namespace in validators:
                 raise InfrastructureError(f"Duplicate schema namespace: {schema.namespace}")
@@ -810,12 +825,19 @@ class InfraGraphService(Api):
         graph = self._graph if is_full else self._build_partial_graph()
         return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
 
-    def _publish_schema_data(self, nodes: Iterable[str], journal: Optional[_UndoJournal] = None) -> None:
+    def _publish_schema_data(
+        self,
+        nodes: Iterable[str],
+        journal: Optional[_UndoJournal] = None,
+        schemas: bool = True,
+        documents: bool = True,
+    ) -> None:
         """Expose schema data in the networkx graph.
 
         - graph attribute schemas: declared schema definitions
         - graph attribute documents: annotated documents, canonical JSON
         - node attribute references: documents and pointers the node holds
+        schemas and documents select the graph attributes to rewrite.
         """
         def write(attributes: Dict[str, Any], key: str, value: Any) -> None:
             if journal is None:
@@ -823,10 +845,10 @@ class InfraGraphService(Api):
             else:
                 self._write_attribute(attributes, key, value, journal)
 
-        schemas = [s.serialize("dict") for s in self._infrastructure.schemas]
-        if schemas:
-            write(self._graph.graph, "schemas", schemas)
-        if self._documents:
+        declared = [s.serialize("dict") for s in self._infrastructure.schemas] if schemas else []
+        if declared:
+            write(self._graph.graph, "schemas", declared)
+        if documents and self._documents:
             write(
                 self._graph.graph,
                 "documents",
@@ -1084,7 +1106,10 @@ class InfraGraphService(Api):
             self._add_document(name, entry, journal)
         for node, references in new_references.items():
             self._add_references(node, references, journal)
-        self._publish_schema_data(new_references, journal)
+        # schemas change only in set_graph, documents only with new documents
+        self._publish_schema_data(
+            new_references, journal, schemas=False, documents=bool(new_documents)
+        )
 
         for annotation_node, matched in zip(annotate_request.nodes, resolved_nodes):
             for attribute_kvp in annotation_node.attributes:
@@ -1134,6 +1159,9 @@ class InfraGraphService(Api):
     def _validate_schema_annotations(self, annotate_request: Annotation):
         """Validate documents and node references without applying them."""
         new_documents: Dict[str, Tuple[str, Any, str]] = {}
+        schema_annotations = None
+        if annotate_request.schemas or any(len(n.references) for n in annotate_request.nodes):
+            schema_annotations = _schema_support()
         for schema in annotate_request.schemas:
             validate = self._schema_validators.get(schema.namespace)
             if validate is None:
@@ -1173,6 +1201,7 @@ class InfraGraphService(Api):
             return
 
         # validate the schema filters before any result is produced
+        schema_annotations = _schema_support() if has_schema_filters else None
         for schema_filter in node_filter.schema_filters:
             if schema_filter.schema not in self._schema_validators:
                 raise InfrastructureError(f"Unknown schema: {schema_filter.schema}")
@@ -1240,6 +1269,7 @@ class InfraGraphService(Api):
     def _match_schema_filters(self, node, schema_filters, matched_references) -> bool:
         """True if every schema filter holds for the node, the references that
         satisfied a filter are recorded in matched_references."""
+        schema_annotations = _schema_support()
         references = self._node_references.get(node, [])
         found: List[Tuple[str, str, str]] = []
         for schema_filter in schema_filters:

@@ -16,6 +16,8 @@ from openapi_schema_validator import OAS30Validator, OAS31Validator
 from referencing import Registry
 from ruamel.yaml import YAML
 
+from infragraph.schema_errors import SchemaAnnotationError
+
 try:
     # jsonpath-rfc9535 2.x, which requires Python 3.12
     from jsonpath_rfc9535 import functions as _jsonpath_functions
@@ -35,10 +37,6 @@ MAX_DOCUMENT_BYTES = 1024 * 1024
 MAX_DOCUMENT_NODES = 200_000
 MAX_PATH_CHARS = 1024
 MAX_DESCENDANT_SEGMENTS = 2
-
-
-class SchemaAnnotationError(ValueError):
-    """Raised when a schema, document, reference or schema filter is invalid."""
 
 
 def _map_dot(pattern: str) -> str:

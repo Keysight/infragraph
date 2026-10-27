@@ -1,8 +1,12 @@
 import copy
+import subprocess
+import sys
+from pathlib import Path
 import json
 import time
 import pytest
 import yaml
+import infragraph
 from infragraph import *
 from infragraph.blueprints.devices.generic.generic_switch import Switch
 from infragraph.infragraph_service import InfraGraphService, InfrastructureError
@@ -662,3 +666,68 @@ def test_failed_annotate_reverts_published_schema_data():
     with pytest.raises(Exception):
         service.annotate_graph(annotation)
     assert dict(service.get_networkx_graph().graph) == before
+
+
+def test_current_item_filter_selects_nothing_on_the_element():
+    service = _service()
+    _lab(service)
+    # a filter selects among children, $ is the element and @ is a child
+    assert _instances(_query(service, "$[?$.mtu == 9100]")) == ["leafsw.0", "spine.0"]
+    assert _query(service, "$[?@.mtu == 9100]") == []
+
+
+def test_failed_set_graph_keeps_the_previous_graph_object():
+    service = _service()
+    _lab(service)
+    graph = service._graph
+    bad = _infrastructure(with_schema=False)
+    bad.schemas.add(namespace="bad.v1").jsonschema.definition = "type: 12\n"
+    with pytest.raises(ERRORS):
+        service.set_graph(bad)
+    assert service._graph is graph
+    assert len(graph.graph["documents"]) == 3
+
+
+def test_attribute_only_annotate_does_not_republish_schemas_or_documents():
+    service = _service()
+    _lab(service)
+    published = service.get_networkx_graph().graph
+    schemas, documents = published["schemas"], published["documents"]
+    annotation = Annotation()
+    annotation.nodes.add(name="leafsw[0]").attributes.add(attribute="rack", value="r12")
+    service.annotate_graph(annotation)
+    assert published["schemas"] is schemas
+    assert published["documents"] is documents
+    _annotate(service, {"extra": SPINE0}, [("spine[0]", "extra", None)])
+    assert published["schemas"] is schemas
+    assert len(published["documents"]) == 4
+
+
+def test_schema_dependencies_are_optional(tmp_path):
+    script = tmp_path / "check.py"
+    script.write_text(
+        "import sys\n"
+        "sys.path.insert(0, sys.argv[1])\n"
+        "sys.modules['re2'] = None\n"
+        "from infragraph import *\n"
+        "from infragraph.infragraph_service import InfraGraphService, InfrastructureError\n"
+        "from infragraph.blueprints.devices.generic.generic_switch import Switch\n"
+        "def build(schema):\n"
+        "    infra = Infrastructure(name='x')\n"
+        "    switch = Switch(port_count=1)\n"
+        "    infra.devices.append(switch)\n"
+        "    infra.instances.add(name='sw', device=switch.name, count=1)\n"
+        "    if schema:\n"
+        "        infra.schemas.add(namespace='a.v1').jsonschema.definition = '{}'\n"
+        "    return infra\n"
+        "InfraGraphService().set_graph(build(False))\n"
+        "try:\n"
+        "    InfraGraphService().set_graph(build(True))\n"
+        "except InfrastructureError as e:\n"
+        "    assert 'infragraph[schemas]' in str(e), e\n"
+        "else:\n"
+        "    raise SystemExit('schema support loaded without its dependencies')\n"
+    )
+    result = subprocess.run([sys.executable, "-I", str(script), str(Path(infragraph.__file__).parent.parent)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
