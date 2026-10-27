@@ -43,4 +43,106 @@ components:
           items:
             $ref: "./edge.yaml#/components/schemas/Infrastructure.Edge"
           x-field-uid: 6
-
+        schemas:
+          description: |-
+            An inventory of schemas that annotations can reference.
+            A document of a schema is annotated once at graph level, and
+            nodes reference elements of it. A schema MUST be declared here
+            before an annotation or a query can name it.
+          type: array
+          items:
+            $ref: '#/components/schemas/Infrastructure.Schema'
+          x-status:
+            status: under_review
+            information: Schema annotations are a proposal under review
+          x-field-uid: 7
+    Infrastructure.Schema:
+      description: |-
+        A schema with a namespace used to validate opaque serialized documents.
+        The choice selects the validator that is used.
+      type: object
+      required: [namespace, choice]
+      properties:
+        namespace:
+          description: |-
+            Globally unique namespace of the schema. Annotated documents and
+            schema filters name the schema with it.
+            Including a version in the namespace is recommended, e.g. fabricgym.switch.v1
+          type: string
+          pattern: ^[a-zA-Z0-9._/-]+$
+          x-unique: global
+          x-field-uid: 1
+        choice:
+          description: |-
+            The schema language, which determines the validator.
+            In every case an annotated document MUST be JSON or YAML.
+            - jsonschema: the decoded document is validated against a JSON Schema.
+            - openapi: the decoded document is validated against a schema
+              object in an OpenAPI 3.0 or 3.1 document.
+          type: string
+          x-field-uid: 2
+          x-enum:
+            jsonschema:
+              x-field-uid: 1
+            openapi:
+              x-field-uid: 2
+        jsonschema:
+          description: |-
+            A JSON Schema definition.
+          $ref: '#/components/schemas/Infrastructure.Schema.JsonSchema'
+          x-field-uid: 3
+        openapi:
+          description: |-
+            An OpenAPI document definition.
+          $ref: '#/components/schemas/Infrastructure.Schema.OpenApi'
+          x-field-uid: 4
+    Infrastructure.Schema.JsonSchema:
+      description: |-
+        A JSON Schema used to validate a document.
+        The root of the document is the root of the schema.
+      type: object
+      required: [definition]
+      properties:
+        definition:
+          description: |-
+            The JSON Schema document as a JSON or YAML string.
+            Only a local $ref, one that starts with #, is supported. A
+            remote $ref is an error when set_graph compiles the schema, and
+            no remote document is fetched.
+            Patterns are evaluated with RE2, so a pattern that uses
+            lookahead or a backreference is an error. A schema that
+            combines unevaluatedProperties with patternProperties is an
+            error. The size of the definition is bounded.
+            Without a $schema keyword, the validator uses JSON Schema
+            draft 2020-12.
+          type: string
+          x-field-uid: 1
+    Infrastructure.Schema.OpenApi:
+      description: |-
+        A complete OpenAPI 3.0 or 3.1 document used to validate an annotated document.
+        The document conforms to the schema object named by root.
+      type: object
+      required: [definition, root]
+      properties:
+        definition:
+          description: |-
+            The full OpenAPI document as a JSON or YAML string.
+            The document MUST be bundled: every $ref MUST resolve within
+            the document, and no external files are fetched. Tool-specific
+            extensions such as openapiart's x-include are not processed,
+            so an openapiart model MUST be supplied in its bundled form.
+            Vendor extension keywords (x-...) are ignored. An unknown
+            format is ignored and does not fail validation. A $ref of the
+            form #/components/schemas/... is resolved against this
+            document, also when validating against the root object.
+            Patterns are evaluated with RE2, so a pattern that uses
+            lookahead or a backreference is an error.
+          type: string
+          x-field-uid: 1
+        root:
+          description: |-
+            The name of the schema object under components/schemas that
+            the document as a whole conforms to, written exactly as the
+            component is named, e.g. Config
+          type: string
+          x-field-uid: 2

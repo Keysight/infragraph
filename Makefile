@@ -44,7 +44,7 @@ package: generate ## create sdist/wheel packages from OpenAPIArt generated artif
 
 .PHONY: install
 install: package ## pip install infragraph package
-	$(PIP) install dist/infragraph*.whl --force-reinstall
+	$(PIP) install "./$$(ls dist/infragraph*.whl)[schemas]" --force-reinstall
 
 .PHONY: deploy
 PYPI_TOKEN=__invalid_token__

@@ -14,9 +14,11 @@ import warnings
 import networkx
 from networkx import Graph
 from networkx.readwrite import json_graph
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 from itertools import product as iterproduct
 from infragraph import *
+from infragraph.schema_errors import SchemaAnnotationError
 
 
 class GraphError(Exception):
@@ -26,6 +28,31 @@ class GraphError(Exception):
 class InfrastructureError(Exception):
     """Custom exception for infrastructure related errors"""
     pass
+
+def _schema_support() -> Any:
+    """Load schema_annotations on first use, its dependencies are optional."""
+    try:
+        from infragraph import schema_annotations
+    except ImportError as e:
+        raise InfrastructureError(
+            f"Schema support is not installed ({e}), install infragraph[schemas]"
+        ) from e
+    return schema_annotations
+
+
+@contextmanager
+def _schema_errors() -> Iterator[None]:
+    """Report schema annotation failures as infrastructure errors."""
+    try:
+        yield
+    except SchemaAnnotationError as e:
+        raise InfrastructureError(str(e)) from e
+
+
+# undo actions of an annotate_graph call, each a function and its arguments,
+# run in reverse order on failure
+_UndoJournal = List[Tuple[Callable[..., None], Tuple[Any, ...]]]
+
 
 class InstanceData:
     def __init__(self, device_name: str, count: int):
@@ -52,6 +79,9 @@ class InfraGraphService(Api):
         {"type", "instance", "instance_idx", "device", "composed_device", "link"}
     )
 
+    # Node and graph attributes that carry schema data, set by the service.
+    _SCHEMA_ATTRIBUTES: frozenset[str] = frozenset({"schemas", "documents", "references"})
+
     # Short forms for physical link unit choices used in edge attribute strings.
     _UNIT_ABBREVIATIONS: Dict[str, str] = {
         "gigabits_per_second": "Gbps",
@@ -70,6 +100,12 @@ class InfraGraphService(Api):
         self._graph_node_prefix_map: Dict[str, List[str]] = {}
         self._link_to_edges_map: Dict[str, List[Tuple[str, str]]] = {}
         self._infrastructure: Infrastructure = Infrastructure()
+        # schema namespace -> validator
+        self._schema_validators: Dict[str, Any] = {}
+        # document name -> (namespace, decoded value, canonical json)
+        self._documents: Dict[str, Tuple[str, Any, str]] = {}
+        # graph node -> ordered (document, pointer) references
+        self._node_references: Dict[str, List[Tuple[str, str]]] = {}
 
     @property
     def infrastructure(self) -> Infrastructure:
@@ -681,10 +717,42 @@ class InfraGraphService(Api):
         - adds annotations as node attributes if applicable
             - if an annotation has an endpoint, the data is added to the node as attributes
         """
+        previous = self._snapshot_graph_state()
+        try:
+            self._set_graph(payload)
+        except BaseException:
+            self._restore_graph_state(previous)
+            raise
+
+    def _snapshot_graph_state(self) -> Dict[str, Any]:
+        """Capture the mutable graph state so a failed call can be reverted."""
+        return {
+            # _set_graph builds a new graph, the old one is never modified
+            "_graph": self._graph,
+            "_device_data": dict(self._device_data),
+            "_instance_data": dict(self._instance_data),
+            "_graph_node_prefix_map": dict(self._graph_node_prefix_map),
+            "_link_to_edges_map": dict(self._link_to_edges_map),
+            "_infrastructure": self._infrastructure,
+            "_schema_validators": dict(self._schema_validators),
+            "_documents": dict(self._documents),
+            "_node_references": self._node_references,
+        }
+
+    def _restore_graph_state(self, snapshot: Dict[str, Any]) -> None:
+        for name, value in snapshot.items():
+            setattr(self, name, value)
+
+    def _set_graph(self, payload: Union[str, Infrastructure]) -> None:
         if isinstance(payload, str):
             self._infrastructure = Infrastructure().deserialize(payload)
         else:
             self._infrastructure = payload
+        # compile the schemas first
+        validators = self._compile_schemas(self._infrastructure)
+        self._schema_validators = validators
+        self._documents = {}
+        self._node_references = {}
         # Initialize an empty graph, populate it with device and instance nodes, validate the resulting device edges and infrastructure edges, run final graph-wide validation, and then build the prefix and link lookup maps used for fast endpoint resolution.
         self._graph = Graph()
         if self._infrastructure.name:
@@ -698,6 +766,20 @@ class InfraGraphService(Api):
         self._validate_graph()
         self._build_prefix_map()
         self._build_link_map()
+        self._publish_schema_data([])
+
+    @staticmethod
+    def _compile_schemas(infrastructure: Infrastructure) -> Dict[str, Any]:
+        validators = {}
+        if not infrastructure.schemas:
+            return validators
+        schema_annotations = _schema_support()
+        for schema in infrastructure.schemas:
+            if schema.namespace in validators:
+                raise InfrastructureError(f"Duplicate schema namespace: {schema.namespace}")
+            with _schema_errors():
+                validators[schema.namespace] = schema_annotations.compile_validator(schema)
+        return validators
 
     def _validate_device_edges(self):
         """Ensure that there are no edges between device instances
@@ -743,6 +825,48 @@ class InfraGraphService(Api):
         graph = self._graph if is_full else self._build_partial_graph()
         return yaml.dump(json_graph.node_link_data(graph, edges="edges"))
 
+    def _publish_schema_data(
+        self,
+        nodes: Iterable[str],
+        journal: Optional[_UndoJournal] = None,
+        schemas: bool = True,
+        documents: bool = True,
+    ) -> None:
+        """Expose schema data in the networkx graph.
+
+        - graph attribute schemas: declared schema definitions
+        - graph attribute documents: annotated documents, canonical JSON
+        - node attribute references: documents and pointers the node holds
+        schemas and documents select the graph attributes to rewrite.
+        """
+        def write(attributes: Dict[str, Any], key: str, value: Any) -> None:
+            if journal is None:
+                attributes[key] = value
+            else:
+                self._write_attribute(attributes, key, value, journal)
+
+        declared = [s.serialize("dict") for s in self._infrastructure.schemas] if schemas else []
+        if declared:
+            write(self._graph.graph, "schemas", declared)
+        if documents and self._documents:
+            write(
+                self._graph.graph,
+                "documents",
+                [
+                    {"name": name, "namespace": ns, "value": canonical}
+                    for name, (ns, _, canonical) in sorted(self._documents.items())
+                ],
+            )
+        for node in nodes:
+            write(
+                self._graph.nodes[node],
+                "references",
+                [
+                    {"document": document, "pointer": pointer} if pointer else {"document": document}
+                    for document, pointer in self._node_references[node]
+                ],
+            )
+
     @staticmethod
     def _stringify(v):
         return v if isinstance(v, str) else str(v)
@@ -756,9 +880,11 @@ class InfraGraphService(Api):
         is_full = attr_type == "full"
 
         def node_attrs_filter(attrs):
-            return attrs.items() if is_full else (
+            # schema data is exported structurally under annotations.schemas
+            return (
                 (k, v) for k, v in attrs.items()
-                if k not in self._IMMUTABLE_ATTRIBUTES
+                if k not in self._SCHEMA_ATTRIBUTES
+                and (is_full or k not in self._IMMUTABLE_ATTRIBUTES)
             )
 
         def edge_attrs_filter(attrs):
@@ -767,17 +893,33 @@ class InfraGraphService(Api):
                 if k not in self._IMMUTABLE_ATTRIBUTES
             )
 
-        annotation_nodes = [
-            {
+        annotation_nodes = []
+        for node_name, node_attrs in source_graph.nodes(data=True):
+            references = self._node_references.get(node_name, [])
+            if not any(k not in self._SCHEMA_ATTRIBUTES for k in node_attrs) and not references:
+                continue
+            annotation_node = {
                 "name": node_name,
                 "attributes": [
                     {"attribute": k, "value": InfraGraphService._stringify(v)}
                     for k, v in node_attrs_filter(node_attrs)
                 ]
             }
-            for node_name, node_attrs in source_graph.nodes(data=True)
-            if node_attrs
-        ]
+            if references:
+                annotation_node["references"] = [
+                    {"document": document, "pointer": pointer} if pointer else {"document": document}
+                    for document, pointer in references
+                ]
+            annotation_nodes.append(annotation_node)
+
+        # documents are user annotations and are returned for full and partial
+        annotation_schemas = []
+        documents_by_namespace: Dict[str, List[Dict[str, str]]] = {}
+        for name, (ns, _, canonical) in sorted(self._documents.items()):
+            documents_by_namespace.setdefault(ns, []).append({"name": name, "value": canonical})
+        for namespace in self._schema_validators:
+            if namespace in documents_by_namespace:
+                annotation_schemas.append({"namespace": namespace, "documents": documents_by_namespace[namespace]})
 
         annotation_edges = []
         seen_links = {}
@@ -801,7 +943,8 @@ class InfraGraphService(Api):
         annotation_graph = [
             {"attribute": k, "value": InfraGraphService._stringify(v)}
             for k, v in graph_attrs.items()
-            if is_full or k not in self._IMMUTABLE_ATTRIBUTES
+            if k not in self._SCHEMA_ATTRIBUTES
+            and (is_full or k not in self._IMMUTABLE_ATTRIBUTES)
         ]
 
         infragraph_dict["annotations"] = {
@@ -810,6 +953,8 @@ class InfraGraphService(Api):
             "links": list(seen_links.values()),
             "graph": annotation_graph
         }
+        if annotation_schemas:
+            infragraph_dict["annotations"]["schemas"] = annotation_schemas
 
         return json.dumps(infragraph_dict, indent=2)
 
@@ -897,46 +1042,87 @@ class InfraGraphService(Api):
             annotate_request = Annotation().deserialize(payload)
         else:
             annotate_request: Annotation = payload
-        
-        for annotation_node in annotate_request.nodes:
-            # expand the nodes
-            nodes = self.expand_node_string(annotation_node.name)
-            matched = set()
-            for node in nodes:
-                list_from_prefix_map = self._graph_node_prefix_map.get(node, [])
-                if list_from_prefix_map: 
-                    matched.update(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph")
+
+        journal: _UndoJournal = []
+        try:
+            self._annotate_graph(annotate_request, journal)
+        except BaseException:
+            for undo, args in reversed(journal):
+                undo(*args)
+            raise
+
+    @staticmethod
+    def _write_attribute(attributes: Dict[str, Any], key: str, value: Any, journal: _UndoJournal) -> None:
+        """Set an attribute and record how to restore it."""
+        journal.append((InfraGraphService._restore_attribute, (attributes, key, key in attributes, attributes.get(key))))
+        attributes[key] = value
+
+    @staticmethod
+    def _restore_attribute(attributes: Dict[str, Any], key: str, present: bool, old: Any) -> None:
+        if present:
+            attributes[key] = old
+        else:
+            attributes.pop(key, None)
+
+    def _add_document(self, name: str, entry: Tuple[str, Any, str], journal: _UndoJournal) -> None:
+        self._documents[name] = entry
+        journal.append((self._documents.pop, (name, None)))
+
+    def _add_references(self, node: str, references: List[Tuple[str, str]], journal: _UndoJournal) -> None:
+        """Add the references that the node does not hold yet."""
+        created = node not in self._node_references
+        stored = self._node_references.setdefault(node, [])
+        added = [r for r in references if r not in stored]
+        stored.extend(added)
+        journal.append((self._remove_references, (node, added, created)))
+
+    def _remove_references(self, node: str, added: List[Tuple[str, str]], created: bool) -> None:
+        stored = self._node_references[node]
+        for reference in added:
+            stored.remove(reference)
+        if created and not stored:
+            del self._node_references[node]
+
+    def _resolve_graph_nodes(self, name: str) -> List[str]:
+        """Graph nodes that a node string expands to, ValueError if absent."""
+        matched: List[str] = []
+        for node in self.expand_node_string(name):
+            prefixed = self._graph_node_prefix_map.get(node, [])
+            if not prefixed:
+                raise ValueError(f"{node} not present in networkx graph")
+            matched.extend(prefixed)
+        return matched
+
+    def _annotate_graph(self, annotate_request: Annotation, journal: _UndoJournal) -> None:
+        with _schema_errors():
+            new_documents, new_references = self._validate_schema_annotations(annotate_request)
+        # resolve every node and edge endpoint before the first mutation
+        resolved_nodes = [self._resolve_graph_nodes(n.name) for n in annotate_request.nodes]
+        resolved_edges = [
+            (self._resolve_graph_nodes(e.ep1), self._resolve_graph_nodes(e.ep2))
+            for e in annotate_request.edges
+        ]
+        for name, entry in new_documents.items():
+            self._add_document(name, entry, journal)
+        for node, references in new_references.items():
+            self._add_references(node, references, journal)
+        # schemas change only in set_graph, documents only with new documents
+        self._publish_schema_data(
+            new_references, journal, schemas=False, documents=bool(new_documents)
+        )
+
+        for annotation_node, matched in zip(annotate_request.nodes, resolved_nodes):
             for attribute_kvp in annotation_node.attributes:
-                if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
-                    networkx.set_node_attributes(self._graph, {n: {attribute_kvp.attribute: attribute_kvp.value} for n in matched})
+                if attribute_kvp.attribute in self._SCHEMA_ATTRIBUTES:
+                    warnings.warn(f"Skipping reserved attribute {attribute_kvp.attribute} for {annotation_node.name}")
+                elif attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
+                    for n in matched:
+                        self._write_attribute(self._graph.nodes[n], attribute_kvp.attribute, attribute_kvp.value, journal)
                 else:
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for {annotation_node.name}")
             
         # edges
-        for annotation_edge in annotate_request.edges:
-            # expand the nodes
-            expanded_source_edges = self.expand_node_string(annotation_edge.ep1)
-            expanded_destination_edges = self.expand_node_string(annotation_edge.ep2)
-            # expand it further
-            # get the expanded source edges
-            source_edges= []
-            for edge_node in expanded_source_edges:
-                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
-                if list_from_prefix_map: 
-                    source_edges.extend(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph") 
-            # get the expanded destination edges
-            destination_edges = []
-            for edge_node in expanded_destination_edges:
-                list_from_prefix_map = self._graph_node_prefix_map.get(edge_node, [])
-                if list_from_prefix_map: 
-                    destination_edges.extend(list_from_prefix_map)
-                else:
-                    raise ValueError(f"{node} not present in networx graph")    
-                        
+        for annotation_edge, (source_edges, destination_edges) in zip(annotate_request.edges, resolved_edges):
             matched_edges = [
                 edge
                 for a, b in iterproduct(source_edges, destination_edges)
@@ -946,7 +1132,8 @@ class InfraGraphService(Api):
 
             for attribute_kvp in annotation_edge.attributes:
                 if attribute_kvp.attribute not in self._IMMUTABLE_ATTRIBUTES:
-                    networkx.set_edge_attributes(self._graph, {(u, v): {attribute_kvp.attribute: attribute_kvp.value} for u, v in matched_edges})
+                    for u, v in matched_edges:
+                        self._write_attribute(self._graph[u][v], attribute_kvp.attribute, attribute_kvp.value, journal)
                 else:
                     warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for edge")
         # links
@@ -957,19 +1144,69 @@ class InfraGraphService(Api):
                     warnings.warn(f"Skipping immutable attribute {link_annotation.attribute} for {annotation_link.name}")
                     continue
                 for ep1, ep2 in edges_for_link:
-                    self._graph[ep1][ep2][link_annotation.attribute] = link_annotation.value
+                    self._write_attribute(self._graph[ep1][ep2], link_annotation.attribute, link_annotation.value, journal)
 
         # graph
         for attribute_kvp in annotate_request.graph:
             if attribute_kvp.attribute in self._IMMUTABLE_ATTRIBUTES:
                 warnings.warn(f"Skipping immutable attribute {attribute_kvp.attribute} for graph")
                 continue
-            self._graph.graph[attribute_kvp.attribute] = attribute_kvp.value
-    
+            if attribute_kvp.attribute in self._SCHEMA_ATTRIBUTES:
+                warnings.warn(f"Skipping reserved attribute {attribute_kvp.attribute} for graph")
+                continue
+            self._write_attribute(self._graph.graph, attribute_kvp.attribute, attribute_kvp.value, journal)
+
+    def _validate_schema_annotations(self, annotate_request: Annotation):
+        """Validate documents and node references without applying them."""
+        new_documents: Dict[str, Tuple[str, Any, str]] = {}
+        schema_annotations = None
+        if annotate_request.schemas or any(len(n.references) for n in annotate_request.nodes):
+            schema_annotations = _schema_support()
+        for schema in annotate_request.schemas:
+            validate = self._schema_validators.get(schema.namespace)
+            if validate is None:
+                raise InfrastructureError(f"Unknown schema: {schema.namespace}")
+            for document in schema.documents:
+                if document.name in self._documents or document.name in new_documents:
+                    raise InfrastructureError(f"Duplicate document name: {document.name}")
+                value = schema_annotations.decode_text(
+                    document.value,
+                    f"document {document.name}",
+                    schema_annotations.MAX_DOCUMENT_BYTES,
+                )
+                validate(value)
+                new_documents[document.name] = (schema.namespace, value, schema_annotations.canonical_json(value))
+
+        new_references: Dict[str, List[Tuple[str, str]]] = {}
+        for annotation_node in annotate_request.nodes:
+            if len(annotation_node.references) == 0:
+                continue
+            matched = set(self._resolve_graph_nodes(annotation_node.name))
+            for reference in annotation_node.references:
+                entry = self._documents.get(reference.document) or new_documents.get(reference.document)
+                if entry is None:
+                    raise InfrastructureError(f"Unknown document: {reference.document}")
+                pointer = reference.pointer or ""
+                schema_annotations.resolve_pointer(entry[1], pointer)
+                for node in matched:
+                    refs = new_references.setdefault(node, [])
+                    if (reference.document, pointer) not in refs:
+                        refs.append((reference.document, pointer))
+        return new_documents, new_references
+
     def _process_node_filter(self, node_filter: QueryRequestNode, query_response: QueryResponseFilter):
         
-        if (node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0):
+        has_schema_filters = len(node_filter.schema_filters) > 0
+        if (node_filter.node_identifiers is None or len(node_filter.node_identifiers) == 0) and (node_filter.attribute_filters is None or len(node_filter.attribute_filters.attributes) == 0) and not has_schema_filters:
             return
+
+        # validate the schema filters before any result is produced
+        schema_annotations = _schema_support() if has_schema_filters else None
+        for schema_filter in node_filter.schema_filters:
+            if schema_filter.schema not in self._schema_validators:
+                raise InfrastructureError(f"Unknown schema: {schema_filter.schema}")
+            with _schema_errors():
+                schema_annotations.validate_jsonpath(schema_filter.path)
 
         node_filter_result = query_response.nodes.add(name=node_filter.name)
 
@@ -987,11 +1224,22 @@ class InfraGraphService(Api):
                     else:
                         warnings.warn(f"{node} not present in networx graph")
         
+        # nodes that matched a schema filter and the references that matched
+        matched_references: Dict[str, List[Tuple[str, str, str]]] = {}
+        if has_schema_filters:
+            with _schema_errors():
+                request_node_identifiers = [
+                    node
+                    for node in dict.fromkeys(request_node_identifiers)
+                    if self._match_schema_filters(node, node_filter.schema_filters, matched_references)
+                ]
+
         # check for attributes here
         if len(node_filter.attribute_filters.attributes) == 0:
             # all attributes
             for node in request_node_identifiers:
                 query_response_node = node_filter_result.nodes.add(name=node)
+                self._add_response_references(query_response_node, matched_references.get(node, []))
                 # return all attributes
                 if node in self._graph:
                     attrs = self._graph.nodes[node]
@@ -1013,9 +1261,39 @@ class InfraGraphService(Api):
                 attribute_match = InfraGraphService._match_attrs(attrs, attribute_map, logic)
                 if len(attribute_match) > 0:
                     query_response_node = node_filter_result.nodes.add(name=node)
+                    self._add_response_references(query_response_node, matched_references.get(node, []))
                     # add those specific nodes?
                     for k, v in attribute_match.items():
                         query_response_node.attributes.add(attribute=k, value=str(v))
+
+    def _match_schema_filters(self, node, schema_filters, matched_references) -> bool:
+        """True if every schema filter holds for the node, the references that
+        satisfied a filter are recorded in matched_references."""
+        schema_annotations = _schema_support()
+        references = self._node_references.get(node, [])
+        found: List[Tuple[str, str, str]] = []
+        for schema_filter in schema_filters:
+            satisfied = False
+            for document, pointer in references:
+                namespace, value, _ = self._documents[document]
+                if namespace != schema_filter.schema:
+                    continue
+                element = schema_annotations.resolve_pointer(value, pointer)
+                if schema_annotations.jsonpath_selects(schema_filter.path, element):
+                    satisfied = True
+                    if (namespace, document, pointer) not in found:
+                        found.append((namespace, document, pointer))
+            if not satisfied:
+                return False
+        matched_references[node] = found
+        return True
+
+    @staticmethod
+    def _add_response_references(response_node, references) -> None:
+        for namespace, document, pointer in references:
+            reference = response_node.references.add(schema=namespace, document=document)
+            if pointer:
+                reference.pointer = pointer
 
     def _process_edge_filter(self, edge_filter: QueryRequestEdge, query_response: QueryResponseFilter):
         

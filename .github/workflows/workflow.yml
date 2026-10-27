@@ -9,6 +9,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  test-python-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is covered by the build job
+        python-version: ["3.12"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build, install and test on Python ${{ matrix.python-version }}
+        run: |
+          make venv
+          make clean
+          make install
+          make test
+
   build:
     runs-on: ubuntu-latest
 

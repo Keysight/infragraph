@@ -84,6 +84,15 @@ Graph attributes are stored in the NetworkX `Graph.graph` dictionary and are ret
 
 Immutable infrastructure-derived attributes (e.g., `type`, `link`) are rejected on graph targets, consistent with node and edge annotation rules.
 
+## Schema data in the NetworkX graph
+The service publishes schema data in the NetworkX graph, so a consumer of `get_networkx_graph()` or the `networkx` `get_graph` response needs no service call.
+
+- `Graph.graph["schemas"]` holds the declared schema definitions.
+- `Graph.graph["documents"]` holds the annotated documents as `name`, `namespace` and canonical JSON `value`.
+- The `references` node attribute holds the `document` and optional `pointer` of each reference.
+- The names `schemas`, `documents` and `references` are reserved. Annotations that target them on a node or the graph are skipped with a warning.
+- The `infragraph` response exports this data under `infrastructure.schemas` and `annotations.schemas`, which `set_graph` and `annotate_graph` accept back.
+
 <details open>
 <summary><strong>Add metadata attributes to the graph</strong></summary>
 ```python
