@@ -17,6 +17,7 @@ venv:
 .PHONY: clean
 clean: ## install dependencies into the active environment
 	$(PIP) install --upgrade pip && $(PIP) install --progress-bar on -r requirements.txt
+	$(PIP) install --no-deps "openapiart>=0.3.39,<0.3.42"
 	rm -f src/infragraph/visualizer/frontend/js/vis-network.min.js
 	wget --no-check-certificate https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js -O src/infragraph/visualizer/frontend/js/vis-network.min.js
 
