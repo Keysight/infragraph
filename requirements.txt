@@ -2,9 +2,9 @@ semantic_version
 build
 # openapiart 0.3.42+ moves to grpcio-tools 1.80 / protobuf 6.x
 openapiart>=0.3.39,<0.3.42
-grpcio-tools~=1.70.0
+grpcio-tools~=1.67.1
 grpcio==1.67.1
-protobuf==5.28.3
+protobuf==5.29.5
 networkx
 pytest
 pytest-asyncio
