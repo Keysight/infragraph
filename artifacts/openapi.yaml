@@ -20,7 +20,7 @@ info:
     Contributions to the API and models schema can be made in the following ways:
     - [open an issue](https://github.com/keysight/infragraph/issues) in the models repository
     - [fork the models repository](https://github.com/keysight/infragraph) and submit a PR
-  version: 3.1.0
+  version: 3.1.0-k1
   contact:
     url: https://github.com/keysight/infragraph/issues
   license:
@@ -221,6 +221,8 @@ components:
           x-field-uid: 6
         schemas:
           description: |-
+            Under Review: Schema annotations are a proposal under review
+
             An inventory of schemas that annotations can reference.
             A document of a schema is annotated once at graph level, and
             nodes reference elements of it. A schema MUST be declared here
@@ -1100,6 +1102,8 @@ components:
           x-field-uid: 2
         references:
           description: |-
+            Under Review: Schema annotations are a proposal under review
+
             References from the node to elements of documents. A node holds
             a set of references, and a reference that is already
             present is a no-op.
@@ -1191,6 +1195,8 @@ components:
           x-field-uid: 4
         schemas:
           description: |-
+            Under Review: Schema annotations are a proposal under review
+
             Documents of declared schemas, annotated at graph level under
             their schema. They are applied before the node references of the
             same request, so a document and the references to it can be
@@ -1298,6 +1304,8 @@ components:
           x-field-uid: 2
         references:
           description: |-
+            Under Review: Schema annotations are a proposal under review
+
             The references of the node that matched a schema filter.
           type: array
           items:
@@ -1463,6 +1471,8 @@ components:
           x-field-uid: 2
         schema_filters:
           description: |-
+            Under Review: Schema annotations are a proposal under review
+
             Filters on the elements of documents that nodes reference.
             If node_identifiers is set, the filters are evaluated only
             against those nodes. Otherwise they are evaluated against every

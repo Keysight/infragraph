@@ -1,4 +1,4 @@
-"""Exceptions of schema annotations, free of the optional schema dependencies."""
+"""Exceptions of schema annotations, free of the schema library dependencies."""
 
 
 class SchemaAnnotationError(ValueError):

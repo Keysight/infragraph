@@ -703,7 +703,7 @@ def test_attribute_only_annotate_does_not_republish_schemas_or_documents():
     assert len(published["documents"]) == 4
 
 
-def test_schema_dependencies_are_optional(tmp_path):
+def test_schema_support_loads_lazily(tmp_path):
     script = tmp_path / "check.py"
     script.write_text(
         "import sys\n"
@@ -724,7 +724,7 @@ def test_schema_dependencies_are_optional(tmp_path):
         "try:\n"
         "    InfraGraphService().set_graph(build(True))\n"
         "except InfrastructureError as e:\n"
-        "    assert 'infragraph[schemas]' in str(e), e\n"
+        "    assert 'Schema support is not available' in str(e), e\n"
         "else:\n"
         "    raise SystemExit('schema support loaded without its dependencies')\n"
     )

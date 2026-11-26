@@ -30,12 +30,12 @@ class InfrastructureError(Exception):
     pass
 
 def _schema_support() -> Any:
-    """Load schema_annotations on first use, its dependencies are optional."""
+    """Load schema_annotations on first use, so graphs without schemas never import it."""
     try:
         from infragraph import schema_annotations
     except ImportError as e:
         raise InfrastructureError(
-            f"Schema support is not installed ({e}), install infragraph[schemas]"
+            f"Schema support is not available ({e}), reinstall infragraph with its dependencies"
         ) from e
     return schema_annotations
 
